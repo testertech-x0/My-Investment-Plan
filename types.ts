@@ -49,7 +49,6 @@ export interface User {
   bankAccount: BankAccount | null;
   luckyDrawChances: number;
   fundPassword?: string | null;
-  // FIX: Add optional language property to User interface.
   language?: string;
 }
 

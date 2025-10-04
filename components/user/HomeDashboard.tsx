@@ -135,9 +135,9 @@ const HomeDashboard: React.FC = () => {
               <FileText className="text-purple-600 mb-2" size={32} />
               <span className="text-sm font-medium text-gray-700">Order</span>
             </button>
-            <button className="flex flex-col items-center p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition">
+            <button onClick={() => setCurrentView('lucky-wheel')} className="flex flex-col items-center p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition">
               <Gift className="text-orange-600 mb-2" size={32} />
-              <span className="text-sm font-medium text-gray-700">Task Hall</span>
+              <span className="text-sm font-medium text-gray-700">Lucky Draw</span>
             </button>
           </div>
         </div>

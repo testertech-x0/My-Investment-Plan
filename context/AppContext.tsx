@@ -119,7 +119,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       bankAccount: null,
       luckyDrawChances: 1,
       fundPassword: null,
-      // FIX: Initialize language for new users.
       language: 'en',
     };
     setUsers(prevUsers => [...prevUsers, newUser]);

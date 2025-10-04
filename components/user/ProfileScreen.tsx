@@ -17,6 +17,7 @@ const ProfileScreen: React.FC = () => {
     { icon: Award, label: 'VIP Level', section: 'account' },
     { icon: Lock, label: 'Login Password', section: 'security', action: 'change-password' },
     { icon: Lock, label: 'Fund Password', section: 'security', action: 'fund-password' },
+    { icon: Globe, label: 'Language', section: 'settings', action: 'language' },
   ];
 
   return (
@@ -59,7 +60,7 @@ const ProfileScreen: React.FC = () => {
           </div>
         </div>
 
-        {['account', 'security'].map(section => (
+        {['account', 'security', 'settings'].map(section => (
           <div key={section} className="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">{section}</h3>
             {menuItems.filter(item => item.section === section).map((item, idx) => (

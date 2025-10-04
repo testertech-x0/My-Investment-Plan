@@ -18,6 +18,8 @@ import BankAccountScreen from './components/user/BankAccountScreen';
 import BillDetailsScreen from './components/user/BillDetailsScreen';
 import FundPasswordScreen from './components/user/FundPasswordScreen';
 import MyOrdersScreen from './components/user/MyOrdersScreen';
+import LuckyWheelScreen from './components/user/LuckyWheelScreen';
+import LanguageScreen from './components/user/LanguageScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
@@ -114,6 +116,12 @@ function AppContent() {
         break;
       case 'my-orders':
         viewComponent = <MyOrdersScreen />;
+        break;
+      case 'lucky-wheel':
+        viewComponent = <LuckyWheelScreen />;
+        break;
+      case 'language':
+        viewComponent = <LanguageScreen />;
         break;
       default:
         viewComponent = <HomeDashboard />;
