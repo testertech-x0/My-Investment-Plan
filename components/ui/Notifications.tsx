@@ -17,7 +17,7 @@ const Notifications: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none z-[100]">
+    <div className="fixed inset-0 flex items-start justify-center p-4 pt-20 pointer-events-none z-[100]">
       <div className="w-full max-w-sm space-y-3">
         {notifications.map((notification: Notification) => (
           <div
