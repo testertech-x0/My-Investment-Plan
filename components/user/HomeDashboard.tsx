@@ -69,7 +69,7 @@ const HomeDashboard: React.FC = () => {
                 <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-green-500"></span>
               )}
             </button>
-            <button className="bg-white bg-opacity-20 p-2 rounded-full">
+            <button onClick={() => setCurrentView('profile')} className="bg-white bg-opacity-20 p-2 rounded-full">
               <User size={24} />
             </button>
 
