@@ -614,6 +614,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setThemeColor(color);
   };
 
+  const changeAdminPassword = (oldPass: string, newPass: string): { success: boolean; message?: string } => {
+    if (oldPass !== admin.password) {
+        const message = 'Current admin password is incorrect';
+        addNotification(message, 'error');
+        return { success: false, message };
+    }
+    if (newPass.length < 6) {
+        const message = 'New password must be at least 6 characters';
+        addNotification(message, 'error');
+        return { success: false, message };
+    }
+    setAdmin(prev => ({ ...prev, password: newPass }));
+    addNotification('Admin password changed successfully!', 'success');
+    return { success: true };
+  };
+
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
     users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
@@ -621,7 +637,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor,
+    updateThemeColor, changeAdminPassword,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

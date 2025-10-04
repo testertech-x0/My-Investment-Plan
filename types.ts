@@ -133,4 +133,5 @@ export interface AppContextType {
   updateAppName: (newName: string) => void;
   updateAppLogo: (newLogo: string) => void;
   updateThemeColor: (color: ThemeColor) => void;
+  changeAdminPassword: (oldPass: string, newPass: string) => { success: boolean; message?: string };
 }

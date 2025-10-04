@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment } from '../../types';
+import { TransactionIcon } from '../user/BillDetailsScreen';
 
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
     { name: 'green', bgClass: 'bg-green-500' },
@@ -155,13 +156,139 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
     );
 };
 
+const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User, onClose: () => void, onEdit: (user: User) => void, onToggleStatus: (user: User) => void }) => {
+    const [activeTab, setActiveTab] = useState('overview');
+    
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: Users },
+        { id: 'investments', label: 'Investments', icon: Briefcase },
+        { id: 'transactions', label: 'Transactions', icon: FileText },
+        { id: 'activity', label: 'Login Activity', icon: Activity },
+    ];
+    
+    const renderContent = () => {
+        const sortedTransactions = [...user.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const sortedLoginActivity = [...user.loginActivity].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        switch(activeTab) {
+            case 'investments':
+                return user.investments.length > 0 ? (
+                    <div className="divide-y divide-gray-200">
+                        {user.investments.map((inv: Investment) => (
+                            <div key={inv.planId} className="py-3">
+                                <p className="font-semibold text-gray-800">{inv.planName} (x{inv.quantity})</p>
+                                <div className="grid grid-cols-2 text-sm text-gray-600 mt-1">
+                                    <p>Invested: ₹{inv.investedAmount.toFixed(2)}</p>
+                                    <p>Total Revenue: ₹{inv.totalRevenue.toFixed(2)}</p>
+                                    <p>Daily Earnings: ₹{inv.dailyEarnings.toFixed(2)}</p>
+                                    <p>Duration: {inv.revenueDays} days</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="text-gray-500 text-center py-8">No investments found.</p>;
+
+            case 'transactions':
+                return sortedTransactions.length > 0 ? (
+                     <div className="divide-y divide-gray-200">
+                        {sortedTransactions.map((tx: Transaction, index: number) => (
+                            <div key={index} className="flex items-center justify-between py-2.5">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-gray-100 p-2 rounded-full"><TransactionIcon type={tx.type} /></div>
+                                    <div>
+                                        <p className="font-medium text-gray-800">{tx.description}</p>
+                                        <p className="text-xs text-gray-500">{new Date(tx.date).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                <p className={`font-semibold text-base ${tx.amount >= 0 ? 'text-green-600' : 'text-gray-800'}`}>
+                                    {tx.type === 'system' ? '' : `₹${tx.amount.toFixed(2)}`}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="text-gray-500 text-center py-8">No transactions found.</p>;
+
+            case 'activity':
+                 return sortedLoginActivity.length > 0 ? (
+                    <div className="divide-y divide-gray-200">
+                        {sortedLoginActivity.map((act: LoginActivity, index: number) => (
+                            <div key={index} className="flex justify-between items-center py-2.5">
+                                <p className="text-gray-700">{act.device}</p>
+                                <p className="text-sm text-gray-500">{new Date(act.date).toLocaleString()}</p>
+                            </div>
+                        ))}
+                    </div>
+                 ) : <p className="text-gray-500 text-center py-8">No login activity found.</p>;
+
+            case 'overview':
+            default:
+                return (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><p className="text-gray-500">User ID</p><p className="font-semibold text-gray-800">{user.id}</p></div>
+                            <div><p className="text-gray-500">Phone</p><p className="font-semibold text-gray-800">{user.phone}</p></div>
+                             <div><p className="text-gray-500">Email</p><p className="font-semibold text-gray-800">{user.email || 'N/A'}</p></div>
+                            <div><p className="text-gray-500">Registered</p><p className="font-semibold text-gray-800">{new Date(user.registrationDate).toLocaleDateString()}</p></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-center bg-gray-50 p-4 rounded-lg">
+                            <div>
+                                <p className="text-gray-500 text-sm">Balance</p>
+                                <p className="text-2xl font-bold text-green-600">₹{user.balance.toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500 text-sm">Total Returns</p>
+                                <p className="text-2xl font-bold text-blue-600">₹{user.totalReturns.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                             <button onClick={() => onToggleStatus(user)} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold transition ${user.isActive ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                                {user.isActive ? <><UserX size={18}/> Block User</> : <><UserCheck size={18}/> Activate User</>}
+                            </button>
+                            <button onClick={() => onEdit(user)} className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">
+                                <Edit size={18} /> Edit Info
+                            </button>
+                        </div>
+                    </div>
+                );
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-fade-in-up">
+                <header className="p-4 border-b flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-800">{user.name}</h3>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {user.isActive ? 'Active' : 'Blocked'}
+                        </span>
+                    </div>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+                </header>
+                <nav className="flex border-b shrink-0">
+                    {tabs.map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 p-3 font-medium transition-colors ${activeTab === tab.id ? 'text-gray-800 border-b-2 border-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
+                            <tab.icon size={18} /> {tab.label}
+                        </button>
+                    ))}
+                </nav>
+                <div className="p-6 overflow-y-auto">
+                    {renderContent()}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const AdminDashboard: React.FC = () => {
-  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor } = useApp();
+  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword } = useApp();
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [detailedUser, setDetailedUser] = useState<User | null>(null);
   const [showUserEditModal, setShowUserEditModal] = useState(false);
   const [editUserData, setEditUserData] = useState({ name: '', phone: '', balance: 0, email: '' });
 
@@ -178,6 +305,8 @@ const AdminDashboard: React.FC = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(appLogo);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
+  // Admin security state
+  const [adminPassData, setAdminPassData] = useState({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
 
   const filteredUsers = users.filter(user =>
     user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -191,9 +320,14 @@ const AdminDashboard: React.FC = () => {
 
   // User management functions
   const handleEditUser = (user: User) => {
+    setDetailedUser(null);
     setSelectedUser(user);
     setEditUserData({ name: user.name, phone: user.phone, balance: user.balance, email: user.email });
     setShowUserEditModal(true);
+  };
+  
+  const handleViewUser = (user: User) => {
+    setDetailedUser(user);
   };
 
   const saveUserEdit = () => {
@@ -202,6 +336,7 @@ const AdminDashboard: React.FC = () => {
       addNotification(`User ${selectedUser.name} updated successfully.`, 'success');
       setShowUserEditModal(false);
       setSelectedUser(null);
+      setDetailedUser(prev => prev ? {...prev, ...editUserData} : null); // Update detailed view if open
     }
   };
 
@@ -216,6 +351,7 @@ const AdminDashboard: React.FC = () => {
   const toggleUserStatus = (user: User) => {
     const newStatus = !user.isActive;
     updateUser(user.id, { isActive: newStatus });
+    setDetailedUser(prev => prev ? {...prev, isActive: newStatus} : null);
     addNotification(`User ${user.name} has been ${newStatus ? 'activated' : 'blocked'}.`, 'info');
   };
 
@@ -301,6 +437,18 @@ const AdminDashboard: React.FC = () => {
     addNotification('App name saved!', 'success');
   };
 
+  const handleAdminPasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassData.newPassword !== adminPassData.confirmNewPassword) {
+        addNotification("New passwords do not match.", 'error');
+        return;
+    }
+    const result = changeAdminPassword(adminPassData.oldPassword, adminPassData.newPassword);
+    if (result.success) {
+        setAdminPassData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -323,6 +471,8 @@ const AdminDashboard: React.FC = () => {
                 onCancel={() => setImageToCrop(null)}
             />
         )}
+        {detailedUser && <UserDetailModal user={detailedUser} onClose={() => setDetailedUser(null)} onEdit={handleEditUser} onToggleStatus={toggleUserStatus} />}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             { title: 'Total Users', value: users.length, icon: Users, color: 'blue' },
@@ -342,68 +492,95 @@ const AdminDashboard: React.FC = () => {
           ))}
         </div>
         
-        {/* Platform Customization */}
-        <div className="bg-white rounded-xl shadow mb-8">
-            <div className="p-6 border-b flex items-center gap-3">
-                <Settings className="text-gray-500" />
-                <h2 className="text-xl font-semibold text-gray-800">Platform Customization</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 items-start">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={newAppName}
-                            onChange={(e) => setNewAppName(e.target.value)}
-                            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                            placeholder="Enter App Name"
-                        />
-                         <button
-                            onClick={handleSaveSettings}
-                            className="bg-gray-800 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
-                        >
-                            Save
-                        </button>
-                    </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Platform Customization */}
+            <div className="bg-white rounded-xl shadow">
+                <div className="p-6 border-b flex items-center gap-3">
+                    <Settings className="text-gray-500" />
+                    <h2 className="text-xl font-semibold text-gray-800">Platform Customization</h2>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8 items-start">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
-                        <input
-                            type="file"
-                            accept="image/png, image/jpeg"
-                            onChange={handleLogoFileChange}
-                            id="logo-upload"
-                            className="hidden"
-                        />
-                        <label htmlFor="logo-upload" className="cursor-pointer block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
-                             <span className="inline-block bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200">
-                                Choose Image...
-                            </span>
-                        </label>
-                    </div>
-                    {logoPreview && (
-                        <div>
-                            <p className="text-sm font-medium text-gray-700 mb-2">Current Logo</p>
-                            <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
-                        </div>
-                    )}
-                </div>
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
-                    <div className="flex flex-wrap gap-3">
-                        {themeOptions.map(option => (
-                            <button key={option.name} onClick={() => updateThemeColor(option.name)}
-                                className={`w-10 h-10 rounded-full ${option.bgClass} flex items-center justify-center transition-all duration-200
-                                ${themeColor === option.name ? 'ring-4 ring-offset-2 ring-gray-800' : 'hover:scale-110'}`}
-                                title={option.name.charAt(0).toUpperCase() + option.name.slice(1)}
+                        <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newAppName}
+                                onChange={(e) => setNewAppName(e.target.value)}
+                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                placeholder="Enter App Name"
+                            />
+                            <button
+                                onClick={handleSaveSettings}
+                                className="bg-gray-800 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
                             >
-                                {themeColor === option.name && <Check className="text-white" size={20} />}
+                                Save
                             </button>
-                        ))}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
+                            <input
+                                type="file"
+                                accept="image/png, image/jpeg"
+                                onChange={handleLogoFileChange}
+                                id="logo-upload"
+                                className="hidden"
+                            />
+                            <label htmlFor="logo-upload" className="cursor-pointer block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                                <span className="inline-block bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200">
+                                    Choose...
+                                </span>
+                            </label>
+                        </div>
+                        {logoPreview && (
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 mb-2">Current</p>
+                                <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
+                            </div>
+                        )}
+                    </div>
+                    <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
+                        <div className="flex flex-wrap gap-3">
+                            {themeOptions.map(option => (
+                                <button key={option.name} onClick={() => updateThemeColor(option.name)}
+                                    className={`w-10 h-10 rounded-full ${option.bgClass} flex items-center justify-center transition-all duration-200
+                                    ${themeColor === option.name ? 'ring-4 ring-offset-2 ring-gray-800' : 'hover:scale-110'}`}
+                                    title={option.name.charAt(0).toUpperCase() + option.name.slice(1)}
+                                >
+                                    {themeColor === option.name && <Check className="text-white" size={20} />}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Admin Security */}
+            <div className="bg-white rounded-xl shadow">
+                <div className="p-6 border-b flex items-center gap-3">
+                    <Shield className="text-gray-500" />
+                    <h2 className="text-xl font-semibold text-gray-800">Admin Security</h2>
+                </div>
+                <form className="p-6 space-y-4" onSubmit={handleAdminPasswordChange}>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                        <input type="password" value={adminPassData.oldPassword} onChange={e => setAdminPassData({...adminPassData, oldPassword: e.target.value})} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                        <input type="password" value={adminPassData.newPassword} onChange={e => setAdminPassData({...adminPassData, newPassword: e.target.value})} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                        <input type="password" value={adminPassData.confirmNewPassword} onChange={e => setAdminPassData({...adminPassData, confirmNewPassword: e.target.value})} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                    </div>
+                    <div className="pt-2">
+                        <button type="submit" className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition">Change Password</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -423,7 +600,6 @@ const AdminDashboard: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -433,8 +609,10 @@ const AdminDashboard: React.FC = () => {
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map(user => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.id}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">+91 {user.phone}</td>
+                    <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-gray-900">{user.id}</p>
+                        <p className="text-xs text-gray-500">{user.phone}</p>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{user.name}</td>
                     <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{user.balance.toFixed(2)}</td>
                     <td className="px-6 py-4">
@@ -445,8 +623,9 @@ const AdminDashboard: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-1">
+                        <button onClick={() => handleViewUser(user)} className="p-2 text-gray-600 hover:bg-gray-100 rounded transition" title="View Details"><Eye size={18} /></button>
                         <button onClick={() => handleEditUser(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit"><Edit size={18} /></button>
-                        <button onClick={() => loginAsUserFunc(user.id)} className="p-2 text-green-600 hover:bg-green-50 rounded transition" title="Login As User"><Eye size={18} /></button>
+                        <button onClick={() => loginAsUserFunc(user.id)} className="p-2 text-green-600 hover:bg-green-50 rounded transition" title="Login As User"><LogIn size={18} /></button>
                         <button onClick={() => handleDeleteUser(user)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Delete"><Trash2 size={18} /></button>
                       </div>
                     </td>
