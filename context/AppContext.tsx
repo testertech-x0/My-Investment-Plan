@@ -111,7 +111,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return phone.substring(0, 2) + '****' + phone.substring(phone.length - 4);
   };
 
-  const register = async (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>): Promise<{ success: boolean; userId?: string }> => {
+  const register = async (userData: Pick<User, 'phone' | 'password' | 'name'>): Promise<{ success: boolean; userId?: string }> => {
     const userId = generateUserId();
     const newMemberReward: Transaction = { id: generateTxId(), type: 'reward', amount: 30, description: 'New member reward', date: new Date().toISOString(), read: false };
     const signInReward: Transaction = { id: generateTxId(), type: 'reward', amount: 0, description: 'Sign in reward', date: new Date(Date.now() + 1000).toISOString(), read: false };
@@ -119,8 +119,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: userId,
       phone: userData.phone,
       password: userData.password,
-      name: userData.name || `User ${userId.split(':')[1]}`,
-      email: userData.email || '',
+      name: userData.name,
+      email: '',
       balance: 30,
       totalReturns: 0,
       rechargeAmount: 0,

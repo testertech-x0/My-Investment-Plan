@@ -9,7 +9,7 @@ type Strength = {
 
 const Register: React.FC = () => {
   const { register, setCurrentView, addNotification, appName } = useApp();
-  const [formData, setFormData] = useState({ phone: '', password: '', confirmPassword: '', name: '', email: '' });
+  const [formData, setFormData] = useState({ phone: '', password: '', confirmPassword: '', name: '' });
   const [isRegistering, setIsRegistering] = useState(false);
 
   const getPasswordStrength = (password: string): Strength | null => {
@@ -44,6 +44,11 @@ const Register: React.FC = () => {
     }
     if (!formData.phone.match(/^\d{10}$/)) {
       addNotification('Please enter a valid 10-digit phone number', 'error');
+      setIsRegistering(false);
+      return;
+    }
+    if (!formData.name.trim()) {
+      addNotification('Please enter your name', 'error');
       setIsRegistering(false);
       return;
     }
@@ -102,17 +107,10 @@ const Register: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Name (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
             <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="Your name" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email (Optional)</label>
-            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="your@email.com" />
+              placeholder="Your name" required />
           </div>
 
           <button type="submit" disabled={isRegistering} className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">

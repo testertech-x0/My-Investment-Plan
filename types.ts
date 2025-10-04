@@ -148,7 +148,7 @@ export interface AppContextType {
   chatSessions: ChatSession[];
   socialLinks: SocialLinks;
   setCurrentView: (view: string) => void;
-  register: (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>) => Promise<{ success: boolean; userId?: string }>;
+  register: (userData: Pick<User, 'phone' | 'password' | 'name'>) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
