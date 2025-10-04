@@ -6,10 +6,13 @@ const Login: React.FC = () => {
   const { login, setCurrentView, appName, appLogo } = useApp();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(identifier, password);
+    setIsLoggingIn(true);
+    await login(identifier, password);
+    setIsLoggingIn(false);
   };
 
   return (
@@ -42,8 +45,8 @@ const Login: React.FC = () => {
               placeholder="Enter password" required />
           </div>
 
-          <button type="submit" className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
-            Login
+          <button type="submit" disabled={isLoggingIn} className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">
+            {isLoggingIn ? 'Logging in...' : 'Login'}
           </button>
         </form>
 

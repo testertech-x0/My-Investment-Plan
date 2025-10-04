@@ -4,10 +4,11 @@ import { useApp } from '../../context/AppContext';
 const ChangePassword = () => {
   const { currentUser, setCurrentView, addNotification, changeUserPassword } = useApp();
   const [formData, setFormData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [isChanging, setIsChanging] = useState(false);
   
   if (!currentUser) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.newPassword !== formData.confirmPassword) {
@@ -15,11 +16,13 @@ const ChangePassword = () => {
       return;
     }
 
-    const result = changeUserPassword(currentUser.id, formData.oldPassword, formData.newPassword);
+    setIsChanging(true);
+    const result = await changeUserPassword(currentUser.id, formData.oldPassword, formData.newPassword);
     
     if (result.success) {
       setTimeout(() => setCurrentView('profile'), 1500);
     }
+    setIsChanging(false);
   };
 
   return (
@@ -56,8 +59,9 @@ const ChangePassword = () => {
             </div>
             
             <button type="submit"
-              className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition mt-6">
-              Change Password
+              disabled={isChanging}
+              className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition mt-6 disabled:bg-green-300">
+              {isChanging ? 'Changing...' : 'Change Password'}
             </button>
           </form>
         </div>

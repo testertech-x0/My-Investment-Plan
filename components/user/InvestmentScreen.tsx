@@ -16,6 +16,7 @@ const InvestmentScreen: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<InvestmentPlan | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [isInvesting, setIsInvesting] = useState(false);
 
   if (!currentUser) return null;
 
@@ -31,13 +32,15 @@ const InvestmentScreen: React.FC = () => {
     setShowModal(true);
   };
 
-  const confirmInvestment = () => {
-    if (!selectedPlan) return;
-    const result = investInPlan(selectedPlan.id, quantity);
+  const confirmInvestment = async () => {
+    if (!selectedPlan || isInvesting) return;
+    setIsInvesting(true);
+    const result = await investInPlan(selectedPlan.id, quantity);
     if (result.success) {
       setShowModal(false);
       setSelectedPlan(null);
     }
+    setIsInvesting(false);
   };
 
   return (
@@ -158,7 +161,9 @@ const InvestmentScreen: React.FC = () => {
                       </div>
                       <div className="flex gap-3">
                           <button onClick={() => setShowModal(false)} className="flex-1 py-3 border border-green-500 rounded-lg font-semibold text-green-600 hover:bg-green-50 transition">Cancel</button>
-                          <button onClick={confirmInvestment} className="flex-1 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">Invest Now ₹{(selectedPlan.minInvestment * quantity).toFixed(2)}</button>
+                          <button onClick={confirmInvestment} disabled={isInvesting} className="flex-1 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">
+                            {isInvesting ? 'Processing...' : `Invest Now ₹${(selectedPlan.minInvestment * quantity).toFixed(2)}`}
+                            </button>
                       </div>
                   </footer>
               </div>

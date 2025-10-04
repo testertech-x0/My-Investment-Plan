@@ -1,31 +1,35 @@
-
 import React, { useState } from 'react';
 import { ArrowLeft, Landmark } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const WithdrawScreen: React.FC = () => {
-    const { currentUser, setCurrentView, makeWithdrawal } = useApp();
+    const { currentUser, setCurrentView, makeWithdrawal, addNotification } = useApp();
     const [activeTab, setActiveTab] = useState('CASH');
     const [amount, setAmount] = useState('');
+    const [isWithdrawing, setIsWithdrawing] = useState(false);
 
     if (!currentUser) return null;
 
     const quickAmounts = [10000, 50000, 100000];
 
-    const handleWithdraw = () => {
+    const handleWithdraw = async () => {
         const withdrawalAmount = parseFloat(amount);
         if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
             return;
         }
-        const result = makeWithdrawal(currentUser.id, withdrawalAmount);
+        setIsWithdrawing(true);
+        const result = await makeWithdrawal(currentUser.id, withdrawalAmount);
         if(result.success) {
             setAmount('');
+        } else if (result.message) {
+            addNotification(result.message, 'error');
         }
+        setIsWithdrawing(false);
     };
 
     const isConfirmDisabled = () => {
         const numAmount = parseFloat(amount);
-        return !currentUser.bankAccount || isNaN(numAmount) || numAmount <= 0 || numAmount > currentUser.balance;
+        return isWithdrawing || !currentUser.bankAccount || isNaN(numAmount) || numAmount <= 0 || numAmount > currentUser.balance;
     }
 
     return (
@@ -112,7 +116,7 @@ const WithdrawScreen: React.FC = () => {
                             onClick={handleWithdraw}
                             disabled={isConfirmDisabled()}
                             className="w-full py-3 rounded-lg font-semibold transition text-white mt-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
-                            Confirm
+                            {isWithdrawing ? 'Processing...' : 'Confirm'}
                         </button>
                     </>
                 ) : (

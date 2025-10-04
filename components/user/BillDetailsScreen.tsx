@@ -28,7 +28,7 @@ const BillDetailsScreen: React.FC = () => {
     
     useEffect(() => {
         markNotificationsAsRead();
-    }, []);
+    }, [markNotificationsAsRead]);
 
     if (!currentUser) return null;
 

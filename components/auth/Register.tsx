@@ -10,6 +10,7 @@ type Strength = {
 const Register: React.FC = () => {
   const { register, setCurrentView, addNotification, appName } = useApp();
   const [formData, setFormData] = useState({ phone: '', password: '', confirmPassword: '', name: '', email: '' });
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const getPasswordStrength = (password: string): Strength | null => {
     if (!password) return null;
@@ -27,26 +28,31 @@ const Register: React.FC = () => {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsRegistering(true);
 
     if (formData.password.length < 6) {
       addNotification('Password must be at least 6 characters', 'error');
+      setIsRegistering(false);
       return;
     }
     if (formData.password !== formData.confirmPassword) {
       addNotification('Passwords do not match', 'error');
+      setIsRegistering(false);
       return;
     }
     if (!formData.phone.match(/^\d{10}$/)) {
       addNotification('Please enter a valid 10-digit phone number', 'error');
+      setIsRegistering(false);
       return;
     }
 
-    const result = register(formData);
+    const result = await register(formData);
     if (result.success) {
       setTimeout(() => setCurrentView('login'), 2000);
     }
+    setIsRegistering(false);
   };
 
   const passwordStrength = getPasswordStrength(formData.password);
@@ -109,8 +115,8 @@ const Register: React.FC = () => {
               placeholder="your@email.com" />
           </div>
 
-          <button type="submit" className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
-            Register
+          <button type="submit" disabled={isRegistering} className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">
+            {isRegistering ? 'Registering...' : 'Register'}
           </button>
         </form>
 

@@ -15,6 +15,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
     const [errors, setErrors] = useState({ ifscCode: '', fundPassword: '' });
     const [isOtpSent, setIsOtpSent] = useState(false);
     const [otpCountdown, setOtpCountdown] = useState(30);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
@@ -26,12 +27,14 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
         return () => clearTimeout(timer);
     }, [isOtpSent, otpCountdown]);
 
-    const handleSendOtp = () => {
+    const handleSendOtp = async () => {
         if (!currentUser) return;
-        const result = requestBankAccountOtp(currentUser.id);
+        setIsOtpSent(true); // Optimistically set to true
+        const result = await requestBankAccountOtp(currentUser.id);
         if (result.success) {
-            setIsOtpSent(true);
             setOtpCountdown(30);
+        } else {
+            setIsOtpSent(false); // Revert on failure
         }
     };
 
@@ -60,7 +63,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
         validate();
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) {
             addNotification('Please correct the errors in the form.', 'error');
@@ -71,7 +74,8 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
             return;
         }
         if (currentUser) {
-            const result = updateBankAccount(
+            setIsSaving(true);
+            const result = await updateBankAccount(
                 currentUser.id, 
                 {
                     accountHolder: formData.holderName,
@@ -83,6 +87,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
             if (result.success) {
                 onSave();
             }
+            setIsSaving(false);
         }
     };
     
@@ -124,14 +129,14 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
                     </button>
                 </div>
             </div>
-            <button type="submit" className="w-full mt-4 bg-white text-gray-500 border border-gray-300 py-3 rounded-lg font-semibold hover:bg-gray-50 transition">
-                Confirm
+            <button type="submit" disabled={isSaving} className="w-full mt-4 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">
+                {isSaving ? 'Saving...' : 'Confirm'}
             </button>
         </form>
     );
 };
 
-const DisplayCard = ({ account }: { account: BankAccount }) => {
+const DisplayCard = ({ account, onModify }: { account: BankAccount; onModify: () => void }) => {
     const maskedAccountNumber = `**** **** **** ${account.accountNumber.slice(-4)}`;
     return (
         <div className="bg-white p-6 rounded-lg shadow space-y-4">
@@ -148,7 +153,7 @@ const DisplayCard = ({ account }: { account: BankAccount }) => {
                     <p className="text-xs text-gray-500">Account Holder</p>
                     <p className="font-semibold text-gray-800">{account.accountHolder}</p>
                 </div>
-                <button className="text-sm text-blue-600 font-semibold hover:underline">Modify</button>
+                <button onClick={onModify} className="text-sm text-blue-600 font-semibold hover:underline">Modify</button>
             </div>
         </div>
     );
@@ -161,7 +166,6 @@ const BankAccountScreen: React.FC = () => {
     if (!currentUser) return null;
 
     useEffect(() => {
-        // If user already has a bank account, show display mode. Otherwise, show add form.
         if (currentUser.bankAccount) {
             setViewMode('display');
         } else {
@@ -170,8 +174,6 @@ const BankAccountScreen: React.FC = () => {
     }, [currentUser.bankAccount]);
 
     const handleBack = () => {
-        // If in add mode and they have an account, go back to display.
-        // Otherwise, go back to profile.
         if (viewMode === 'add' && currentUser.bankAccount) {
             setViewMode('display');
         } else {
@@ -191,7 +193,7 @@ const BankAccountScreen: React.FC = () => {
             <main className="flex-1 overflow-y-auto">
                 {viewMode === 'display' && currentUser.bankAccount ? (
                   <div className="p-4">
-                    <DisplayCard account={currentUser.bankAccount} />
+                    <DisplayCard account={currentUser.bankAccount} onModify={() => setViewMode('add')} />
                   </div>
                 ) : viewMode === 'display' && !currentUser.bankAccount ? (
                   <div className="p-4">

@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 const LanguageScreen: React.FC = () => {
     const { currentUser, setCurrentView, updateUser, addNotification } = useApp();
     const [selectedLanguage, setSelectedLanguage] = useState(currentUser?.language || 'en');
+    const [isSaving, setIsSaving] = useState(false);
 
     if (!currentUser) return null;
 
@@ -15,10 +16,12 @@ const LanguageScreen: React.FC = () => {
         { code: 'te', name: 'తెలుగు (భారతదేశం)' }
     ];
 
-    const handleSave = () => {
-        updateUser(currentUser.id, { language: selectedLanguage });
+    const handleSave = async () => {
+        setIsSaving(true);
+        await updateUser(currentUser.id, { language: selectedLanguage });
         addNotification('Language saved successfully!', 'success');
         setCurrentView('profile');
+        setIsSaving(false);
     };
 
     return (
@@ -61,9 +64,10 @@ const LanguageScreen: React.FC = () => {
             <footer className="p-4 sticky bottom-0 bg-gray-50 shrink-0">
                  <button
                     onClick={handleSave}
-                    className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm"
+                    disabled={isSaving}
+                    className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-green-300"
                 >
-                    Save
+                    {isSaving ? 'Saving...' : 'Save'}
                 </button>
             </footer>
         </div>

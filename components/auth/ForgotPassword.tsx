@@ -4,27 +4,33 @@ import { useApp } from '../../context/AppContext';
 const ForgotPassword = () => {
   const { users, updateUser, setCurrentView, addNotification } = useApp();
   const [formData, setFormData] = useState({ phone: '', newPassword: '', confirmPassword: '' });
+  const [isResetting, setIsResetting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsResetting(true);
 
     const user = users.find(u => u.phone === formData.phone);
     if (!user) {
       addNotification('Phone number not found', 'error');
+      setIsResetting(false);
       return;
     }
     if (formData.newPassword.length < 6) {
       addNotification('Password must be at least 6 characters', 'error');
+      setIsResetting(false);
       return;
     }
     if (formData.newPassword !== formData.confirmPassword) {
       addNotification('Passwords do not match', 'error');
+      setIsResetting(false);
       return;
     }
 
-    updateUser(user.id, { password: formData.newPassword });
+    await updateUser(user.id, { password: formData.newPassword });
     addNotification('Password reset successful! Redirecting to login...', 'success');
     setTimeout(() => setCurrentView('login'), 2000);
+    setIsResetting(false);
   };
 
   return (
@@ -61,8 +67,9 @@ const ForgotPassword = () => {
           </div>
           
           <button type="submit"
-            className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
-            Reset Password
+            disabled={isResetting}
+            className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">
+            {isResetting ? 'Resetting...' : 'Reset Password'}
           </button>
         </form>
 

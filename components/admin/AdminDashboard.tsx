@@ -156,7 +156,7 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
     );
 };
 
-const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User, onClose: () => void, onEdit: (user: User) => void, onToggleStatus: (user: User) => void }) => {
+const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User, onClose: () => void, onEdit: (user: User) => void, onToggleStatus: (user: User) => Promise<void> }) => {
     const [activeTab, setActiveTab] = useState('overview');
     
     const tabs = [
@@ -330,9 +330,9 @@ const AdminDashboard: React.FC = () => {
     setDetailedUser(user);
   };
 
-  const saveUserEdit = () => {
+  const saveUserEdit = async () => {
     if (selectedUser) {
-      updateUser(selectedUser.id, editUserData);
+      await updateUser(selectedUser.id, editUserData);
       addNotification(`User ${selectedUser.name} updated successfully.`, 'success');
       setShowUserEditModal(false);
       setSelectedUser(null);
@@ -344,13 +344,13 @@ const AdminDashboard: React.FC = () => {
     showConfirmation(
       'Delete User',
       <>Are you sure you want to delete <strong>{user.name}</strong> ({user.id})? This action cannot be undone.</>,
-      () => deleteUser(user.id)
+      async () => await deleteUser(user.id)
     );
   };
 
-  const toggleUserStatus = (user: User) => {
+  const toggleUserStatus = async (user: User) => {
     const newStatus = !user.isActive;
-    updateUser(user.id, { isActive: newStatus });
+    await updateUser(user.id, { isActive: newStatus });
     setDetailedUser(prev => prev ? {...prev, isActive: newStatus} : null);
     addNotification(`User ${user.name} has been ${newStatus ? 'activated' : 'blocked'}.`, 'info');
   };
@@ -378,7 +378,7 @@ const AdminDashboard: React.FC = () => {
     showConfirmation(
       'Delete Plan',
       <>Are you sure you want to delete the plan <strong>{plan.name}</strong> ({plan.id})?</>,
-      () => deleteInvestmentPlan(plan.id)
+      async () => await deleteInvestmentPlan(plan.id)
     );
   };
   
@@ -387,7 +387,7 @@ const AdminDashboard: React.FC = () => {
     setPlanData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     const parsedData = {
         name: planData.name,
         minInvestment: parseFloat(planData.minInvestment),
@@ -403,9 +403,9 @@ const AdminDashboard: React.FC = () => {
 
     let result;
     if (editingPlan) {
-        result = updateInvestmentPlan(editingPlan.id, parsedData);
+        result = await updateInvestmentPlan(editingPlan.id, parsedData);
     } else {
-        result = addInvestmentPlan(parsedData);
+        result = await addInvestmentPlan(parsedData);
     }
     
     if (result.success) {
@@ -425,25 +425,25 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleCropComplete = (croppedImage: string) => {
+  const handleCropComplete = async (croppedImage: string) => {
     setLogoPreview(croppedImage);
-    updateAppLogo(croppedImage);
+    await updateAppLogo(croppedImage);
     setImageToCrop(null);
     addNotification('Logo updated successfully!', 'success');
   }
 
-  const handleSaveSettings = () => {
-    updateAppName(newAppName);
+  const handleSaveSettings = async () => {
+    await updateAppName(newAppName);
     addNotification('App name saved!', 'success');
   };
 
-  const handleAdminPasswordChange = (e: React.FormEvent) => {
+  const handleAdminPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (adminPassData.newPassword !== adminPassData.confirmNewPassword) {
         addNotification("New passwords do not match.", 'error');
         return;
     }
-    const result = changeAdminPassword(adminPassData.oldPassword, adminPassData.newPassword);
+    const result = await changeAdminPassword(adminPassData.oldPassword, adminPassData.newPassword);
     if (result.success) {
         setAdminPassData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
     }

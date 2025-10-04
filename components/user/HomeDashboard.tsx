@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -38,10 +37,11 @@ const HomeDashboard: React.FC = () => {
 
   const hasUnreadNotifications = currentUser.transactions.some(t => !t.read);
 
-  const toggleNotifications = () => {
-    setIsNotificationOpen(prev => !prev);
-    if (!isNotificationOpen && hasUnreadNotifications) {
-      markNotificationsAsRead();
+  const toggleNotifications = async () => {
+    const newOpenState = !isNotificationOpen;
+    setIsNotificationOpen(newOpenState);
+    if (newOpenState && hasUnreadNotifications) {
+      await markNotificationsAsRead();
     }
   };
   

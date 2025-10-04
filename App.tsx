@@ -36,7 +36,7 @@ const themeHexMap: Record<ThemeColor, Record<number, string>> = {
 
 
 function AppContent() {
-  const { currentView, currentUser, admin, appName, themeColor } = useApp();
+  const { currentView, currentUser, admin, appName, themeColor, isLoading } = useApp();
 
   useEffect(() => {
     document.title = `${appName} Investment Platform`;
@@ -77,6 +77,17 @@ function AppContent() {
     styleEl.innerHTML = css;
 
   }, [themeColor]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          <p className="text-lg text-gray-600 font-semibold">Loading Platform...</p>
+        </div>
+      </div>
+    );
+  }
 
   let viewComponent;
 

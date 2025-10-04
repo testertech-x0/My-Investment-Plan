@@ -110,14 +110,14 @@ const LuckyWheelScreen: React.FC = () => {
         { name: 'Thank you', icon: <Smile className="w-8 h-8 mx-auto mb-1 text-blue-500" /> },
     ];
 
-    const handleDraw = () => {
+    const handleDraw = async () => {
         if (isSpinning || !currentUser || currentUser.luckyDrawChances <= 0) {
             addNotification("You don't have any chances left.", 'error');
             return;
         }
 
         setIsSpinning(true);
-        const result = playLuckyDraw();
+        const result = await playLuckyDraw();
 
         if (result.success && result.prize) {
             prizeRef.current = result.prize;

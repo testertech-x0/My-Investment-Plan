@@ -7,6 +7,7 @@ const FundPasswordScreen: React.FC = () => {
     const [fundPassword, setFundPassword] = useState('');
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     if (!currentUser) return null;
 
@@ -29,12 +30,10 @@ const FundPasswordScreen: React.FC = () => {
     };
     
     const handleSendOtp = () => {
-        // In a real app, this would trigger an API call.
-        // Here we just use the context function which will show a notification.
         requestFundPasswordOtp(currentUser.id);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (fundPassword.length !== 6) {
             setError('Fund password must be 6 digits');
@@ -46,10 +45,12 @@ const FundPasswordScreen: React.FC = () => {
             return;
         }
 
-        const result = updateFundPassword(currentUser.id, fundPassword, otp);
+        setIsSubmitting(true);
+        const result = await updateFundPassword(currentUser.id, fundPassword, otp);
         if (result.success) {
             setTimeout(() => setCurrentView('profile'), 1500);
         }
+        setIsSubmitting(false);
     };
 
     return (
@@ -109,9 +110,10 @@ const FundPasswordScreen: React.FC = () => {
                         <div className="pt-4">
                             <button
                                 type="submit"
-                                className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm"
+                                disabled={isSubmitting}
+                                className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-green-300"
                             >
-                                Confirm
+                                {isSubmitting ? 'Confirming...' : 'Confirm'}
                             </button>
                         </div>
                     </form>

@@ -21,13 +21,13 @@ const DepositScreen: React.FC = () => {
   const depositAmount = parseFloat(amount);
   const isValid = !isNaN(depositAmount) && depositAmount >= 200;
 
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
     if (!isValid) {
       addNotification('Minimum deposit amount is ₹200.', 'error');
       return;
     }
     
-    const result = makeDeposit(currentUser.id, depositAmount);
+    const result = await makeDeposit(currentUser.id, depositAmount);
     if (result.success) {
       setAmount('');
     }

@@ -6,10 +6,13 @@ const AdminLogin: React.FC = () => {
   const { adminLogin, setCurrentView } = useApp();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    adminLogin(username, password);
+    setIsLoggingIn(true);
+    await adminLogin(username, password);
+    setIsLoggingIn(false);
   };
 
   return (
@@ -38,8 +41,8 @@ const AdminLogin: React.FC = () => {
               placeholder="Admin password" required />
           </div>
 
-          <button type="submit" className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition">
-            Admin Login
+          <button type="submit" disabled={isLoggingIn} className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition disabled:bg-gray-600">
+            {isLoggingIn ? 'Logging in...' : 'Admin Login'}
           </button>
         </form>
 
