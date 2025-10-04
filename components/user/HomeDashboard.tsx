@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight } from 'lucide-react';
+import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 import { TransactionIcon } from './BillDetailsScreen'; // Assuming TransactionIcon is exported
@@ -149,6 +149,13 @@ const HomeDashboard: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Activity className="text-gray-600" size={24} />
                 <span className="font-medium text-gray-700">Login Activity</span>
+              </div>
+              <ChevronRight size={20} className="text-gray-400" />
+            </button>
+             <button onClick={() => setCurrentView('chat')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="text-gray-600" size={24} />
+                <span className="font-medium text-gray-700">Customer Service</span>
               </div>
               <ChevronRight size={20} className="text-gray-400" />
             </button>

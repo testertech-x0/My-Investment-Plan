@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage } from '../types';
 import * as api from './api';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,6 +29,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [themeColor, setThemeColor] = useState<ThemeColor>('green');
   const [comments, setComments] = useState<Comment[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 
  useEffect(() => {
     const loadInitialData = async () => {
@@ -43,6 +44,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAppLogo(data.appLogo);
         setThemeColor(data.themeColor);
         setComments(data.comments);
+        setChatSessions(data.chatSessions);
 
         // Determine initial view after loading data
         if (data.admin.isLoggedIn) {
@@ -585,16 +587,73 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setComments(newComments);
     await api.saveComments(newComments);
     addNotification('Comment posted successfully!', 'success');
- };
+  };
+
+  const sendChatMessage = async (userId: string, message: { text?: string; imageUrl?: string }): Promise<void> => {
+    const senderId = (admin.isLoggedIn && !loginAsUser) ? 'admin' : currentUser!.id;
+    
+    const newMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        senderId,
+        timestamp: new Date().toISOString(),
+        ...message
+    };
+
+    let session = chatSessions.find(s => s.userId === userId);
+    let newSessions = [...chatSessions];
+
+    if (session) {
+        session.messages.push(newMessage);
+        session.lastMessageTimestamp = newMessage.timestamp;
+        if (senderId === 'admin') {
+            session.userUnreadCount += 1;
+        } else {
+            session.adminUnreadCount += 1;
+        }
+        newSessions = newSessions.map(s => s.userId === userId ? session! : s);
+    } else {
+        session = {
+            userId,
+            messages: [newMessage],
+            lastMessageTimestamp: newMessage.timestamp,
+            userUnreadCount: senderId === 'admin' ? 1 : 0,
+            adminUnreadCount: senderId !== 'admin' ? 1 : 0,
+        };
+        newSessions.push(session);
+    }
+    
+    setChatSessions(newSessions);
+    await api.saveChatSessions(newSessions);
+  };
+  
+  const markChatAsRead = async (userId: string): Promise<void> => {
+    const isUserReading = !!currentUser; // True if a user is logged in
+    
+    let session = chatSessions.find(s => s.userId === userId);
+    if (!session) return;
+
+    if (isUserReading && session.userUnreadCount > 0) {
+        session.userUnreadCount = 0;
+    } else if (!isUserReading && session.adminUnreadCount > 0) { // Admin is reading
+        session.adminUnreadCount = 0;
+    } else {
+        return; // No changes needed
+    }
+    
+    const newSessions = chatSessions.map(s => s.userId === userId ? session! : s);
+    setChatSessions(newSessions);
+    await api.saveChatSessions(newSessions);
+  };
+
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment,
+    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
@@ -20,9 +20,8 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     
-    // Crop state is relative to the container element
     const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
-    const [dragInfo, setDragInfo] = useState({ isDragging: false, startX: 0, startY: 0 }); // startX/Y are offsets within the crop box
+    const [dragInfo, setDragInfo] = useState({ isDragging: false, startX: 0, startY: 0 });
     const [renderedImageRect, setRenderedImageRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
     const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -36,13 +35,11 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         let renderedWidth, renderedHeight, offsetX, offsetY;
 
         if (containerAR > imageAR) {
-            // Container is wider than the image, so image height will fill container height
             renderedHeight = container.clientHeight;
             renderedWidth = imageAR * renderedHeight;
             offsetX = (container.clientWidth - renderedWidth) / 2;
             offsetY = 0;
         } else {
-            // Image is wider than the container, so image width will fill container width
             renderedWidth = container.clientWidth;
             renderedHeight = renderedWidth / imageAR;
             offsetX = 0;
@@ -50,14 +47,12 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         }
         
         setRenderedImageRect({ x: offsetX, y: offsetY, width: renderedWidth, height: renderedHeight });
-
-        // Initialize crop box to be 90% of the smaller dimension of the rendered image, centered
         const size = Math.min(renderedWidth, renderedHeight) * 0.9;
         setCrop({
             x: offsetX + (renderedWidth - size) / 2,
             y: offsetY + (renderedHeight - size) / 2,
             width: size,
-            height: size, // Square crop
+            height: size,
         });
     };
 
@@ -66,16 +61,13 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         const canvas = canvasRef.current;
         if (!image || !canvas || renderedImageRect.width === 0) return;
 
-        // Calculate crop parameters relative to the original image dimensions
         const scale = image.naturalWidth / renderedImageRect.width;
-
         const sx = (crop.x - renderedImageRect.x) * scale;
         const sy = (crop.y - renderedImageRect.y) * scale;
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
 
-        // Draw the cropped image onto the canvas
-        canvas.width = 256; // Output size
+        canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -92,7 +84,6 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
 
         setDragInfo({ 
             isDragging: true, 
-            // Store the offset from the mouse position to the crop box's top-left corner
             startX: mouseX - crop.x, 
             startY: mouseY - crop.y 
         });
@@ -105,11 +96,9 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         const mouseX = e.clientX - containerRect.left;
         const mouseY = e.clientY - containerRect.top;
 
-        // Calculate new crop position based on mouse movement and initial offset
         let newX = mouseX - dragInfo.startX;
         let newY = mouseY - dragInfo.startY;
 
-        // Clamp the new position to be within the rendered image boundaries
         newX = Math.max(renderedImageRect.x, Math.min(newX, renderedImageRect.x + renderedImageRect.width - crop.width));
         newY = Math.max(renderedImageRect.y, Math.min(newY, renderedImageRect.y + renderedImageRect.height - crop.height));
 
@@ -122,34 +111,27 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
 
     const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
         e.preventDefault();
-        if (renderedImageRect.width === 0) return; // Don't zoom if image isn't ready
+        if (renderedImageRect.width === 0) return;
 
         const scaleFactor = 1.1;
-        const delta = e.deltaY < 0 ? scaleFactor : 1 / scaleFactor; // Zoom in for scroll up, out for scroll down
+        const delta = e.deltaY < 0 ? scaleFactor : 1 / scaleFactor;
         
         const newWidth = Math.max(50, Math.min(crop.width * delta, renderedImageRect.width, renderedImageRect.height));
-        const newHeight = newWidth; // Keep it square
+        const newHeight = newWidth;
 
-        if (newWidth === crop.width) return; // No change
+        if (newWidth === crop.width) return;
 
         const containerRect = containerRef.current!.getBoundingClientRect();
         const mouseX = e.clientX - containerRect.left;
         const mouseY = e.clientY - containerRect.top;
         
-        // Calculate new position to zoom towards the mouse pointer
         let newX = mouseX - (mouseX - crop.x) * (newWidth / crop.width);
         let newY = mouseY - (mouseY - crop.y) * (newHeight / crop.height);
 
-        // Clamp final position to ensure the crop box stays within the image
         newX = Math.max(renderedImageRect.x, Math.min(newX, renderedImageRect.x + renderedImageRect.width - newWidth));
         newY = Math.max(renderedImageRect.y, Math.min(newY, renderedImageRect.y + renderedImageRect.height - newHeight));
 
-        setCrop({
-            x: newX,
-            y: newY,
-            width: newWidth,
-            height: newHeight,
-        });
+        setCrop({ x: newX, y: newY, width: newWidth, height: newHeight });
     };
     
     return (
@@ -315,6 +297,153 @@ const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User
     );
 };
 
+// --- START OF CHAT COMPONENTS ---
+
+const ChatMessageBubble = ({ message, isSender }: { message: ChatMessage; isSender: boolean }) => {
+    const bubbleClass = isSender
+        ? 'bg-green-600 text-white self-end rounded-l-lg rounded-tr-lg'
+        : 'bg-gray-200 text-gray-800 self-start rounded-r-lg rounded-tl-lg';
+
+    return (
+        <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} max-w-xs md:max-w-md`}>
+            <div className={`p-3 ${bubbleClass}`}>
+                {message.text && <p className="text-sm">{message.text}</p>}
+                {message.imageUrl && <img src={message.imageUrl} alt="chat attachment" className="mt-2 rounded-lg max-w-full h-auto" />}
+            </div>
+            <p className="text-xs text-gray-400 mt-1 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+        </div>
+    );
+};
+
+
+const AdminChatView = () => {
+    const { users, chatSessions, sendChatMessage, markChatAsRead } = useApp();
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [messageText, setMessageText] = useState('');
+    const [image, setImage] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const sortedSessions = useMemo(() => 
+        [...chatSessions].sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime()),
+        [chatSessions]
+    );
+
+    const selectedSession = chatSessions.find(s => s.userId === selectedUserId);
+
+    useEffect(() => {
+        if (selectedUserId) {
+            markChatAsRead(selectedUserId);
+        }
+    }, [selectedUserId, markChatAsRead]);
+    
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [selectedSession?.messages]);
+
+    const handleSelectUser = (userId: string) => {
+        setSelectedUserId(userId);
+    };
+
+    const handleSendMessage = async () => {
+        if ((!messageText.trim() && !image) || !selectedUserId) return;
+        
+        await sendChatMessage(selectedUserId, { text: messageText, imageUrl: image || undefined });
+        
+        setMessageText('');
+        setImage(null);
+    };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (event) => setImage(event.target?.result as string);
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown User';
+    const getLastMessageSnippet = (session: ChatSession) => {
+        const lastMsg = session.messages[session.messages.length - 1];
+        if (!lastMsg) return "No messages yet";
+        if (lastMsg.text) return lastMsg.text.length > 25 ? `${lastMsg.text.substring(0, 25)}...` : lastMsg.text;
+        if (lastMsg.imageUrl) return "Sent an image";
+        return "";
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow mt-8 flex h-[70vh]">
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+
+            {/* Left Panel: Conversation List */}
+            <div className="w-1/3 border-r flex flex-col">
+                <div className="p-4 border-b">
+                    <h2 className="text-xl font-semibold text-gray-800">Chat Support</h2>
+                </div>
+                <div className="overflow-y-auto">
+                    {sortedSessions.map(session => (
+                        <button
+                            key={session.userId}
+                            onClick={() => handleSelectUser(session.userId)}
+                            className={`w-full text-left p-4 border-b flex justify-between items-center transition-colors ${selectedUserId === session.userId ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                        >
+                            <div>
+                                <p className="font-semibold text-gray-800">{getUserName(session.userId)}</p>
+                                <p className="text-sm text-gray-500">{getLastMessageSnippet(session)}</p>
+                            </div>
+                            {session.adminUnreadCount > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">{session.adminUnreadCount}</span>
+                            )}
+                        </button>
+                    ))}
+                    {sortedSessions.length === 0 && <p className="text-center text-gray-500 p-8">No active chats.</p>}
+                </div>
+            </div>
+
+            {/* Right Panel: Chat Window */}
+            <div className="w-2/3 flex flex-col">
+                {selectedSession ? (
+                    <>
+                        <div className="p-4 border-b flex items-center">
+                            <h3 className="text-lg font-semibold text-gray-800">{getUserName(selectedSession.userId)}</h3>
+                        </div>
+                        <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col gap-4">
+                            {selectedSession.messages.map(msg => (
+                                <ChatMessageBubble key={msg.id} message={msg} isSender={msg.senderId === 'admin'} />
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <div className="p-4 border-t bg-white">
+                            {image && (
+                                <div className="relative w-24 h-24 mb-2">
+                                    <img src={image} alt="preview" className="w-full h-full object-cover rounded-md" />
+                                    <button onClick={() => setImage(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5"><X size={14} /></button>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><Paperclip size={20} /></button>
+                                <input
+                                    type="text"
+                                    value={messageText}
+                                    onChange={e => setMessageText(e.target.value)}
+                                    onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                                    placeholder="Type a message..."
+                                    className="flex-1 px-4 py-2 border rounded-full focus:ring-2 focus:ring-gray-800"
+                                />
+                                <button onClick={handleSendMessage} className="p-2 bg-gray-800 text-white rounded-full hover:bg-gray-900"><Send size={20} /></button>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                        <p>Select a conversation to start chatting.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+// --- END OF CHAT COMPONENTS ---
 
 const AdminDashboard: React.FC = () => {
   const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword } = useApp();
@@ -625,9 +754,12 @@ const AdminDashboard: React.FC = () => {
                 </form>
             </div>
         </div>
+        
+        {/* Chat Support */}
+        <AdminChatView />
 
         {/* User Management */}
-        <div className="bg-white rounded-xl shadow">
+        <div className="bg-white rounded-xl shadow mt-8">
           <div className="p-6 border-b">
              <h2 className="text-xl font-semibold text-gray-800 mb-4">User Management</h2>
             <div className="relative">

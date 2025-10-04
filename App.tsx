@@ -23,6 +23,7 @@ import LanguageScreen from './components/user/LanguageScreen';
 import HelpScreen from './components/user/HelpScreen';
 import LoginActivityScreen from './components/user/LoginActivityScreen';
 import CommentScreen from './components/user/CommentScreen';
+import ChatScreen from './components/user/ChatScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
@@ -145,6 +146,9 @@ function AppContent() {
         break;
       case 'comment':
         viewComponent = <CommentScreen />;
+        break;
+      case 'chat':
+        viewComponent = <ChatScreen />;
         break;
       default:
         viewComponent = <HomeDashboard />;

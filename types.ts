@@ -111,6 +111,22 @@ export interface Comment {
   timestamp: string; // ISO string
 }
 
+export interface ChatMessage {
+  id: string;
+  senderId: 'admin' | string; // 'admin' or userId
+  text?: string;
+  imageUrl?: string;
+  timestamp: string; // ISO string
+}
+
+export interface ChatSession {
+  userId: string;
+  messages: ChatMessage[];
+  lastMessageTimestamp: string;
+  userUnreadCount: number;
+  adminUnreadCount: number;
+}
+
 export interface AppContextType {
   users: User[];
   currentUser: User | null;
@@ -124,6 +140,7 @@ export interface AppContextType {
   themeColor: ThemeColor;
   isLoading: boolean;
   comments: Comment[];
+  chatSessions: ChatSession[];
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
@@ -156,4 +173,6 @@ export interface AppContextType {
   changeAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
   performDailyCheckIn: () => Promise<{ success: boolean; message: string; reward: number }>;
   addComment: (commentData: { text: string; images: string[] }) => Promise<void>;
+  sendChatMessage: (userId: string, message: { text?: string; imageUrl?: string }) => Promise<void>;
+  markChatAsRead: (userId: string) => Promise<void>;
 }

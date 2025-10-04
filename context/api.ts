@@ -1,4 +1,4 @@
-import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment } from '../types';
+import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession } from '../types';
 
 // --- MOCK API with localStorage ---
 // This service simulates an API by using localStorage.
@@ -86,6 +86,8 @@ const initialComments: Comment[] = [
     },
 ];
 
+const initialChatSessions: ChatSession[] = []; // Start with no chats
+
 // --- API Functions ---
 
 export async function getInitialData() {
@@ -100,9 +102,10 @@ export async function getInitialData() {
     const appLogo = storage.getItem<string | null>('app_appLogo', null);
     const themeColor = storage.getItem<ThemeColor>('app_themeColor', 'green');
     const comments = storage.getItem<Comment[]>('app_comments', initialComments);
-    
+    const chatSessions = storage.getItem<ChatSession[]>('app_chatSessions', initialChatSessions);
+
     return {
-        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments
+        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions
     };
 }
 
@@ -168,6 +171,10 @@ export async function saveComments(comments: Comment[]): Promise<void> {
     storage.setItem('app_comments', comments);
 }
 
+export async function saveChatSessions(sessions: ChatSession[]): Promise<void> {
+    await delay(FAKE_LATENCY);
+    storage.setItem('app_chatSessions', sessions);
+}
 
 // Higher-level logical operations
 
