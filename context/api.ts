@@ -1,4 +1,4 @@
-import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession } from '../types';
+import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession, SocialLinks } from '../types';
 
 // --- MOCK API with localStorage ---
 // This service simulates an API by using localStorage.
@@ -103,9 +103,10 @@ export async function getInitialData() {
     const themeColor = storage.getItem<ThemeColor>('app_themeColor', 'green');
     const comments = storage.getItem<Comment[]>('app_comments', initialComments);
     const chatSessions = storage.getItem<ChatSession[]>('app_chatSessions', initialChatSessions);
+    const socialLinks = storage.getItem<SocialLinks>('app_socialLinks', { telegram: '', whatsapp: '' });
 
     return {
-        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions
+        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks
     };
 }
 
@@ -174,6 +175,11 @@ export async function saveComments(comments: Comment[]): Promise<void> {
 export async function saveChatSessions(sessions: ChatSession[]): Promise<void> {
     await delay(FAKE_LATENCY);
     storage.setItem('app_chatSessions', sessions);
+}
+
+export async function saveSocialLinks(links: SocialLinks): Promise<void> {
+    await delay(FAKE_LATENCY);
+    storage.setItem('app_socialLinks', links);
 }
 
 // Higher-level logical operations

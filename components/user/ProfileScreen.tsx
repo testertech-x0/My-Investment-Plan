@@ -4,9 +4,12 @@ import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 
 const ProfileScreen: React.FC = () => {
-  const { currentUser, logout, setCurrentView, loginAsUser, returnToAdmin } = useApp();
+  const { currentUser, logout, setCurrentView, loginAsUser, returnToAdmin, chatSessions } = useApp();
 
   if (!currentUser) return null;
+
+  const userChatSession = chatSessions.find(s => s.userId === currentUser.id);
+  const hasUnreadMessages = !!userChatSession && userChatSession.userUnreadCount > 0;
 
   const menuItems = [
     { icon: User, label: 'Profile', section: 'account', action: 'my-information' },
@@ -15,7 +18,7 @@ const ProfileScreen: React.FC = () => {
     { icon: FileText, label: 'My Orders', section: 'account', action: 'my-orders' },
     { icon: Lock, label: 'Login Password', section: 'security', action: 'change-password' },
     { icon: Lock, label: 'Fund Password', section: 'security', action: 'fund-password' },
-    { icon: MessageSquare, label: 'Customer Service', section: 'settings', action: 'chat' },
+    { icon: MessageSquare, label: 'Customer Service', section: 'settings', action: 'chat', hasBadge: hasUnreadMessages },
     { icon: Globe, label: 'Language', section: 'settings', action: 'language' },
     { icon: HelpCircle, label: 'Help Center', section: 'settings', action: 'help' },
   ];
@@ -69,6 +72,9 @@ const ProfileScreen: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <item.icon size={20} className="text-gray-600" />
                   <span className="text-gray-700">{item.label}</span>
+                  {(item as any).hasBadge && (
+                    <span className="ml-2 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                  )}
                 </div>
                 <ChevronRight size={20} className="text-gray-400" />
               </button>

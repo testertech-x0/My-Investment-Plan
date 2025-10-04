@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
@@ -298,8 +298,30 @@ const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User
 };
 
 // --- START OF CHAT COMPONENTS ---
+const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) => (
+    <div 
+        className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[60] animate-fade-in"
+        onClick={onClose}
+    >
+        <button 
+            className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/75 transition-colors z-10"
+            onClick={onClose}
+        >
+            <X size={24} />
+        </button>
+        <div className="relative max-w-full max-h-full animate-scale-up" onClick={e => e.stopPropagation()}>
+            <img src={imageUrl} alt="Full screen preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+        </div>
+        <style>{`
+            @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+            .animate-fade-in { animation: fade-in 0.3s ease-out; }
+            @keyframes scale-up { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+            .animate-scale-up { animation: scale-up 0.3s ease-out; }
+        `}</style>
+    </div>
+);
 
-const ChatMessageBubble = ({ message, isSender }: { message: ChatMessage; isSender: boolean }) => {
+const ChatMessageBubble = ({ message, isSender, onImageClick }: { message: ChatMessage; isSender: boolean; onImageClick: (url: string) => void; }) => {
     const bubbleClass = isSender
         ? 'bg-green-600 text-white self-end rounded-l-lg rounded-tr-lg'
         : 'bg-gray-200 text-gray-800 self-start rounded-r-lg rounded-tl-lg';
@@ -308,7 +330,11 @@ const ChatMessageBubble = ({ message, isSender }: { message: ChatMessage; isSend
         <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} max-w-xs md:max-w-md`}>
             <div className={`p-3 ${bubbleClass}`}>
                 {message.text && <p className="text-sm">{message.text}</p>}
-                {message.imageUrl && <img src={message.imageUrl} alt="chat attachment" className="mt-2 rounded-lg max-w-full h-auto" />}
+                {message.imageUrl && (
+                    <button onClick={() => onImageClick(message.imageUrl!)} className="mt-2 rounded-lg max-w-full h-auto block overflow-hidden">
+                        <img src={message.imageUrl} alt="chat attachment" className="w-full h-auto object-cover" />
+                    </button>
+                )}
             </div>
             <p className="text-xs text-gray-400 mt-1 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
         </div>
@@ -321,6 +347,7 @@ const AdminChatView = () => {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [messageText, setMessageText] = useState('');
     const [image, setImage] = useState<string | null>(null);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -373,6 +400,7 @@ const AdminChatView = () => {
 
     return (
         <div className="bg-white rounded-xl shadow mt-8 flex h-[70vh]">
+            {viewingImage && <ImagePreviewModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />}
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
 
             {/* Left Panel: Conversation List */}
@@ -409,7 +437,7 @@ const AdminChatView = () => {
                         </div>
                         <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col gap-4">
                             {selectedSession.messages.map(msg => (
-                                <ChatMessageBubble key={msg.id} message={msg} isSender={msg.senderId === 'admin'} />
+                                <ChatMessageBubble key={msg.id} message={msg} isSender={msg.senderId === 'admin'} onImageClick={setViewingImage} />
                             ))}
                             <div ref={messagesEndRef} />
                         </div>
@@ -446,7 +474,7 @@ const AdminChatView = () => {
 // --- END OF CHAT COMPONENTS ---
 
 const AdminDashboard: React.FC = () => {
-  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword } = useApp();
+  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks } = useApp();
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
@@ -467,9 +495,14 @@ const AdminDashboard: React.FC = () => {
   const [newAppName, setNewAppName] = useState(appName);
   const [logoPreview, setLogoPreview] = useState<string | null>(appLogo);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [socialLinksData, setSocialLinksData] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
 
   // Admin security state
   const [adminPassData, setAdminPassData] = useState({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+
+  useEffect(() => {
+    setSocialLinksData(socialLinks);
+  }, [socialLinks]);
 
   const filteredUsers = users.filter(user =>
     user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -610,6 +643,15 @@ const AdminDashboard: React.FC = () => {
     if (result.success) {
         setAdminPassData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
     }
+  };
+  
+  const handleSocialLinksChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSocialLinksData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSaveSocialLinks = async () => {
+    await updateSocialLinks(socialLinksData);
   };
 
 
@@ -752,6 +794,52 @@ const AdminDashboard: React.FC = () => {
                         <button type="submit" className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition">Change Password</button>
                     </div>
                 </form>
+            </div>
+
+             {/* Social Media Management */}
+            <div className="bg-white rounded-xl shadow lg:col-span-2">
+                <div className="p-6 border-b flex items-center gap-3">
+                    <Share2 className="text-gray-500" />
+                    <h2 className="text-xl font-semibold text-gray-800">Social Media Management</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Link</label>
+                        <div className="relative">
+                            <Send className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                name="telegram"
+                                value={socialLinksData.telegram || ''}
+                                onChange={handleSocialLinksChange}
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800"
+                                placeholder="https://t.me/yourchannel"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Link</label>
+                        <div className="relative">
+                            <MessageSquare className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                name="whatsapp"
+                                value={socialLinksData.whatsapp || ''}
+                                onChange={handleSocialLinksChange}
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800"
+                                placeholder="https://wa.me/yournumber"
+                            />
+                        </div>
+                    </div>
+                    <div className="pt-2">
+                        <button
+                            onClick={handleSaveSocialLinks}
+                            className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition"
+                        >
+                            Save Social Links
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         

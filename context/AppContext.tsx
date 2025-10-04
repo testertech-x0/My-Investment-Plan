@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks } from '../types';
 import * as api from './api';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,6 +30,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [themeColor, setThemeColor] = useState<ThemeColor>('green');
   const [comments, setComments] = useState<Comment[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
 
  useEffect(() => {
     const loadInitialData = async () => {
@@ -45,6 +46,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setThemeColor(data.themeColor);
         setComments(data.comments);
         setChatSessions(data.chatSessions);
+        setSocialLinks(data.socialLinks);
 
         // Determine initial view after loading data
         if (data.admin.isLoggedIn) {
@@ -645,15 +647,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await api.saveChatSessions(newSessions);
   };
 
+  const updateSocialLinks = async (links: Partial<SocialLinks>) => {
+    const newLinks = { ...socialLinks, ...links };
+    setSocialLinks(newLinks);
+    await api.saveSocialLinks(newLinks);
+    addNotification('Social links updated successfully!', 'success');
+  };
+
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead,
+    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

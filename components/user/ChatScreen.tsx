@@ -48,15 +48,21 @@ const ChatScreen: React.FC = () => {
     const [viewingImage, setViewingImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const initialUnreadCount = useRef(0);
+    const isInitialMount = useRef(true);
 
     const session = chatSessions.find(s => s.userId === currentUser?.id);
     const messages = session?.messages || [];
 
     useEffect(() => {
-        if (currentUser) {
+        if (currentUser && session && isInitialMount.current) {
+            if (session.userUnreadCount > 0) {
+                initialUnreadCount.current = session.userUnreadCount;
+            }
             markChatAsRead(currentUser.id);
+            isInitialMount.current = false;
         }
-    }, [currentUser, markChatAsRead]);
+    }, [currentUser, session, markChatAsRead]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -95,9 +101,28 @@ const ChatScreen: React.FC = () => {
             </header>
             
             <main className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
-                {messages.map(msg => (
-                    <ChatMessageBubble key={msg.id} message={msg} isSender={msg.senderId === currentUser.id} onImageClick={setViewingImage} />
-                ))}
+                {messages.map((msg, index) => {
+                    const unreadMarkerIndex = messages.length - initialUnreadCount.current;
+                    const showUnreadMarker = initialUnreadCount.current > 0 && index === unreadMarkerIndex;
+                    
+                    return (
+                        <React.Fragment key={msg.id}>
+                            {showUnreadMarker && (
+                                <div className="relative my-4 text-center" role="separator">
+                                    <hr className="border-t border-red-300" />
+                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 transform bg-gray-100 px-3 text-xs font-bold text-red-500 rounded-full">
+                                        New Messages
+                                    </span>
+                                </div>
+                            )}
+                            <ChatMessageBubble
+                                message={msg}
+                                isSender={msg.senderId === currentUser.id}
+                                onImageClick={setViewingImage}
+                            />
+                        </React.Fragment>
+                    )
+                })}
                 <div ref={messagesEndRef} />
                  {messages.length === 0 && (
                     <div className="text-center text-gray-500 my-auto">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare } from 'lucide-react';
+import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 import { TransactionIcon } from './BillDetailsScreen'; // Assuming TransactionIcon is exported
@@ -19,7 +19,7 @@ const formatDate = (dateString: string) => {
 };
 
 const HomeDashboard: React.FC = () => {
-  const { currentUser, maskPhone, loginAsUser, returnToAdmin, setCurrentView, markNotificationsAsRead } = useApp();
+  const { currentUser, maskPhone, loginAsUser, returnToAdmin, setCurrentView, markNotificationsAsRead, socialLinks, chatSessions } = useApp();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +36,8 @@ const HomeDashboard: React.FC = () => {
   if (!currentUser) return null;
 
   const hasUnreadNotifications = currentUser.transactions.some(t => !t.read);
+  const userChatSession = chatSessions.find(s => s.userId === currentUser.id);
+  const hasUnreadChat = !!userChatSession && userChatSession.userUnreadCount > 0;
 
   const toggleNotifications = async () => {
     const newOpenState = !isNotificationOpen;
@@ -154,11 +156,25 @@ const HomeDashboard: React.FC = () => {
             </button>
              <button onClick={() => setCurrentView('chat')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
               <div className="flex items-center gap-3">
-                <MessageSquare className="text-gray-600" size={24} />
+                <div className="relative">
+                    <MessageSquare className="text-gray-600" size={24} />
+                    {hasUnreadChat && (
+                        <span className="absolute -top-0.5 -right-0.5 block h-2 w-2 rounded-full bg-red-500 ring-1 ring-gray-50"></span>
+                    )}
+                </div>
                 <span className="font-medium text-gray-700">Customer Service</span>
               </div>
               <ChevronRight size={20} className="text-gray-400" />
             </button>
+            {socialLinks?.telegram && (
+              <button onClick={() => window.open(socialLinks.telegram, '_blank')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                <div className="flex items-center gap-3">
+                  <Send className="text-gray-600" size={24} />
+                  <span className="font-medium text-gray-700">Join Telegram</span>
+                </div>
+                <ChevronRight size={20} className="text-gray-400" />
+              </button>
+            )}
           </div>
         </div>
       </div>
