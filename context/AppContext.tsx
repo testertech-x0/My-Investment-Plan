@@ -375,7 +375,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newId = `${planData.category}-${Math.random().toString(36).substr(2, 5)}`;
     const newPlan: InvestmentPlan = { id: newId, ...planData };
     setInvestmentPlans(prev => [...prev, newPlan]);
-    addNotification(`New plan "${planData.name}" added.`, 'success');
+    addNotification(`New plan "${planData.name}" added. All users notified.`, 'success');
+
+    const notificationTransaction: Transaction = {
+        type: 'system',
+        amount: 0,
+        description: `New Plan Added: ${planData.name} is now available.`,
+        date: new Date().toISOString(),
+        read: false,
+    };
+
+    setUsers(prevUsers => 
+        prevUsers.map(user => ({
+            ...user,
+            transactions: [notificationTransaction, ...user.transactions],
+        }))
+    );
+
+    if (currentUser) {
+        setCurrentUser(prev => prev ? {
+            ...prev,
+            transactions: [notificationTransaction, ...prev.transactions]
+        } : null);
+    }
+
     return { success: true };
   };
 

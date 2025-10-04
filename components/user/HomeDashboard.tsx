@@ -1,15 +1,51 @@
 
-import React from 'react';
-import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
+import { TransactionIcon } from './BillDetailsScreen'; // Assuming TransactionIcon is exported
+
+const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000);
+
+    if (diffSeconds < 60) return `${diffSeconds}s ago`;
+    const diffMinutes = Math.round(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
 
 const HomeDashboard: React.FC = () => {
-  const { currentUser, maskPhone, loginAsUser, returnToAdmin, setCurrentView } = useApp();
+  const { currentUser, maskPhone, loginAsUser, returnToAdmin, setCurrentView, markNotificationsAsRead } = useApp();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
   if (!currentUser) return null;
 
   const hasUnreadNotifications = currentUser.transactions.some(t => !t.read);
+
+  const toggleNotifications = () => {
+    setIsNotificationOpen(prev => !prev);
+    if (!isNotificationOpen && hasUnreadNotifications) {
+      markNotificationsAsRead();
+    }
+  };
+  
+  const recentNotifications = currentUser.transactions.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -26,8 +62,8 @@ const HomeDashboard: React.FC = () => {
             <p className="text-sm opacity-90">User ID: {currentUser.id}</p>
             <p className="text-xs opacity-75">+91 {maskPhone(currentUser.phone)}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentView('bill-details')} className="relative bg-white bg-opacity-20 p-2 rounded-full">
+          <div ref={notificationRef} className="relative flex items-center gap-2">
+            <button onClick={toggleNotifications} className="relative bg-white bg-opacity-20 p-2 rounded-full">
               <Bell size={24} />
               {hasUnreadNotifications && (
                 <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-green-500"></span>
@@ -36,6 +72,44 @@ const HomeDashboard: React.FC = () => {
             <button className="bg-white bg-opacity-20 p-2 rounded-full">
               <User size={24} />
             </button>
+
+             {isNotificationOpen && (
+              <div className="absolute top-full right-0 mt-2 w-80 max-w-sm bg-white rounded-xl shadow-2xl border text-gray-800 z-30 animate-fade-in-down">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold">Notifications</h3>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                    {recentNotifications.length > 0 ? (
+                      recentNotifications.map((tx, index) => (
+                        <div key={index} className="flex items-start gap-3 p-4 border-b last:border-0 hover:bg-gray-50">
+                            <div className="bg-gray-100 p-2 rounded-full mt-1">
+                                <TransactionIcon type={tx.type} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm leading-snug">{tx.description}</p>
+                                <p className="text-xs text-gray-400 mt-1">{formatDate(tx.date)}</p>
+                            </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500 text-sm py-10">No notifications yet.</p>
+                    )}
+                </div>
+                <div className="p-2 bg-gray-50 rounded-b-xl">
+                    <button onClick={() => { setCurrentView('bill-details'); setIsNotificationOpen(false); }} className="w-full flex justify-center items-center gap-2 text-sm font-semibold text-green-600 hover:bg-green-50 p-2 rounded-md transition">
+                        View All
+                        <ArrowRight size={16} />
+                    </button>
+                </div>
+                <style>{`
+                  @keyframes fade-in-down {
+                      0% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+                      100% { opacity: 1; transform: translateY(0) scale(1); }
+                  }
+                  .animate-fade-in-down { animation: fade-in-down 0.2s ease-out; }
+                `}</style>
+              </div>
+            )}
           </div>
         </div>
 

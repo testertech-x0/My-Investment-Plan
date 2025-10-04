@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Eye, ChevronDown, Gift as RewardIcon, ArrowDownCircle, ArrowUpCircle, TrendingUp, Bell } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-const TransactionIcon = ({ type }: { type: string }) => {
+export const TransactionIcon = ({ type }: { type: string }) => {
     switch (type) {
         case 'deposit': return <ArrowDownCircle className="text-green-500" />;
         case 'withdrawal': return <ArrowUpCircle className="text-red-500" />;
