@@ -34,6 +34,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [bankOtps, setBankOtps] = useState<Record<string, { otp: string; expires: number }>>({});
   const [fundPasswordOtps, setFundPasswordOtps] = useState<Record<string, { otp: string; expires: number }>>({});
+  const [appName, setAppName] = useState('Wealth Fund');
+  const [appLogo, setAppLogo] = useState<string | null>(null);
 
 
   // --- Activity Log System ---
@@ -599,13 +601,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUsers(prevUsers => prevUsers.map(u => u.id === currentUser.id ? updatedUser : u));
   };
 
+  const updateAppName = (newName: string) => {
+    setAppName(newName);
+  };
+
+  const updateAppLogo = (newLogo: string) => {
+    setAppLogo(newLogo);
+  };
+
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
-    playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead,
+    playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

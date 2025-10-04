@@ -5,7 +5,7 @@ import type { InvestmentPlan } from '../../types';
 import BottomNav from './BottomNav';
 
 const InvestmentScreen: React.FC = () => {
-  const { currentUser, investmentPlans, investInPlan, loginAsUser, returnToAdmin } = useApp();
+  const { currentUser, investmentPlans, investInPlan, loginAsUser, returnToAdmin, appName } = useApp();
   
   const availableCategories = useMemo(() => 
     [...new Set(investmentPlans.map(p => p.category))].sort(), 
@@ -154,7 +154,7 @@ const InvestmentScreen: React.FC = () => {
                   <footer className="p-4 border-t shrink-0">
                       <div className="text-xs text-gray-500 flex items-start gap-2 mb-4">
                           <span className="text-green-500 mt-0.5">•</span>
-                          <p>Investing in Fortum not only allows investors to capitalize on the rapid growth of sustainable energy and green mobility, but also benefits from diversified revenue streams, technological innovation, environmental value, and stable cash flow. Furthermore, as an ESG-focused company, Fortum offers an ideal option for investors seeking long-term, responsible investments.</p>
+                          <p>Investing in {appName} not only allows investors to capitalize on the rapid growth of sustainable energy and green mobility, but also benefits from diversified revenue streams, technological innovation, environmental value, and stable cash flow. Furthermore, as an ESG-focused company, {appName} offers an ideal option for investors seeking long-term, responsible investments.</p>
                       </div>
                       <div className="flex gap-3">
                           <button onClick={() => setShowModal(false)} className="flex-1 py-3 border border-green-500 rounded-lg font-semibold text-green-600 hover:bg-green-50 transition">Cancel</button>

@@ -8,7 +8,7 @@ type Strength = {
 };
 
 const Register: React.FC = () => {
-  const { register, setCurrentView, addNotification } = useApp();
+  const { register, setCurrentView, addNotification, appName } = useApp();
   const [formData, setFormData] = useState({ phone: '', password: '', confirmPassword: '', name: '', email: '' });
 
   const getPasswordStrength = (password: string): Strength | null => {
@@ -57,7 +57,7 @@ const Register: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
-          <p className="text-gray-500 mt-1">Join Fortunin today</p>
+          <p className="text-gray-500 mt-1">Join {appName} today</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

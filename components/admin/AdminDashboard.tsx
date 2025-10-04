@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry } from '../../types';
 
 const AdminDashboard: React.FC = () => {
-  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan } = useApp();
+  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo } = useApp();
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +19,12 @@ const AdminDashboard: React.FC = () => {
 
   // Activity Log modal state
   const [selectedLogEntry, setSelectedLogEntry] = useState<ActivityLogEntry | null>(null);
+
+  // Platform settings state
+  const [newAppName, setNewAppName] = useState(appName);
+  const [newAppLogo, setNewAppLogo] = useState<string | null>(appLogo);
+  const [logoPreview, setLogoPreview] = useState<string | null>(appLogo);
+
 
   const filteredUsers = users.filter(user =>
     user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -118,6 +124,26 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setLogoPreview(result);
+        setNewAppLogo(result);
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const handleSaveSettings = () => {
+    updateAppName(newAppName);
+    if (newAppLogo) {
+      updateAppLogo(newAppLogo);
+    }
+    addNotification('Platform settings saved!', 'success');
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -152,6 +178,48 @@ const AdminDashboard: React.FC = () => {
           ))}
         </div>
         
+        {/* Platform Customization */}
+        <div className="bg-white rounded-xl shadow mb-8">
+            <div className="p-6 border-b flex items-center gap-3">
+                <Settings className="text-gray-500" />
+                <h2 className="text-xl font-semibold text-gray-800">Platform Customization</h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
+                    <input
+                        type="text"
+                        value={newAppName}
+                        onChange={(e) => setNewAppName(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                        placeholder="Enter App Name"
+                    />
+                </div>
+                <div className="flex items-center gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
+                        <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/svg+xml"
+                            onChange={handleLogoChange}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                        />
+                    </div>
+                    {logoPreview && (
+                        <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
+                    )}
+                </div>
+            </div>
+            <div className="p-6 bg-gray-50 rounded-b-xl flex justify-end">
+                <button
+                    onClick={handleSaveSettings}
+                    className="bg-gray-800 text-white px-6 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
+                >
+                    Save Settings
+                </button>
+            </div>
+        </div>
+
         {/* User Management */}
         <div className="bg-white rounded-xl shadow">
           <div className="p-6 border-b">

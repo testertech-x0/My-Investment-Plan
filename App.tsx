@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 
 import Login from './components/auth/Login';
@@ -21,7 +21,11 @@ import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
 function AppContent() {
-  const { currentView, currentUser, admin } = useApp();
+  const { currentView, currentUser, admin, appName } = useApp();
+
+  useEffect(() => {
+    document.title = `${appName} Investment Platform`;
+  }, [appName]);
 
   let viewComponent;
 

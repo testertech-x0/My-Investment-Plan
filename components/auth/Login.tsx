@@ -3,7 +3,7 @@ import { TrendingUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const Login: React.FC = () => {
-  const { login, setCurrentView } = useApp();
+  const { login, setCurrentView, appName, appLogo } = useApp();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
 
@@ -16,10 +16,14 @@ const Login: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="bg-green-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TrendingUp className="text-white" size={32} />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800">Fortunin</h1>
+          {appLogo ? (
+            <img src={appLogo} alt="App Logo" className="w-16 h-16 rounded-full mx-auto mb-4 object-cover" />
+          ) : (
+            <div className="bg-green-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="text-white" size={32} />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold text-gray-800">{appName}</h1>
           <p className="text-gray-500 mt-2">Investment Platform</p>
         </div>
 

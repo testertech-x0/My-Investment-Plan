@@ -98,6 +98,8 @@ export interface AppContextType {
   investmentPlans: InvestmentPlan[];
   currentView: string;
   loginAsUser: User | null;
+  appName: string;
+  appLogo: string | null;
   activityLog: ActivityLogEntry[];
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>) => { success: boolean; userId?: string };
@@ -125,4 +127,6 @@ export interface AppContextType {
   requestFundPasswordOtp: (userId: string) => { success: boolean; message?: string };
   updateFundPassword: (userId: string, newFundPassword: string, otp: string) => { success: boolean; message?: string };
   markNotificationsAsRead: () => void;
+  updateAppName: (newName: string) => void;
+  updateAppLogo: (newLogo: string) => void;
 }
