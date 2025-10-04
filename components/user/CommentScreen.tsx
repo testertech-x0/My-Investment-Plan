@@ -39,12 +39,32 @@ const RulesModal = ({ onClose }: { onClose: () => void }) => (
     </div>
 );
 
+// NEW: Image Preview Modal
+const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) => (
+    <div 
+        className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[60] animate-fade-in"
+        onClick={onClose}
+    >
+        <button 
+            className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/75 transition-colors z-10"
+            onClick={onClose}
+        >
+            <X size={24} />
+        </button>
+        <div className="relative max-w-full max-h-full animate-scale-up" onClick={e => e.stopPropagation()}>
+            <img src={imageUrl} alt="Full screen preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+        </div>
+    </div>
+);
+
+
 const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
     const { addComment } = useApp();
     const [text, setText] = useState('');
     const [images, setImages] = useState<string[]>([]);
     const [isPosting, setIsPosting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const MAX_CHARS = 280;
 
     const handleAddImage = () => {
         if (images.length < 2) {
@@ -63,7 +83,6 @@ const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
             };
             reader.readAsDataURL(file);
         }
-        // Reset file input to allow selecting the same file again
         e.target.value = '';
     };
 
@@ -72,12 +91,16 @@ const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
     };
 
     const handlePost = async () => {
-        if (!text.trim()) return;
+        if (!text.trim() || text.length > MAX_CHARS) return;
         setIsPosting(true);
         await addComment({ text, images });
         setIsPosting(false);
         onClose();
     };
+    
+    const charCountColor = text.length > MAX_CHARS 
+        ? 'text-red-500' 
+        : (text.length > MAX_CHARS * 0.9 ? 'text-orange-500' : 'text-gray-500');
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -92,7 +115,7 @@ const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
                 <header className="p-4 flex justify-between items-center border-b">
                     <button onClick={onClose} className="text-gray-600 hover:text-gray-800">Cancel</button>
                     <h2 className="font-semibold">New Comment</h2>
-                    <button onClick={handlePost} disabled={!text.trim() || isPosting} className="px-4 py-1.5 bg-green-500 text-white rounded-full font-semibold disabled:bg-gray-300">
+                    <button onClick={handlePost} disabled={!text.trim() || isPosting || text.length > MAX_CHARS} className="px-4 py-1.5 bg-green-500 text-white rounded-full font-semibold disabled:bg-gray-300">
                         {isPosting ? 'Posting...' : 'Post'}
                     </button>
                 </header>
@@ -103,20 +126,23 @@ const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
                         placeholder="Share your thoughts..."
                         className="w-full h-32 p-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                     />
+                     <div className={`text-right text-xs mt-1 ${charCountColor}`}>
+                        {text.length} / {MAX_CHARS}
+                    </div>
                     <div className="flex flex-wrap gap-2 mt-2">
                         {images.map((img, index) => (
-                            <div key={index} className="relative">
+                            <div key={index} className="relative group">
                                 <img src={img} alt="preview" className="w-20 h-20 object-cover rounded-md" />
                                 <button
                                     onClick={() => handleRemoveImage(index)}
-                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 flex items-center justify-center"
+                                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                    <X size={12} />
+                                    <X size={14} />
                                 </button>
                             </div>
                         ))}
                         {images.length < 2 && (
-                            <button onClick={handleAddImage} className="w-20 h-20 bg-gray-100 rounded-md flex flex-col items-center justify-center text-gray-500 hover:bg-gray-200">
+                            <button onClick={handleAddImage} className="w-20 h-20 bg-gray-100 rounded-md flex flex-col items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
                                 <ImageIcon size={24} />
                                 <span className="text-xs mt-1">Add Photo</span>
                             </button>
@@ -129,7 +155,7 @@ const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 
-const CommentCard = ({ comment }: { comment: Comment }) => (
+const CommentCard = ({ comment, onImageClick }: { comment: Comment; onImageClick: (url: string) => void; }) => (
     <div className="bg-white p-4 border-b border-gray-100">
         <div className="flex items-start gap-3">
             <img src={comment.userAvatar} alt={comment.userName} className="w-10 h-10 rounded-full object-cover" />
@@ -147,7 +173,9 @@ const CommentCard = ({ comment }: { comment: Comment }) => (
                 {comment.images.length > 0 && (
                     <div className={`grid ${comment.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mt-2`}>
                         {comment.images.map((img, index) => (
-                             <img key={index} src={img} alt={`comment image ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                             <button key={index} onClick={() => onImageClick(img)} className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden transition-transform transform hover:scale-105">
+                                <img src={img} alt={`comment image ${index + 1}`} className="w-full h-full object-cover" />
+                            </button>
                         ))}
                     </div>
                 )}
@@ -161,11 +189,13 @@ const CommentScreen: React.FC = () => {
     const { comments } = useApp();
     const [showRules, setShowRules] = useState(false);
     const [showNewComment, setShowNewComment] = useState(false);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 flex flex-col">
             {showRules && <RulesModal onClose={() => setShowRules(false)} />}
             {showNewComment && <NewCommentModal onClose={() => setShowNewComment(false)} />}
+            {viewingImage && <ImagePreviewModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />}
 
             <header className="flex items-center p-4 border-b bg-white sticky top-0 z-10 shrink-0">
                 <h1 className="flex-1 text-center text-lg font-semibold text-gray-800">Comment</h1>
@@ -176,7 +206,7 @@ const CommentScreen: React.FC = () => {
             
             <main className="flex-1 overflow-y-auto">
                 {comments.length > 0 ? (
-                    comments.map(comment => <CommentCard key={comment.id} comment={comment} />)
+                    comments.map(comment => <CommentCard key={comment.id} comment={comment} onImageClick={setViewingImage} />)
                 ) : (
                     <div className="text-center text-gray-500 py-20">
                         <p>No comments yet. Be the first to share!</p>
