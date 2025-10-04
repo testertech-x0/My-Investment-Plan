@@ -14,7 +14,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
     });
     const [errors, setErrors] = useState({ ifscCode: '', fundPassword: '' });
     const [isOtpSent, setIsOtpSent] = useState(false);
-    const [otpCountdown, setOtpCountdown] = useState(30);
+    const [otpCountdown, setOtpCountdown] = useState(60);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
@@ -32,7 +32,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
         setIsOtpSent(true); // Optimistically set to true
         const result = await requestBankAccountOtp(currentUser.id);
         if (result.success) {
-            setOtpCountdown(30);
+            setOtpCountdown(60);
         } else {
             setIsOtpSent(false); // Revert on failure
         }

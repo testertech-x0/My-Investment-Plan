@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -8,6 +8,19 @@ const FundPasswordScreen: React.FC = () => {
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [isOtpSent, setIsOtpSent] = useState(false);
+    const [otpCountdown, setOtpCountdown] = useState(60);
+
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout>;
+        if (isOtpSent && otpCountdown > 0) {
+            timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
+        } else if (otpCountdown === 0) {
+            setIsOtpSent(false);
+        }
+        return () => clearTimeout(timer);
+    }, [isOtpSent, otpCountdown]);
 
     if (!currentUser) return null;
 
@@ -29,8 +42,12 @@ const FundPasswordScreen: React.FC = () => {
         }
     };
     
-    const handleSendOtp = () => {
-        requestFundPasswordOtp(currentUser.id);
+    const handleSendOtp = async () => {
+        const result = await requestFundPasswordOtp(currentUser.id);
+        if (result.success) {
+            setIsOtpSent(true);
+            setOtpCountdown(60);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -100,9 +117,10 @@ const FundPasswordScreen: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleSendOtp}
-                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition"
+                                    disabled={isOtpSent}
+                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
-                                    Send
+                                    {isOtpSent ? `Resend in ${otpCountdown}s` : 'Send'}
                                 </button>
                             </div>
                         </div>

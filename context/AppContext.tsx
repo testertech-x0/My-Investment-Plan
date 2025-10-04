@@ -25,6 +25,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [bankOtps, setBankOtps] = useState<Record<string, { otp: string; expires: number }>>({});
   const [fundPasswordOtps, setFundPasswordOtps] = useState<Record<string, { otp: string; expires: number }>>({});
+  const [passwordResetOtps, setPasswordResetOtps] = useState<Record<string, { otp: string; expires: number }>>({});
+  const [registerOtps, setRegisterOtps] = useState<Record<string, { otp: string; expires: number }>>({});
   const [appName, setAppName] = useState<string>('Wealth Fund');
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [themeColor, setThemeColor] = useState<ThemeColor>('green');
@@ -111,7 +113,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return phone.substring(0, 2) + '****' + phone.substring(phone.length - 4);
   };
 
-  const register = async (userData: Pick<User, 'phone' | 'password' | 'name'>): Promise<{ success: boolean; userId?: string }> => {
+  const requestRegisterOtp = async (phone: string): Promise<{ success: boolean; message?: string }> => {
+    if (users.some(u => u.phone === phone)) {
+      return { success: false, message: "This phone number is already registered." };
+    }
+    
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+    setRegisterOtps(prev => ({ ...prev, [phone]: { otp, expires } }));
+
+    addNotification(`Your registration OTP is: ${otp}`, 'info');
+    return { success: true, message: 'OTP sent successfully.' };
+  };
+
+  const register = async (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }): Promise<{ success: boolean; userId?: string }> => {
+    const storedOtp = registerOtps[userData.phone];
+    if (!storedOtp || storedOtp.otp !== userData.otp || Date.now() > storedOtp.expires) {
+      const message = !storedOtp ? "Invalid OTP" : "OTP has expired. Please request a new one.";
+      addNotification(message, 'error');
+      if (Date.now() > storedOtp?.expires) setRegisterOtps(prev => { const next = { ...prev }; delete next[userData.phone]; return next; });
+      return { success: false };
+    }
+    
     const userId = generateUserId();
     const newMemberReward: Transaction = { id: generateTxId(), type: 'reward', amount: 30, description: 'New member reward', date: new Date().toISOString(), read: false };
     const signInReward: Transaction = { id: generateTxId(), type: 'reward', amount: 0, description: 'Sign in reward', date: new Date(Date.now() + 1000).toISOString(), read: false };
@@ -139,6 +162,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newUsers = [...users, newUser];
     setUsers(newUsers);
     await api.saveUsers(newUsers);
+
+    setRegisterOtps(prev => { const next = { ...prev }; delete next[userData.phone]; return next; });
+
     addNotification(`Account created! User ID: ${userId}`, 'success');
     return { success: true, userId };
   };
@@ -428,7 +454,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const expires = Date.now() + 5 * 60 * 1000;
     setBankOtps(prev => ({ ...prev, [userId]: { otp, expires } }));
 
-    addNotification(`Your OTP is: ${otp}`, 'success');
+    addNotification(`Your OTP for Bank Account is: ${otp}`, 'info');
     return { success: true, message: 'OTP sent successfully.' };
   };
 
@@ -464,7 +490,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = Date.now() + 5 * 60 * 1000;
     setFundPasswordOtps(prev => ({ ...prev, [userId]: { otp, expires } }));
-    addNotification(`Your OTP is: ${otp}`, 'success');
+    addNotification(`Your OTP for Fund Password is: ${otp}`, 'info');
     return { success: true, message: 'OTP sent successfully.' };
   };
 
@@ -653,6 +679,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await api.saveSocialLinks(newLinks);
     addNotification('Social links updated successfully!', 'success');
   };
+  
+  const requestPasswordResetOtp = async (phone: string): Promise<{ success: boolean; message?: string }> => {
+    const user = users.find(u => u.phone === phone);
+    if (!user) return { success: false, message: "Phone number not found." };
+    
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000;
+    setPasswordResetOtps(prev => ({ ...prev, [phone]: { otp, expires } }));
+
+    addNotification(`Your OTP for password reset is: ${otp}`, 'info');
+    return { success: true, message: 'OTP sent successfully.' };
+  };
+  
+  const resetPasswordWithOtp = async (phone: string, otp: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    const user = users.find(u => u.phone === phone);
+    if (!user) return { success: false, message: "User not found." };
+
+    const storedOtp = passwordResetOtps[phone];
+    if (!storedOtp || storedOtp.otp !== otp || Date.now() > storedOtp.expires) {
+      const message = !storedOtp ? "Invalid OTP" : "OTP has expired";
+      addNotification(message, 'error');
+      if (Date.now() > storedOtp?.expires) setPasswordResetOtps(prev => { const next = { ...prev }; delete next[phone]; return next; });
+      return { success: false, message };
+    }
+
+    await updateUser(user.id, { password: newPassword });
+    setPasswordResetOtps(prev => { const next = { ...prev }; delete next[phone]; return next; });
+    addNotification("Password reset successfully!", 'success');
+    await logActivity(user.id, "Reset password using OTP");
+    return { success: true };
+  };
 
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
@@ -663,6 +720,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
     updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks,
+    requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

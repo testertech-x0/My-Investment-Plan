@@ -148,7 +148,7 @@ export interface AppContextType {
   chatSessions: ChatSession[];
   socialLinks: SocialLinks;
   setCurrentView: (view: string) => void;
-  register: (userData: Pick<User, 'phone' | 'password' | 'name'>) => Promise<{ success: boolean; userId?: string }>;
+  register: (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -182,4 +182,7 @@ export interface AppContextType {
   sendChatMessage: (userId: string, message: { text?: string; imageUrl?: string }) => Promise<void>;
   markChatAsRead: (userId: string) => Promise<void>;
   updateSocialLinks: (links: Partial<SocialLinks>) => Promise<void>;
+  requestPasswordResetOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
+  resetPasswordWithOtp: (phone: string, otp: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+  requestRegisterOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
 }
