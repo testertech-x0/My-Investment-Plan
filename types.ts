@@ -91,7 +91,7 @@ export interface ActivityLogEntry {
   action: string;
 }
 
-export type ThemeColor = 'green' | 'blue' | 'purple' | 'orange';
+export type ThemeColor = 'green' | 'blue' | 'purple' | 'orange' | 'red' | 'yellow' | 'teal' | 'pink';
 
 export interface AppContextType {
   users: User[];

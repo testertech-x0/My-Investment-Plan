@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor } from '../../types';
 
@@ -8,7 +8,111 @@ const themeOptions: { name: ThemeColor; bgClass: string }[] = [
     { name: 'blue', bgClass: 'bg-blue-500' },
     { name: 'purple', bgClass: 'bg-purple-500' },
     { name: 'orange', bgClass: 'bg-orange-500' },
+    { name: 'red', bgClass: 'bg-red-500' },
+    { name: 'yellow', bgClass: 'bg-yellow-500' },
+    { name: 'teal', bgClass: 'bg-teal-500' },
+    { name: 'pink', bgClass: 'bg-pink-500' },
 ];
+
+const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: string, onCropComplete: (croppedImage: string) => void, onCancel: () => void }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageRef = useRef<HTMLImageElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
+    const [dragInfo, setDragInfo] = useState({ isDragging: false, startX: 0, startY: 0 });
+
+    const getCroppedImg = () => {
+        const image = imageRef.current;
+        const canvas = canvasRef.current;
+        const container = containerRef.current;
+        if (!image || !canvas || !container) return;
+
+        const scaleX = image.naturalWidth / container.clientWidth;
+        const scaleY = image.naturalHeight / container.clientHeight;
+
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.drawImage(
+            image,
+            crop.x * scaleX,
+            crop.y * scaleY,
+            crop.width * scaleX,
+            crop.height * scaleY,
+            0,
+            0,
+            128,
+            128
+        );
+        onCropComplete(canvas.toDataURL('image/png'));
+    };
+    
+    useEffect(() => {
+        const container = containerRef.current;
+        if (container) {
+            const size = Math.min(container.clientWidth, container.clientHeight, 256);
+            setCrop({
+                x: (container.clientWidth - size) / 2,
+                y: (container.clientHeight - size) / 2,
+                width: size,
+                height: size,
+            });
+        }
+    }, [imageSrc]);
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        setDragInfo({ isDragging: true, startX: e.clientX - crop.x, startY: e.clientY - crop.y });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!dragInfo.isDragging || !containerRef.current) return;
+        const containerRect = containerRef.current.getBoundingClientRect();
+        let newX = e.clientX - dragInfo.startX;
+        let newY = e.clientY - dragInfo.startY;
+
+        newX = Math.max(0, Math.min(newX, containerRect.width - crop.width));
+        newY = Math.max(0, Math.min(newY, containerRect.height - crop.height));
+
+        setCrop(c => ({ ...c, x: newX, y: newY }));
+    };
+
+    const handleMouseUp = () => {
+        setDragInfo({ isDragging: false, startX: 0, startY: 0 });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 animate-fade-in-up">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">Crop Your Logo</h3>
+                <div 
+                    ref={containerRef}
+                    className="relative w-full h-80 bg-gray-200 overflow-hidden cursor-move"
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                >
+                    <img ref={imageRef} src={imageSrc} className="w-full h-full object-contain" alt="To crop" />
+                    <div className="absolute inset-0 bg-black bg-opacity-50" style={{ clipPath: `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% ${crop.y}px, ${crop.x}px ${crop.y}px, ${crop.x}px ${crop.y + crop.height}px, ${crop.x + crop.width}px ${crop.y + crop.height}px, ${crop.x + crop.width}px ${crop.y}px, 0 ${crop.y}px, 0 0)`}} />
+                    <div
+                        className="absolute border-2 border-dashed border-white cursor-move"
+                        style={{ left: crop.x, top: crop.y, width: crop.width, height: crop.height }}
+                        onMouseDown={handleMouseDown}
+                    />
+                </div>
+                <canvas ref={canvasRef} className="hidden" />
+                <div className="flex gap-3 mt-6">
+                    <button onClick={onCancel} className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                    <button onClick={getCroppedImg} className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition flex items-center justify-center gap-2">
+                        <Crop size={18} /> Crop & Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const AdminDashboard: React.FC = () => {
   const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor } = useApp();
@@ -29,8 +133,8 @@ const AdminDashboard: React.FC = () => {
 
   // Platform settings state
   const [newAppName, setNewAppName] = useState(appName);
-  const [newAppLogo, setNewAppLogo] = useState<string | null>(appLogo);
   const [logoPreview, setLogoPreview] = useState<string | null>(appLogo);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
 
   const filteredUsers = users.filter(user =>
@@ -131,24 +235,28 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
-        setLogoPreview(result);
-        setNewAppLogo(result);
+        setImageToCrop(result);
       };
       reader.readAsDataURL(e.target.files[0]);
+      e.target.value = ''; // Reset input
     }
   };
 
+  const handleCropComplete = (croppedImage: string) => {
+    setLogoPreview(croppedImage);
+    updateAppLogo(croppedImage);
+    setImageToCrop(null);
+    addNotification('Logo updated successfully!', 'success');
+  }
+
   const handleSaveSettings = () => {
     updateAppName(newAppName);
-    if (newAppLogo) {
-      updateAppLogo(newAppLogo);
-    }
-    addNotification('Platform settings saved!', 'success');
+    addNotification('App name saved!', 'success');
   };
 
 
@@ -166,6 +274,13 @@ const AdminDashboard: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        {imageToCrop && (
+            <ImageCropperModal 
+                imageSrc={imageToCrop}
+                onCropComplete={handleCropComplete}
+                onCancel={() => setImageToCrop(null)}
+            />
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             { title: 'Total Users', value: users.length, icon: Users, color: 'blue' },
@@ -191,52 +306,62 @@ const AdminDashboard: React.FC = () => {
                 <Settings className="text-gray-500" />
                 <h2 className="text-xl font-semibold text-gray-800">Platform Customization</h2>
             </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 items-start">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
-                    <input
-                        type="text"
-                        value={newAppName}
-                        onChange={(e) => setNewAppName(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                        placeholder="Enter App Name"
-                    />
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newAppName}
+                            onChange={(e) => setNewAppName(e.target.value)}
+                            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                            placeholder="Enter App Name"
+                        />
+                         <button
+                            onClick={handleSaveSettings}
+                            className="bg-gray-800 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
+                        >
+                            Save
+                        </button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
                         <input
                             type="file"
-                            accept="image/png, image/jpeg, image/svg+xml"
-                            onChange={handleLogoChange}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                            accept="image/png, image/jpeg"
+                            onChange={handleLogoFileChange}
+                            id="logo-upload"
+                            className="hidden"
                         />
+                        <label htmlFor="logo-upload" className="cursor-pointer block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                             <span className="inline-block bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200">
+                                Choose Image...
+                            </span>
+                        </label>
                     </div>
                     {logoPreview && (
-                        <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
+                        <div>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Current Logo</p>
+                            <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
+                        </div>
                     )}
                 </div>
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         {themeOptions.map(option => (
                             <button key={option.name} onClick={() => updateThemeColor(option.name)}
                                 className={`w-10 h-10 rounded-full ${option.bgClass} flex items-center justify-center transition-all duration-200
                                 ${themeColor === option.name ? 'ring-4 ring-offset-2 ring-gray-800' : 'hover:scale-110'}`}
+                                title={option.name.charAt(0).toUpperCase() + option.name.slice(1)}
                             >
                                 {themeColor === option.name && <Check className="text-white" size={20} />}
                             </button>
                         ))}
                     </div>
                 </div>
-            </div>
-            <div className="p-6 bg-gray-50 rounded-b-xl flex justify-end">
-                <button
-                    onClick={handleSaveSettings}
-                    className="bg-gray-800 text-white px-6 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
-                >
-                    Save Branding
-                </button>
             </div>
         </div>
 
