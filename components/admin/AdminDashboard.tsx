@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
@@ -499,27 +499,9 @@ const AdminDashboard: React.FC = () => {
                     <Settings className="text-gray-500" />
                     <h2 className="text-xl font-semibold text-gray-800">Platform Customization</h2>
                 </div>
-                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8 items-start">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={newAppName}
-                                onChange={(e) => setNewAppName(e.target.value)}
-                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                                placeholder="Enter App Name"
-                            />
-                            <button
-                                onClick={handleSaveSettings}
-                                className="bg-gray-800 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
-                            >
-                                Save
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div>
+                <div className="p-6 space-y-8">
+                    <div className="flex flex-col md:flex-row md:items-center md:gap-8">
+                        <div className="flex-shrink-0 mb-6 md:mb-0 text-center md:text-left">
                             <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
                             <input
                                 type="file"
@@ -528,20 +510,46 @@ const AdminDashboard: React.FC = () => {
                                 id="logo-upload"
                                 className="hidden"
                             />
-                            <label htmlFor="logo-upload" className="cursor-pointer block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
-                                <span className="inline-block bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200">
-                                    Choose...
-                                </span>
+                            <label htmlFor="logo-upload" className="cursor-pointer group relative w-24 h-24 block mx-auto md:mx-0">
+                                {logoPreview ? (
+                                    <>
+                                        <img src={logoPreview} alt="Current Logo" className="w-full h-full rounded-full object-cover border-2 border-gray-200" />
+                                        <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center">
+                                            <Camera size={24} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center rounded-full bg-gray-100 border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-200 transition-colors">
+                                        <div className="text-center">
+                                            <Camera size={24} className="text-gray-400 mx-auto mb-1" />
+                                            <span className="text-xs text-gray-500">Upload</span>
+                                        </div>
+                                    </div>
+                                )}
                             </label>
                         </div>
-                        {logoPreview && (
-                            <div>
-                                <p className="text-sm font-medium text-gray-700 mb-2">Current</p>
-                                <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
+
+                        <div className="flex-grow">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newAppName}
+                                    onChange={(e) => setNewAppName(e.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                    placeholder="Enter App Name"
+                                />
+                                <button
+                                    onClick={handleSaveSettings}
+                                    className="bg-gray-800 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
+                                >
+                                    Save
+                                </button>
                             </div>
-                        )}
+                        </div>
                     </div>
-                    <div className="sm:col-span-2">
+
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
                         <div className="flex flex-wrap gap-3">
                             {themeOptions.map(option => (
