@@ -148,6 +148,7 @@ export async function playLuckyDrawApi(currentUser: User): Promise<{ success: bo
     if (wonPrize.type === 'money' || wonPrize.type === 'bonus') {
         updatedUser.balance = currentUser.balance + wonPrize.amount;
         const newTransaction = {
+            id: `TXN-LD-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
             type: 'prize' as const,
             amount: wonPrize.amount,
             description: `Lucky Draw: ${wonPrize.name}`,

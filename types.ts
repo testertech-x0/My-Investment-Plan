@@ -13,6 +13,7 @@ export interface Investment {
 }
 
 export interface Transaction {
+  id?: string;
   type: 'investment' | 'deposit' | 'withdrawal' | 'reward' | 'prize' | 'system';
   amount: number;
   description: string;

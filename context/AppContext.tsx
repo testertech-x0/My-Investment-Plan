@@ -10,6 +10,8 @@ export const useApp = (): AppContextType => {
   return context;
 };
 
+const generateTxId = () => `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
@@ -105,8 +107,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const register = async (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>): Promise<{ success: boolean; userId?: string }> => {
     const userId = generateUserId();
-    const newMemberReward: Transaction = { type: 'reward', amount: 30, description: 'New member reward', date: new Date().toISOString(), read: false };
-    const signInReward: Transaction = { type: 'reward', amount: 0, description: 'Sign in reward', date: new Date(Date.now() + 1000).toISOString(), read: false };
+    const newMemberReward: Transaction = { id: generateTxId(), type: 'reward', amount: 30, description: 'New member reward', date: new Date().toISOString(), read: false };
+    const signInReward: Transaction = { id: generateTxId(), type: 'reward', amount: 0, description: 'Sign in reward', date: new Date(Date.now() + 1000).toISOString(), read: false };
     const newUser: User = {
       id: userId,
       phone: userData.phone,
@@ -284,6 +286,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updatedUser.investments.push(newInvestment);
     }
     const newTransaction: Transaction = {
+      id: generateTxId(),
       type: 'investment', amount: -totalInvestmentCost, description: `Invest in ${plan.name} (x${quantity})`,
       date: new Date().toISOString(), read: false,
     };
@@ -303,7 +306,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addNotification('User not found.', 'error');
         return { success: false };
     }
-    const newTransaction: Transaction = { type: 'deposit', amount, description: 'Deposit', date: new Date().toISOString(), read: false };
+    const newTransaction: Transaction = { id: generateTxId(), type: 'deposit', amount, description: 'Deposit', date: new Date().toISOString(), read: false };
     const updatedUser: Partial<User> = {
         balance: user.balance + amount,
         rechargeAmount: user.rechargeAmount + amount,
@@ -324,7 +327,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (amount > user.balance) { return { success: false, message: "Insufficient balance." }; }
     
     const tax = amount * 0.08;
-    const newTransaction: Transaction = { type: 'withdrawal', amount: -amount, description: 'Withdrawal', date: new Date().toISOString(), read: false };
+    const newTransaction: Transaction = { id: generateTxId(), type: 'withdrawal', amount: -amount, description: 'Withdrawal', date: new Date().toISOString(), read: false };
     const updatedUser: Partial<User> = {
         balance: user.balance - amount,
         withdrawals: user.withdrawals + amount,
@@ -361,6 +364,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addNotification(`New plan "${planData.name}" added. All users notified.`, 'success');
 
     const notificationTransaction: Transaction = {
+        id: generateTxId(),
         type: 'system', amount: 0, description: `New Plan Added: ${planData.name} is now available.`,
         date: new Date().toISOString(), read: false,
     };
@@ -389,7 +393,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await api.saveInvestmentPlans(newPlans);
 
     if (planName) {
-        const notificationTransaction: Transaction = { type: 'system', amount: 0, description: `Plan Updated: Details for '${planName}' have changed.`, date: new Date().toISOString(), read: false };
+        const notificationTransaction: Transaction = { id: generateTxId(), type: 'system', amount: 0, description: `Plan Updated: Details for '${planName}' have changed.`, date: new Date().toISOString(), read: false };
         const updatedUsers = users.map(user => ({ ...user, transactions: [notificationTransaction, ...user.transactions] }));
         setUsers(updatedUsers);
         await api.saveUsers(updatedUsers);

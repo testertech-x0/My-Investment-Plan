@@ -20,6 +20,7 @@ import FundPasswordScreen from './components/user/FundPasswordScreen';
 import MyOrdersScreen from './components/user/MyOrdersScreen';
 import LuckyWheelScreen from './components/user/LuckyWheelScreen';
 import LanguageScreen from './components/user/LanguageScreen';
+import HelpScreen from './components/user/HelpScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
@@ -133,6 +134,9 @@ function AppContent() {
         break;
       case 'language':
         viewComponent = <LanguageScreen />;
+        break;
+      case 'help':
+        viewComponent = <HelpScreen />;
         break;
       default:
         viewComponent = <HomeDashboard />;

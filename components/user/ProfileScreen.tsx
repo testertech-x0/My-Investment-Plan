@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Award, CreditCard, FileText, Lock, Globe, Settings, ChevronRight } from 'lucide-react';
+import { User, Award, CreditCard, FileText, Lock, Globe, Settings, ChevronRight, HelpCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 
@@ -18,6 +18,7 @@ const ProfileScreen: React.FC = () => {
     { icon: Lock, label: 'Login Password', section: 'security', action: 'change-password' },
     { icon: Lock, label: 'Fund Password', section: 'security', action: 'fund-password' },
     { icon: Globe, label: 'Language', section: 'settings', action: 'language' },
+    { icon: HelpCircle, label: 'Help Center', section: 'settings', action: 'help' },
   ];
 
   return (
