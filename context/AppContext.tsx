@@ -34,14 +34,28 @@ const getInitialState = <T,>(key: string, defaultValue: T): T => {
     return defaultValue;
 };
 
+// Pre-read authentication state to determine the initial view synchronously.
+const initialCurrentUser = getInitialState<User | null>('app_currentUser', null);
+const initialAdminState = getInitialState<Admin>('app_admin', initialAdmin);
+const initialLoginAsUser = getInitialState<User | null>('app_loginAsUser', null);
+
+const getInitialView = (): string => {
+    if (initialAdminState.isLoggedIn) {
+        return initialLoginAsUser ? 'home' : 'admin-dashboard';
+    }
+    if (initialCurrentUser) {
+        return 'home';
+    }
+    return 'login';
+};
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>(() => getInitialState<User[]>('app_users', []));
-  const [currentUser, setCurrentUser] = useState<User | null>(() => getInitialState<User | null>('app_currentUser', null));
-  const [admin, setAdmin] = useState<Admin>(() => getInitialState<Admin>('app_admin', initialAdmin));
+  const [currentUser, setCurrentUser] = useState<User | null>(() => initialCurrentUser);
+  const [admin, setAdmin] = useState<Admin>(() => initialAdminState);
   const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>(() => getInitialState<InvestmentPlan[]>('app_investmentPlans', initialInvestmentPlans));
-  const [currentView, setCurrentView] = useState('login');
-  const [loginAsUser, setLoginAsUser] = useState<User | null>(() => getInitialState<User | null>('app_loginAsUser', null));
+  const [currentView, setCurrentView] = useState(getInitialView);
+  const [loginAsUser, setLoginAsUser] = useState<User | null>(() => initialLoginAsUser);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [confirmation, setConfirmation] = useState<ConfirmationState>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(() => {
@@ -57,35 +71,55 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [bankOtps, setBankOtps] = useState<Record<string, { otp: string; expires: number }>>({});
   const [fundPasswordOtps, setFundPasswordOtps] = useState<Record<string, { otp: string; expires: number }>>({});
-  const [appName, setAppName] = useState<string>(() => localStorage.getItem('app_appName') || 'Wealth Fund');
-  const [appLogo, setAppLogo] = useState<string | null>(() => localStorage.getItem('app_appLogo'));
-  const [themeColor, setThemeColor] = useState<ThemeColor>(() => (localStorage.getItem('app_themeColor') as ThemeColor) || 'green');
+  const [appName, setAppName] = useState<string>(() => getInitialState<string>('app_appName', 'Wealth Fund'));
+  const [appLogo, setAppLogo] = useState<string | null>(() => getInitialState<string | null>('app_appLogo', null));
+  const [themeColor, setThemeColor] = useState<ThemeColor>(() => getInitialState<ThemeColor>('app_themeColor', 'green'));
 
-  // --- State Persistence Effects ---
-  useEffect(() => { localStorage.setItem('app_users', JSON.stringify(users)); }, [users]);
-  useEffect(() => { if (currentUser) localStorage.setItem('app_currentUser', JSON.stringify(currentUser)); else localStorage.removeItem('app_currentUser'); }, [currentUser]);
-  useEffect(() => { localStorage.setItem('app_admin', JSON.stringify(admin)); }, [admin]);
-  useEffect(() => { localStorage.setItem('app_investmentPlans', JSON.stringify(investmentPlans)); }, [investmentPlans]);
-  useEffect(() => { if (loginAsUser) localStorage.setItem('app_loginAsUser', JSON.stringify(loginAsUser)); else localStorage.removeItem('app_loginAsUser'); }, [loginAsUser]);
-  useEffect(() => { localStorage.setItem('app_activityLog', JSON.stringify(activityLog)); }, [activityLog]);
-  useEffect(() => { localStorage.setItem('app_appName', appName); }, [appName]);
-  useEffect(() => { if (appLogo) localStorage.setItem('app_appLogo', appLogo); else localStorage.removeItem('app_appLogo'); }, [appLogo]);
-  useEffect(() => { localStorage.setItem('app_themeColor', themeColor); }, [themeColor]);
+  // --- Robust State Persistence Wrappers ---
+  const createPersistentSetter = <T,>(
+    stateSetter: React.Dispatch<React.SetStateAction<T>>,
+    key: string,
+    isNullable: boolean = false
+  ) => {
+      return (updater: React.SetStateAction<T>) => {
+          stateSetter(prev => {
+              const newState = typeof updater === 'function' ? (updater as (prevState: T) => T)(prev) : updater;
+              try {
+                  if (isNullable && (newState === null || newState === undefined)) {
+                      localStorage.removeItem(key);
+                  } else {
+                      localStorage.setItem(key, JSON.stringify(newState));
+                  }
+              } catch (error) {
+                  console.error(`Failed to save state for key "${key}" to localStorage`, error);
+              }
+              return newState;
+          });
+      };
+  };
 
-  // Effect to set initial view based on persisted state
-  useEffect(() => {
-    if (admin.isLoggedIn) {
-        if (loginAsUser) {
-            setCurrentView('home');
-        } else {
-            setCurrentView('admin-dashboard');
-        }
-    } else if (currentUser) {
-        setCurrentView('home');
-    } else {
-        setCurrentView('login');
-    }
-  }, []); // Runs only on initial mount
+  const setUsersAndPersist = createPersistentSetter(setUsers, 'app_users');
+  const setCurrentUserAndPersist = createPersistentSetter(setCurrentUser, 'app_currentUser', true);
+  const setAdminAndPersist = createPersistentSetter(setAdmin, 'app_admin');
+  const setInvestmentPlansAndPersist = createPersistentSetter(setInvestmentPlans, 'app_investmentPlans');
+  const setLoginAsUserAndPersist = createPersistentSetter(setLoginAsUser, 'app_loginAsUser', true);
+  const setActivityLogAndPersist = createPersistentSetter(setActivityLog, 'app_activityLog');
+  const setAppNameAndPersist = (newName: string) => {
+      setAppName(newName);
+      localStorage.setItem('app_appName', newName);
+  };
+  const setAppLogoAndPersist = (newLogo: string | null) => {
+      setAppLogo(newLogo);
+      if (newLogo) {
+          localStorage.setItem('app_appLogo', newLogo);
+      } else {
+          localStorage.removeItem('app_appLogo');
+      }
+  };
+  const setThemeColorAndPersist = (newColor: ThemeColor) => {
+      setThemeColor(newColor);
+      localStorage.setItem('app_themeColor', newColor);
+  };
 
 
   // --- Activity Log System ---
@@ -98,7 +132,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         userName: user ? user.name : 'Unknown User',
         action,
     };
-    setActivityLog(prevLog => [newLogEntry, ...prevLog]);
+    setActivityLogAndPersist(prevLog => [newLogEntry, ...prevLog]);
   };
 
   // --- Notification System ---
@@ -170,7 +204,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       fundPassword: null,
       language: 'en',
     };
-    setUsers(prevUsers => [...prevUsers, newUser]);
+    setUsersAndPersist(prevUsers => [...prevUsers, newUser]);
     addNotification(`Account created! User ID: ${userId}`, 'success');
     return { success: true, userId };
   };
@@ -180,8 +214,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (user && user.isActive) {
       const activity: LoginActivity = { date: new Date().toISOString(), device: 'Web Browser' };
       const updatedUser = { ...user, loginActivity: [...user.loginActivity, activity] };
-      setUsers(prevUsers => prevUsers.map(u => u.id === user.id ? updatedUser : u));
-      setCurrentUser(updatedUser);
+      setUsersAndPersist(prevUsers => prevUsers.map(u => u.id === user.id ? updatedUser : u));
+      setCurrentUserAndPersist(updatedUser);
       setCurrentView('home');
       addNotification(`Welcome back, ${user.name}!`, 'success');
       logActivity(user.id, 'Logged in');
@@ -194,7 +228,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const adminLogin = (username: string, password: string): { success: boolean; message?: string } => {
     if (username === admin.username && password === admin.password) {
-      setAdmin({ ...admin, isLoggedIn: true });
+      setAdminAndPersist({ ...admin, isLoggedIn: true });
       setCurrentView('admin-dashboard');
       addNotification('Admin login successful.', 'success');
       return { success: true };
@@ -207,7 +241,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const logout = () => {
     addNotification("You have been logged out.", 'info');
     const wasInAdminMode = !!loginAsUser;
-    setCurrentUser(null);
+    setCurrentUserAndPersist(null);
     if (wasInAdminMode) {
         returnToAdmin();
     } else {
@@ -216,9 +250,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const adminLogout = () => {
-    setAdmin({ ...admin, isLoggedIn: false });
-    setLoginAsUser(null);
-    setCurrentUser(null);
+    setAdminAndPersist({ ...admin, isLoggedIn: false });
+    setLoginAsUserAndPersist(null);
+    setCurrentUserAndPersist(null);
     setCurrentView('login');
     addNotification("Admin logged out.", 'info');
   };
@@ -226,8 +260,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loginAsUserFunc = (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (user) {
-      setLoginAsUser(user);
-      setCurrentUser(user);
+      setLoginAsUserAndPersist(user);
+      setCurrentUserAndPersist(user);
       setCurrentView('home');
       addNotification(`Now viewing as ${user.name} (${user.id}).`, 'info');
     }
@@ -235,23 +269,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const returnToAdmin = () => {
     addNotification('Returned to Admin Dashboard.', 'info');
-    setLoginAsUser(null);
-    setCurrentUser(null);
+    setLoginAsUserAndPersist(null);
+    setCurrentUserAndPersist(null);
     setCurrentView('admin-dashboard');
   };
 
   const updateUser = (userId: string, updates: Partial<User>) => {
-    setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, ...updates } : u));
+    setUsersAndPersist(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, ...updates } : u));
     if (currentUser && currentUser.id === userId) {
-      setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+      setCurrentUserAndPersist(prev => prev ? { ...prev, ...updates } : null);
     }
      if (loginAsUser && loginAsUser.id === userId) {
-      setLoginAsUser(prev => prev ? { ...prev, ...updates } : null);
+      setLoginAsUserAndPersist(prev => prev ? { ...prev, ...updates } : null);
     }
   };
 
   const deleteUser = (userId: string) => {
-    setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    setUsersAndPersist(prevUsers => prevUsers.filter(u => u.id !== userId));
     addNotification(`User ${userId} has been deleted.`, 'success');
   };
 
@@ -427,7 +461,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     const newId = `${planData.category}-${Math.random().toString(36).substr(2, 5)}`;
     const newPlan: InvestmentPlan = { id: newId, ...planData };
-    setInvestmentPlans(prev => [...prev, newPlan]);
+    setInvestmentPlansAndPersist(prev => [...prev, newPlan]);
     addNotification(`New plan "${planData.name}" added. All users notified.`, 'success');
 
     const notificationTransaction: Transaction = {
@@ -438,15 +472,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         read: false,
     };
 
-    setUsers(prevUsers => 
-        prevUsers.map(user => ({
-            ...user,
-            transactions: [notificationTransaction, ...user.transactions],
-        }))
-    );
+    const updatedUsers = users.map(user => ({
+        ...user,
+        transactions: [notificationTransaction, ...user.transactions],
+    }));
+    setUsersAndPersist(updatedUsers);
+
 
     if (currentUser) {
-        setCurrentUser(prev => prev ? {
+        setCurrentUserAndPersist(prev => prev ? {
             ...prev,
             transactions: [notificationTransaction, ...prev.transactions]
         } : null);
@@ -457,7 +491,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateInvestmentPlan = (planId: string, updates: Partial<Omit<InvestmentPlan, 'id'>>): { success: boolean; message?: string } => {
     let planName = '';
-    setInvestmentPlans(prev => prev.map(p => {
+    setInvestmentPlansAndPersist(prev => prev.map(p => {
         if (p.id === planId) {
             planName = updates.name || p.name;
             return { ...p, ...updates };
@@ -474,15 +508,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             read: false,
         };
 
-        setUsers(prevUsers => 
-            prevUsers.map(user => ({
-                ...user,
-                transactions: [notificationTransaction, ...user.transactions],
-            }))
-        );
+        const updatedUsers = users.map(user => ({
+            ...user,
+            transactions: [notificationTransaction, ...user.transactions],
+        }));
+        setUsersAndPersist(updatedUsers);
 
         if (currentUser) {
-            setCurrentUser(prev => prev ? {
+            setCurrentUserAndPersist(prev => prev ? {
                 ...prev,
                 transactions: [notificationTransaction, ...prev.transactions]
             } : null);
@@ -494,7 +527,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteInvestmentPlan = (planId: string) => {
-    setInvestmentPlans(prev => prev.filter(p => p.id !== planId));
+    setInvestmentPlansAndPersist(prev => prev.filter(p => p.id !== planId));
     addNotification(`Plan ${planId} has been deleted.`, 'success');
   };
   
@@ -642,21 +675,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return;
     }
     const updatedTransactions = currentUser.transactions.map(t => ({ ...t, read: true }));
-    const updatedUser = { ...currentUser, transactions: updatedTransactions };
-    setCurrentUser(updatedUser);
-    setUsers(prevUsers => prevUsers.map(u => u.id === currentUser.id ? updatedUser : u));
+    updateUser(currentUser.id, { transactions: updatedTransactions });
   };
 
   const updateAppName = (newName: string) => {
-    setAppName(newName);
+    setAppNameAndPersist(newName);
   };
 
   const updateAppLogo = (newLogo: string) => {
-    setAppLogo(newLogo);
+    setAppLogoAndPersist(newLogo);
   };
 
   const updateThemeColor = (color: ThemeColor) => {
-    setThemeColor(color);
+    setThemeColorAndPersist(color);
   };
 
   const changeAdminPassword = (oldPass: string, newPass: string): { success: boolean; message?: string } => {
@@ -670,7 +701,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addNotification(message, 'error');
         return { success: false, message };
     }
-    setAdmin(prev => ({ ...prev, password: newPass }));
+    setAdminAndPersist(prev => ({ ...prev, password: newPass }));
     addNotification('Admin password changed successfully!', 'success');
     return { success: true };
   };
