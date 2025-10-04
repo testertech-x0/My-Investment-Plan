@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Home, TrendingUp, Menu, Users, User } from 'lucide-react';
+import { Home, TrendingUp, MessageSquare, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 interface BottomNavProps {
-  active: 'home' | 'invest' | 'menu' | 'club' | 'profile';
+  active: 'home' | 'invest' | 'comment' | 'profile';
 }
 
 const BottomNav: React.FC<BottomNavProps> = ({ active }) => {
@@ -13,8 +13,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'invest', icon: TrendingUp, label: 'Invest' },
-    { id: 'menu', icon: Menu, label: 'Menu' },
-    { id: 'club', icon: Users, label: 'Club' },
+    { id: 'comment', icon: MessageSquare, label: 'Comment' },
     { id: 'profile', icon: User, label: 'Me' }
   ];
 

@@ -100,6 +100,17 @@ export interface Prize {
   amount: number;
 }
 
+export interface Comment {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  maskedPhone: string;
+  text: string;
+  images: string[];
+  timestamp: string; // ISO string
+}
+
 export interface AppContextType {
   users: User[];
   currentUser: User | null;
@@ -112,6 +123,7 @@ export interface AppContextType {
   activityLog: ActivityLogEntry[];
   themeColor: ThemeColor;
   isLoading: boolean;
+  comments: Comment[];
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
@@ -143,4 +155,5 @@ export interface AppContextType {
   updateThemeColor: (color: ThemeColor) => Promise<void>;
   changeAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
   performDailyCheckIn: () => Promise<{ success: boolean; message: string; reward: number }>;
+  addComment: (commentData: { text: string; images: string[] }) => Promise<void>;
 }

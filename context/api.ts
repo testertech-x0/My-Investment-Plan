@@ -1,4 +1,4 @@
-import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize } from '../types';
+import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment } from '../types';
 
 // --- MOCK API with localStorage ---
 // This service simulates an API by using localStorage.
@@ -44,6 +44,48 @@ const initialAdmin: Admin = {
   isLoggedIn: false,
 };
 
+const initialComments: Comment[] = [
+    {
+        id: 'comment-1',
+        userId: 'ID:123456',
+        userName: 'Eeshoo',
+        userAvatar: 'https://i.pravatar.cc/150?u=eeshoo',
+        maskedPhone: '80****3715',
+        text: 'My first withdraw successful 🙌🥰',
+        images: [
+            'https://images.unsplash.com/photo-1583521214690-73421a1829a9?q=80&w=2592&auto=format&fit=crop&ixlib=rb-4.0.3',
+            'https://images.unsplash.com/photo-1620714223084-86c9df2a5ae5?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+        ],
+        timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'comment-2',
+        userId: 'ID:654321',
+        userName: 'Sachin Kumar',
+        userAvatar: 'https://i.pravatar.cc/150?u=sachin',
+        maskedPhone: '79****3388',
+        text: '100% safe this is the best earning platform for all. Everyone invest here and start earning',
+        images: [
+            'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+            'https://images.unsplash.com/photo-1589936353906-0b9201509923?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+        ],
+        timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'comment-3',
+        userId: 'ID:987654',
+        userName: 'User Three',
+        userAvatar: 'https://i.pravatar.cc/150?u=userthree',
+        maskedPhone: '63****1749',
+        text: 'My first withdrawn completed',
+        images: [
+            'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?q=80&w=2832&auto=format&fit=crop&ixlib=rb-4.0.3',
+            'https://images.unsplash.com/photo-1587845986339-2a919385f973?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+        ],
+        timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+];
+
 // --- API Functions ---
 
 export async function getInitialData() {
@@ -57,9 +99,10 @@ export async function getInitialData() {
     const appName = storage.getItem<string>('app_appName', 'Wealth Fund');
     const appLogo = storage.getItem<string | null>('app_appLogo', null);
     const themeColor = storage.getItem<ThemeColor>('app_themeColor', 'green');
+    const comments = storage.getItem<Comment[]>('app_comments', initialComments);
     
     return {
-        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor
+        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments
     };
 }
 
@@ -119,6 +162,12 @@ export async function saveThemeColor(color: ThemeColor): Promise<void> {
     await delay(FAKE_LATENCY);
     storage.setItem('app_themeColor', color);
 }
+
+export async function saveComments(comments: Comment[]): Promise<void> {
+    await delay(FAKE_LATENCY);
+    storage.setItem('app_comments', comments);
+}
+
 
 // Higher-level logical operations
 

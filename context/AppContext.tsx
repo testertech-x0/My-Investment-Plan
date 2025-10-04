@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment } from '../types';
 import * as api from './api';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -28,6 +28,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [appName, setAppName] = useState<string>('Wealth Fund');
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [themeColor, setThemeColor] = useState<ThemeColor>('green');
+  const [comments, setComments] = useState<Comment[]>([]);
 
  useEffect(() => {
     const loadInitialData = async () => {
@@ -41,6 +42,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAppName(data.appName);
         setAppLogo(data.appLogo);
         setThemeColor(data.themeColor);
+        setComments(data.comments);
 
         // Determine initial view after loading data
         if (data.admin.isLoggedIn) {
@@ -563,15 +565,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await logActivity(currentUser.id, `Completed Daily Check-in Day ${newDayCount}`);
     return { success: true, message, reward };
   };
+  
+  const addComment = async (commentData: { text: string; images: string[] }): Promise<void> => {
+    if (!currentUser) {
+        addNotification('You must be logged in to comment.', 'error');
+        return;
+    }
+    const newComment: Comment = {
+        id: `comment-${Date.now()}`,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userAvatar: `https://i.pravatar.cc/150?u=${currentUser.id}`, // Generate a consistent avatar
+        maskedPhone: maskPhone(currentUser.phone),
+        text: commentData.text,
+        images: commentData.images,
+        timestamp: new Date().toISOString(),
+    };
+    const newComments = [newComment, ...comments];
+    setComments(newComments);
+    await api.saveComments(newComments);
+    addNotification('Comment posted successfully!', 'success');
+ };
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword, performDailyCheckIn,
+    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
