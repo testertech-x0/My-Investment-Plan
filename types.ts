@@ -91,6 +91,8 @@ export interface ActivityLogEntry {
   action: string;
 }
 
+export type ThemeColor = 'green' | 'blue' | 'purple' | 'orange';
+
 export interface AppContextType {
   users: User[];
   currentUser: User | null;
@@ -101,6 +103,7 @@ export interface AppContextType {
   appName: string;
   appLogo: string | null;
   activityLog: ActivityLogEntry[];
+  themeColor: ThemeColor;
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name' | 'email'>) => { success: boolean; userId?: string };
   login: (identifier: string, password: string) => { success: boolean; message?: string };
@@ -129,4 +132,5 @@ export interface AppContextType {
   markNotificationsAsRead: () => void;
   updateAppName: (newName: string) => void;
   updateAppLogo: (newLogo: string) => void;
+  updateThemeColor: (color: ThemeColor) => void;
 }

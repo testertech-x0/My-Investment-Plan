@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, ReactNode } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor } from '../types';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -36,6 +36,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [fundPasswordOtps, setFundPasswordOtps] = useState<Record<string, { otp: string; expires: number }>>({});
   const [appName, setAppName] = useState('Wealth Fund');
   const [appLogo, setAppLogo] = useState<string | null>(null);
+  const [themeColor, setThemeColor] = useState<ThemeColor>('green');
 
 
   // --- Activity Log System ---
@@ -609,13 +610,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAppLogo(newLogo);
   };
 
+  const updateThemeColor = (color: ThemeColor) => {
+    setThemeColor(color);
+  };
+
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
+    updateThemeColor,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

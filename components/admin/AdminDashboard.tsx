@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor } from '../../types';
+
+const themeOptions: { name: ThemeColor; bgClass: string }[] = [
+    { name: 'green', bgClass: 'bg-green-500' },
+    { name: 'blue', bgClass: 'bg-blue-500' },
+    { name: 'purple', bgClass: 'bg-purple-500' },
+    { name: 'orange', bgClass: 'bg-orange-500' },
+];
 
 const AdminDashboard: React.FC = () => {
-  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo } = useApp();
+  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor } = useApp();
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
@@ -209,13 +216,26 @@ const AdminDashboard: React.FC = () => {
                         <img src={logoPreview} alt="Logo Preview" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
                     )}
                 </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
+                    <div className="flex gap-3">
+                        {themeOptions.map(option => (
+                            <button key={option.name} onClick={() => updateThemeColor(option.name)}
+                                className={`w-10 h-10 rounded-full ${option.bgClass} flex items-center justify-center transition-all duration-200
+                                ${themeColor === option.name ? 'ring-4 ring-offset-2 ring-gray-800' : 'hover:scale-110'}`}
+                            >
+                                {themeColor === option.name && <Check className="text-white" size={20} />}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
             <div className="p-6 bg-gray-50 rounded-b-xl flex justify-end">
                 <button
                     onClick={handleSaveSettings}
                     className="bg-gray-800 text-white px-6 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
                 >
-                    Save Settings
+                    Save Branding
                 </button>
             </div>
         </div>
