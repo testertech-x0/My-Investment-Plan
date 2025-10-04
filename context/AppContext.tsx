@@ -1,5 +1,5 @@
-import React, { useState, createContext, useContext, ReactNode } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor } from '../types';
+import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize } from '../types';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -22,21 +22,70 @@ const initialInvestmentPlans: InvestmentPlan[] = [
   { id: 'EVSE-4', name: 'Premium EVSE-1', minInvestment: 5000, dailyReturn: 2100, duration: 90, category: 'EVSE-C' },
 ];
 
+const getInitialState = <T,>(key: string, defaultValue: T): T => {
+    try {
+        const item = localStorage.getItem(key);
+        if (item) {
+            return JSON.parse(item);
+        }
+    } catch (error) {
+        console.error(`Error reading from localStorage key “${key}”:`, error);
+    }
+    return defaultValue;
+};
+
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [admin, setAdmin] = useState<Admin>(initialAdmin);
-  const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>(initialInvestmentPlans);
+  const [users, setUsers] = useState<User[]>(() => getInitialState<User[]>('app_users', []));
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getInitialState<User | null>('app_currentUser', null));
+  const [admin, setAdmin] = useState<Admin>(() => getInitialState<Admin>('app_admin', initialAdmin));
+  const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>(() => getInitialState<InvestmentPlan[]>('app_investmentPlans', initialInvestmentPlans));
   const [currentView, setCurrentView] = useState('login');
-  const [loginAsUser, setLoginAsUser] = useState<User | null>(null);
+  const [loginAsUser, setLoginAsUser] = useState<User | null>(() => getInitialState<User | null>('app_loginAsUser', null));
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [confirmation, setConfirmation] = useState<ConfirmationState>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(() => {
+    try {
+        const saved = localStorage.getItem('app_activityLog');
+        if (!saved) return [];
+        const parsedLog = JSON.parse(saved) as (Omit<ActivityLogEntry, 'timestamp'> & { timestamp: string })[];
+        return parsedLog.map(entry => ({ ...entry, timestamp: new Date(entry.timestamp) }));
+    } catch (e) { 
+        console.error("Failed to parse activity log from localStorage", e);
+        return []; 
+    }
+  });
   const [bankOtps, setBankOtps] = useState<Record<string, { otp: string; expires: number }>>({});
   const [fundPasswordOtps, setFundPasswordOtps] = useState<Record<string, { otp: string; expires: number }>>({});
-  const [appName, setAppName] = useState('Wealth Fund');
-  const [appLogo, setAppLogo] = useState<string | null>(null);
-  const [themeColor, setThemeColor] = useState<ThemeColor>('green');
+  const [appName, setAppName] = useState<string>(() => localStorage.getItem('app_appName') || 'Wealth Fund');
+  const [appLogo, setAppLogo] = useState<string | null>(() => localStorage.getItem('app_appLogo'));
+  const [themeColor, setThemeColor] = useState<ThemeColor>(() => (localStorage.getItem('app_themeColor') as ThemeColor) || 'green');
+
+  // --- State Persistence Effects ---
+  useEffect(() => { localStorage.setItem('app_users', JSON.stringify(users)); }, [users]);
+  useEffect(() => { if (currentUser) localStorage.setItem('app_currentUser', JSON.stringify(currentUser)); else localStorage.removeItem('app_currentUser'); }, [currentUser]);
+  useEffect(() => { localStorage.setItem('app_admin', JSON.stringify(admin)); }, [admin]);
+  useEffect(() => { localStorage.setItem('app_investmentPlans', JSON.stringify(investmentPlans)); }, [investmentPlans]);
+  useEffect(() => { if (loginAsUser) localStorage.setItem('app_loginAsUser', JSON.stringify(loginAsUser)); else localStorage.removeItem('app_loginAsUser'); }, [loginAsUser]);
+  useEffect(() => { localStorage.setItem('app_activityLog', JSON.stringify(activityLog)); }, [activityLog]);
+  useEffect(() => { localStorage.setItem('app_appName', appName); }, [appName]);
+  useEffect(() => { if (appLogo) localStorage.setItem('app_appLogo', appLogo); else localStorage.removeItem('app_appLogo'); }, [appLogo]);
+  useEffect(() => { localStorage.setItem('app_themeColor', themeColor); }, [themeColor]);
+
+  // Effect to set initial view based on persisted state
+  useEffect(() => {
+    if (admin.isLoggedIn) {
+        if (loginAsUser) {
+            setCurrentView('home');
+        } else {
+            setCurrentView('admin-dashboard');
+        }
+    } else if (currentUser) {
+        setCurrentView('home');
+    } else {
+        setCurrentView('login');
+    }
+  }, []); // Runs only on initial mount
 
 
   // --- Activity Log System ---
@@ -157,17 +206,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const logout = () => {
     addNotification("You have been logged out.", 'info');
+    const wasInAdminMode = !!loginAsUser;
     setCurrentUser(null);
-    if (!loginAsUser) {
-        setCurrentView('login');
-    } else {
+    if (wasInAdminMode) {
         returnToAdmin();
+    } else {
+        setCurrentView('login');
     }
   };
 
   const adminLogout = () => {
     setAdmin({ ...admin, isLoggedIn: false });
     setLoginAsUser(null);
+    setCurrentUser(null);
     setCurrentView('login');
     addNotification("Admin logged out.", 'info');
   };
@@ -505,13 +556,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true, message };
   };
 
-  const playLuckyDraw = (): { success: boolean; prize?: string } => {
+  const playLuckyDraw = (): { success: boolean; prize?: Prize } => {
     if (!currentUser || currentUser.luckyDrawChances <= 0) {
         addNotification("You don't have any chances left.", 'error');
         return { success: false };
     }
 
-    const prizes = [
+    const prizes: Prize[] = [
         { name: 'Random Bonus', type: 'bonus', amount: 10 },
         { name: '₹50', type: 'money', amount: 50 },
         { name: '₹500', type: 'money', amount: 500 },
@@ -538,16 +589,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             read: false,
         };
         updatedUser.transactions = [newTransaction, ...currentUser.transactions];
-        addNotification(`You won ${wonPrize.name}!`, 'success');
-    } else if (wonPrize.type === 'physical') {
-        addNotification(`Congratulations! You won a ${wonPrize.name}. Please contact support.`, 'success');
-    } else {
-        addNotification('Thank you for participating!', 'info');
     }
     
     updateUser(currentUser.id, updatedUser);
     
-    return { success: true, prize: wonPrize.name };
+    return { success: true, prize: wonPrize };
   };
 
   const requestFundPasswordOtp = (userId: string): { success: boolean; message?: string } => {

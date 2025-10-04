@@ -92,6 +92,12 @@ export interface ActivityLogEntry {
 
 export type ThemeColor = 'green' | 'blue' | 'purple' | 'orange' | 'red' | 'yellow' | 'teal' | 'pink';
 
+export interface Prize {
+  name: string;
+  type: 'bonus' | 'money' | 'nothing' | 'physical';
+  amount: number;
+}
+
 export interface AppContextType {
   users: User[];
   currentUser: User | null;
@@ -125,7 +131,7 @@ export interface AppContextType {
   deleteInvestmentPlan: (planId: string) => void;
   requestBankAccountOtp: (userId: string) => { success: boolean; message?: string };
   updateBankAccount: (userId: string, accountDetails: Omit<BankAccount, 'bankName'>, otp: string) => { success: boolean; message?: string };
-  playLuckyDraw: () => { success: boolean; prize?: string };
+  playLuckyDraw: () => { success: boolean; prize?: Prize };
   requestFundPasswordOtp: (userId: string) => { success: boolean; message?: string };
   updateFundPassword: (userId: string, newFundPassword: string, otp: string) => { success: boolean; message?: string };
   markNotificationsAsRead: () => void;
