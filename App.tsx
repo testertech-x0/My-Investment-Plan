@@ -21,6 +21,7 @@ import MyOrdersScreen from './components/user/MyOrdersScreen';
 import LuckyWheelScreen from './components/user/LuckyWheelScreen';
 import LanguageScreen from './components/user/LanguageScreen';
 import HelpScreen from './components/user/HelpScreen';
+import LoginActivityScreen from './components/user/LoginActivityScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
@@ -137,6 +138,9 @@ function AppContent() {
         break;
       case 'help':
         viewComponent = <HelpScreen />;
+        break;
+      case 'login-activity':
+        viewComponent = <LoginActivityScreen />;
         break;
       default:
         viewComponent = <HomeDashboard />;

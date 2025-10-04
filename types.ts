@@ -51,6 +51,7 @@ export interface User {
   luckyDrawChances: number;
   fundPassword?: string | null;
   language?: string;
+  dailyCheckIns?: string[];
 }
 
 export interface InvestmentPlan {
@@ -141,4 +142,5 @@ export interface AppContextType {
   updateAppLogo: (newLogo: string) => Promise<void>;
   updateThemeColor: (color: ThemeColor) => Promise<void>;
   changeAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
+  performDailyCheckIn: () => Promise<{ success: boolean; message: string; reward: number }>;
 }

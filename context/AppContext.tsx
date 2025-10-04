@@ -128,6 +128,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       luckyDrawChances: 1,
       fundPassword: null,
       language: 'en',
+      dailyCheckIns: [],
     };
     const newUsers = [...users, newUser];
     setUsers(newUsers);
@@ -508,6 +509,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true };
   };
 
+  const performDailyCheckIn = async (): Promise<{ success: boolean; message: string; reward: number }> => {
+    if (!currentUser) return { success: false, message: 'User not found', reward: 0 };
+
+    const today = new Date().toISOString().split('T')[0];
+    const checkIns = currentUser.dailyCheckIns || [];
+
+    if (checkIns.includes(today)) {
+      addNotification('Already checked in today.', 'info');
+      return { success: false, message: 'Already checked in today.', reward: 0 };
+    }
+
+    const newCheckIns = [...checkIns, today];
+    const newDayCount = newCheckIns.length;
+    let reward = 0;
+    let description = `Daily Check-in: Day ${newDayCount}`;
+    let newTransaction: Transaction | null = null;
+    
+    if (newDayCount === 7 || newDayCount === 14) {
+      reward = 10;
+      description = `Get an additional ₹10 reward`;
+    }
+
+    const updatedData: Partial<User> = { dailyCheckIns: newCheckIns };
+
+    if (reward > 0) {
+      updatedData.balance = currentUser.balance + reward;
+      newTransaction = {
+        id: generateTxId(),
+        type: 'reward',
+        amount: reward,
+        description: `Login Reward: Day ${newDayCount}`,
+        date: new Date().toISOString(),
+        read: false
+      };
+      updatedData.transactions = [newTransaction, ...currentUser.transactions];
+    } else {
+        newTransaction = {
+        id: generateTxId(),
+        type: 'reward',
+        amount: 0,
+        description: `Login Reward: Day ${newDayCount}`,
+        date: new Date().toISOString(),
+        read: false
+      };
+      updatedData.transactions = [newTransaction, ...currentUser.transactions];
+    }
+    
+    await updateUser(currentUser.id, updatedData);
+    
+    const message = reward > 0 ? `Checked in! You received a ₹${reward} reward!` : 'Check-in successful!';
+    addNotification(message, 'success');
+    await logActivity(currentUser.id, `Completed Daily Check-in Day ${newDayCount}`);
+    return { success: true, message, reward };
+  };
+
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
     users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
@@ -515,7 +571,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword,
+    updateThemeColor, changeAdminPassword, performDailyCheckIn,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

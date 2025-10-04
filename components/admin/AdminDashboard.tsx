@@ -19,8 +19,10 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    
+    // Crop state is relative to the container element
     const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
-    const [dragInfo, setDragInfo] = useState({ isDragging: false, startX: 0, startY: 0 });
+    const [dragInfo, setDragInfo] = useState({ isDragging: false, startX: 0, startY: 0 }); // startX/Y are offsets within the crop box
     const [renderedImageRect, setRenderedImageRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
     const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -34,11 +36,13 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         let renderedWidth, renderedHeight, offsetX, offsetY;
 
         if (containerAR > imageAR) {
+            // Container is wider than the image, so image height will fill container height
             renderedHeight = container.clientHeight;
             renderedWidth = imageAR * renderedHeight;
             offsetX = (container.clientWidth - renderedWidth) / 2;
             offsetY = 0;
         } else {
+            // Image is wider than the container, so image width will fill container width
             renderedWidth = container.clientWidth;
             renderedHeight = renderedWidth / imageAR;
             offsetX = 0;
@@ -47,12 +51,13 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         
         setRenderedImageRect({ x: offsetX, y: offsetY, width: renderedWidth, height: renderedHeight });
 
+        // Initialize crop box to be 90% of the smaller dimension of the rendered image, centered
         const size = Math.min(renderedWidth, renderedHeight) * 0.9;
         setCrop({
             x: offsetX + (renderedWidth - size) / 2,
             y: offsetY + (renderedHeight - size) / 2,
             width: size,
-            height: size,
+            height: size, // Square crop
         });
     };
 
@@ -61,6 +66,7 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         const canvas = canvasRef.current;
         if (!image || !canvas || renderedImageRect.width === 0) return;
 
+        // Calculate crop parameters relative to the original image dimensions
         const scale = image.naturalWidth / renderedImageRect.width;
 
         const sx = (crop.x - renderedImageRect.x) * scale;
@@ -68,7 +74,8 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         const sWidth = crop.width * scale;
         const sHeight = crop.height * scale;
 
-        canvas.width = 256;
+        // Draw the cropped image onto the canvas
+        canvas.width = 256; // Output size
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -79,15 +86,30 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
 
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
         e.preventDefault();
-        setDragInfo({ isDragging: true, startX: e.clientX - crop.x, startY: e.clientY - crop.y });
+        const containerRect = containerRef.current!.getBoundingClientRect();
+        const mouseX = e.clientX - containerRect.left;
+        const mouseY = e.clientY - containerRect.top;
+
+        setDragInfo({ 
+            isDragging: true, 
+            // Store the offset from the mouse position to the crop box's top-left corner
+            startX: mouseX - crop.x, 
+            startY: mouseY - crop.y 
+        });
     };
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!dragInfo.isDragging) return;
         
-        let newX = e.clientX - dragInfo.startX;
-        let newY = e.clientY - dragInfo.startY;
+        const containerRect = containerRef.current!.getBoundingClientRect();
+        const mouseX = e.clientX - containerRect.left;
+        const mouseY = e.clientY - containerRect.top;
 
+        // Calculate new crop position based on mouse movement and initial offset
+        let newX = mouseX - dragInfo.startX;
+        let newY = mouseY - dragInfo.startY;
+
+        // Clamp the new position to be within the rendered image boundaries
         newX = Math.max(renderedImageRect.x, Math.min(newX, renderedImageRect.x + renderedImageRect.width - crop.width));
         newY = Math.max(renderedImageRect.y, Math.min(newY, renderedImageRect.y + renderedImageRect.height - crop.height));
 
@@ -100,29 +122,36 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
 
     const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
         e.preventDefault();
+        if (renderedImageRect.width === 0) return; // Don't zoom if image isn't ready
+
         const scaleFactor = 1.1;
-        const delta = e.deltaY > 0 ? 1 / scaleFactor : scaleFactor;
+        const delta = e.deltaY < 0 ? scaleFactor : 1 / scaleFactor; // Zoom in for scroll up, out for scroll down
         
         const newWidth = Math.max(50, Math.min(crop.width * delta, renderedImageRect.width, renderedImageRect.height));
-        const newHeight = newWidth;
+        const newHeight = newWidth; // Keep it square
 
-        const mouseX = e.clientX - containerRef.current!.getBoundingClientRect().left;
-        const mouseY = e.clientY - containerRef.current!.getBoundingClientRect().top;
+        if (newWidth === crop.width) return; // No change
+
+        const containerRect = containerRef.current!.getBoundingClientRect();
+        const mouseX = e.clientX - containerRect.left;
+        const mouseY = e.clientY - containerRect.top;
         
+        // Calculate new position to zoom towards the mouse pointer
         let newX = mouseX - (mouseX - crop.x) * (newWidth / crop.width);
         let newY = mouseY - (mouseY - crop.y) * (newHeight / crop.height);
 
-        const clampedX = Math.max(renderedImageRect.x, Math.min(newX, renderedImageRect.x + renderedImageRect.width - newWidth));
-        const clampedY = Math.max(renderedImageRect.y, Math.min(newY, renderedImageRect.y + renderedImageRect.height - newHeight));
+        // Clamp final position to ensure the crop box stays within the image
+        newX = Math.max(renderedImageRect.x, Math.min(newX, renderedImageRect.x + renderedImageRect.width - newWidth));
+        newY = Math.max(renderedImageRect.y, Math.min(newY, renderedImageRect.y + renderedImageRect.height - newHeight));
 
         setCrop({
-            x: clampedX,
-            y: clampedY,
+            x: newX,
+            y: newY,
             width: newWidth,
             height: newHeight,
         });
     };
-
+    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-[60]">
             <div className="bg-white rounded-2xl max-w-lg w-full p-6 animate-fade-in-up">
@@ -130,17 +159,22 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
                 <p className="text-sm text-gray-500 mb-4">Drag to move, scroll to zoom.</p>
                 <div 
                     ref={containerRef}
-                    className="relative w-full h-80 bg-gray-200 overflow-hidden cursor-move"
+                    className="relative w-full h-80 bg-gray-200 overflow-hidden cursor-move touch-none select-none"
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
                     onWheel={handleWheel}
                 >
                     <img ref={imageRef} src={imageSrc} className="w-full h-full object-contain pointer-events-none" alt="To crop" onLoad={onImageLoad} />
-                    <div className="absolute inset-0 bg-black bg-opacity-50" style={{ clipPath: `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% ${crop.y}px, ${crop.x}px ${crop.y}px, ${crop.x}px ${crop.y + crop.height}px, ${crop.x + crop.width}px ${crop.y + crop.height}px, ${crop.x + crop.width}px ${crop.y}px, 0 ${crop.y}px, 0 0)`}} />
                     <div
-                        className="absolute border-2 border-dashed border-white cursor-move pointer-events-auto"
-                        style={{ left: crop.x, top: crop.y, width: crop.width, height: crop.height }}
+                        className="absolute border-2 border-dashed border-white cursor-move"
+                        style={{
+                            left: crop.x,
+                            top: crop.y,
+                            width: crop.width,
+                            height: crop.height,
+                            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                        }}
                         onMouseDown={handleMouseDown}
                     />
                 </div>

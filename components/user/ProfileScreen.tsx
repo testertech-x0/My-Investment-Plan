@@ -10,11 +10,9 @@ const ProfileScreen: React.FC = () => {
 
   const menuItems = [
     { icon: User, label: 'Profile', section: 'account', action: 'my-information' },
-    { icon: Award, label: 'Commission', section: 'account' },
     { icon: CreditCard, label: 'My Card', section: 'account', action: 'bank-account' },
     { icon: FileText, label: 'Transaction History', section: 'account', action: 'bill-details' },
     { icon: FileText, label: 'My Orders', section: 'account', action: 'my-orders' },
-    { icon: Award, label: 'VIP Level', section: 'account' },
     { icon: Lock, label: 'Login Password', section: 'security', action: 'change-password' },
     { icon: Lock, label: 'Fund Password', section: 'security', action: 'fund-password' },
     { icon: Globe, label: 'Language', section: 'settings', action: 'language' },

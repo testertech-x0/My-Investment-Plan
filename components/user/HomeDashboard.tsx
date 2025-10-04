@@ -145,7 +145,7 @@ const HomeDashboard: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h3 className="text-gray-700 font-semibold mb-4">Find More</h3>
           <div className="space-y-3">
-            <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+            <button onClick={() => setCurrentView('login-activity')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
               <div className="flex items-center gap-3">
                 <Activity className="text-gray-600" size={24} />
                 <span className="font-medium text-gray-700">Login Activity</span>
