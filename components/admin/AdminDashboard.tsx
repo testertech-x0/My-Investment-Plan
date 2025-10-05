@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
@@ -476,52 +476,71 @@ const AdminChatView = () => {
 
 const PaymentSettingsView = () => {
     const { paymentSettings, updatePaymentSettings, addNotification } = useApp();
-    const [newUpi, setNewUpi] = useState('');
+    const [newMethodName, setNewMethodName] = useState('');
+    const [newMethodType, setNewMethodType] = useState<'upi' | 'qr'>('upi');
+    const [newMethodUpi, setNewMethodUpi] = useState('');
+    const [newMethodQr, setNewMethodQr] = useState<string | null>(null);
 
-    const handleAddUpi = () => {
-        if (!newUpi.trim() || !newUpi.includes('@')) {
+    const resetForm = () => {
+        setNewMethodName('');
+        setNewMethodType('upi');
+        setNewMethodUpi('');
+        setNewMethodQr(null);
+    };
+
+    const handleAddMethod = () => {
+        if (!newMethodName.trim()) {
+            addNotification('Please enter a name tag for the method.', 'error');
+            return;
+        }
+
+        const value = newMethodType === 'upi' ? newMethodUpi.trim() : newMethodQr;
+
+        if (!value) {
+            addNotification(`Please provide a ${newMethodType === 'upi' ? 'UPI ID' : 'QR Code'}.`, 'error');
+            return;
+        }
+
+        if (newMethodType === 'upi' && !value.includes('@')) {
             addNotification('Please enter a valid UPI ID.', 'error');
             return;
         }
-        const updatedSettings = {
-            ...paymentSettings,
-            upiIds: [...paymentSettings.upiIds, { id: `upi-${Date.now()}`, upi: newUpi, isActive: true }]
+
+        const newMethod: PaymentMethod = {
+            id: `pm-${Date.now()}`,
+            name: newMethodName,
+            type: newMethodType,
+            value,
+            isActive: true,
         };
-        updatePaymentSettings(updatedSettings);
-        setNewUpi('');
+
+        const updatedMethods = [...paymentSettings.paymentMethods, newMethod];
+        updatePaymentSettings({ paymentMethods: updatedMethods });
+        resetForm();
+    };
+    
+    const handleDeleteMethod = (id: string) => {
+        const updatedMethods = paymentSettings.paymentMethods.filter(m => m.id !== id);
+        updatePaymentSettings({ paymentMethods: updatedMethods });
     };
 
-    const handleDeleteUpi = (id: string) => {
-        const updatedSettings = {
-            ...paymentSettings,
-            upiIds: paymentSettings.upiIds.filter(upi => upi.id !== id)
-        };
-        updatePaymentSettings(updatedSettings);
+    const handleToggleMethod = (id: string) => {
+        const updatedMethods = paymentSettings.paymentMethods.map(m =>
+            m.id === id ? { ...m, isActive: !m.isActive } : m
+        );
+        updatePaymentSettings({ paymentMethods: updatedMethods });
     };
-
-    const handleToggleUpi = (id: string) => {
-        const updatedSettings = {
-            ...paymentSettings,
-            upiIds: paymentSettings.upiIds.map(upi => upi.id === id ? { ...upi, isActive: !upi.isActive } : upi)
-        };
-        updatePaymentSettings(updatedSettings);
-    };
-
+    
     const handleQrCodeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                const result = event.target?.result as string;
-                updatePaymentSettings({ ...paymentSettings, qrCode: result });
+                setNewMethodQr(event.target?.result as string);
             };
             reader.readAsDataURL(e.target.files[0]);
         }
     };
     
-    const handleRemoveQr = () => {
-        updatePaymentSettings({ ...paymentSettings, qrCode: null });
-    };
-
     return (
         <div className="bg-white rounded-xl shadow mt-8 lg:col-span-2">
             <div className="p-6 border-b flex items-center gap-3">
@@ -529,45 +548,68 @@ const PaymentSettingsView = () => {
                 <h2 className="text-xl font-semibold text-gray-800">Payment Gateway Settings</h2>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* UPI Management */}
+                {/* Current Methods */}
                 <div>
-                    <h3 className="font-semibold text-gray-700 mb-4">UPI IDs Management</h3>
-                    <div className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-2">
-                        {paymentSettings.upiIds.map(upi => (
-                            <div key={upi.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                                <span className="text-sm text-gray-800 break-all">{upi.upi}</span>
-                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                    <button onClick={() => handleToggleUpi(upi.id)} className={`px-2 py-0.5 text-xs rounded-full ${upi.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {upi.isActive ? 'Active' : 'Inactive'}
+                    <h3 className="font-semibold text-gray-700 mb-4">Current Payment Methods</h3>
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+                        {paymentSettings.paymentMethods.map(method => (
+                            <div key={method.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    {method.type === 'qr' ? <QrCode className="text-blue-600 flex-shrink-0"/> : <span className="font-bold text-green-600 text-sm flex-shrink-0">UPI</span>}
+                                    <div className="overflow-hidden">
+                                        <p className="font-semibold text-gray-800 text-sm truncate">{method.name}</p>
+                                        <p className="text-xs text-gray-500 truncate">{method.type === 'upi' ? method.value : 'QR Code Image'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <button onClick={() => handleToggleMethod(method.id)} className={`px-2 py-0.5 text-xs rounded-full ${method.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {method.isActive ? 'Active' : 'Inactive'}
                                     </button>
-                                    <button onClick={() => handleDeleteUpi(upi.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDeleteMethod(method.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}
-                        {paymentSettings.upiIds.length === 0 && <p className="text-sm text-gray-400 text-center py-2">No UPI IDs added.</p>}
-                    </div>
-                    <div className="flex gap-2">
-                        <input type="text" value={newUpi} onChange={e => setNewUpi(e.target.value)} placeholder="Enter new UPI ID" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                        <button onClick={handleAddUpi} className="bg-gray-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-900">Add</button>
+                        {paymentSettings.paymentMethods.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No payment methods added.</p>}
                     </div>
                 </div>
 
-                {/* QR Code Management */}
-                <div>
-                    <h3 className="font-semibold text-gray-700 mb-4">QR Code Management</h3>
-                    <div className="flex flex-col items-center">
-                        {paymentSettings.qrCode ? (
-                            <div className="mb-2 text-center">
-                                <img src={paymentSettings.qrCode} alt="QR Code Preview" className="w-40 h-40 object-contain border rounded-lg" />
-                                <button onClick={handleRemoveQr} className="text-xs text-red-500 mt-2 hover:underline">Remove QR Code</button>
+                {/* Add New Method */}
+                <div className="border-t md:border-t-0 md:border-l border-gray-200 md:pl-8 pt-6 md:pt-0">
+                    <h3 className="font-semibold text-gray-700 mb-4">Add New Method</h3>
+                    <div className="space-y-4">
+                         <div>
+                            <label className="text-sm font-medium text-gray-600">Name Tag</label>
+                            <input type="text" value={newMethodName} onChange={e => setNewMethodName(e.target.value)} placeholder="e.g. Primary Account" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-600">Type</label>
+                            <div className="flex gap-2 mt-1">
+                                <button onClick={() => setNewMethodType('upi')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'upi' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>UPI</button>
+                                <button onClick={() => setNewMethodType('qr')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'qr' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>QR Code</button>
+                            </div>
+                        </div>
+
+                        {newMethodType === 'upi' ? (
+                            <div>
+                                <label className="text-sm font-medium text-gray-600">UPI ID</label>
+                                <input type="text" value={newMethodUpi} onChange={e => setNewMethodUpi(e.target.value)} placeholder="Enter UPI ID" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
                             </div>
                         ) : (
-                            <div className="w-40 h-40 bg-gray-100 border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 text-sm mb-2">No QR Code</div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-600">QR Code Image</label>
+                                {newMethodQr ? (
+                                     <div className="mt-1 text-center">
+                                        <img src={newMethodQr} alt="QR Preview" className="w-24 h-24 object-contain border rounded-lg inline-block" />
+                                        <button onClick={() => setNewMethodQr(null)} className="text-xs text-red-500 mt-1 hover:underline block">Remove Image</button>
+                                    </div>
+                                ) : (
+                                    <input type="file" id="qr-upload" accept="image/*" onChange={handleQrCodeUpload} className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                                )}
+                            </div>
                         )}
-                        <input type="file" id="qr-upload" accept="image/*" onChange={handleQrCodeUpload} className="hidden" />
-                        <label htmlFor="qr-upload" className="w-full text-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition cursor-pointer">
-                            Upload New QR Code
-                        </label>
+                        <div className="pt-2">
+                             <button onClick={handleAddMethod} className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-gray-900">Add Method</button>
+                        </div>
                     </div>
                 </div>
             </div>

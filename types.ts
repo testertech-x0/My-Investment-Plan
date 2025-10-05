@@ -133,17 +133,17 @@ export interface SocialLinks {
   whatsapp?: string;
 }
 
-export interface UpiId {
+export interface PaymentMethod {
   id: string;
-  upi: string;
+  type: 'upi' | 'qr';
+  name: string; // Name tag for admin identification
+  value: string; // UPI ID string or QR Base64 string
   isActive: boolean;
 }
 
 export interface PaymentSettings {
-  upiIds: UpiId[];
-  qrCode: string | null; // Base64 encoded image
+  paymentMethods: PaymentMethod[];
 }
-
 
 export interface MockSms {
   id: number;

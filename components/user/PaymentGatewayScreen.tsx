@@ -1,19 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ShieldCheck, TrendingUp, CheckCircle, ClipboardCopy, QrCode } from 'lucide-react';
+import { ShieldCheck, TrendingUp, CheckCircle, ClipboardCopy } from 'lucide-react';
+import type { PaymentMethod } from '../../types';
+
+// Helper to get last used ID from localStorage
+const getLastUsedId = (key: string): string | null => {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+};
+
+// Helper to set last used ID in localStorage
+const setLastUsedId = (key: string, id: string): void => {
+    try {
+        localStorage.setItem(key, id);
+    } catch {
+        // ignore errors
+    }
+};
 
 const PaymentGatewayScreen: React.FC = () => {
   const { pendingDeposit, processDeposit, setCurrentView, appName, appLogo, paymentSettings, addNotification } = useApp();
   const [status, setStatus] = useState<'pending' | 'processing' | 'success'>('pending');
-  const [selectedMethod, setSelectedMethod] = useState<'upi' | 'qr'>('upi');
-  const [referenceNumber, setReferenceNumber] = useState('');
 
   useEffect(() => {
     if (!pendingDeposit) {
-      // If the user lands here without a pending deposit (e.g., page refresh), send them back.
       setCurrentView('deposit');
     }
   }, [pendingDeposit, setCurrentView]);
+
+  const selectedMethod = useMemo(() => {
+    if (!pendingDeposit) return null;
+
+    let availableMethods = paymentSettings.paymentMethods.filter(m => m.isActive);
+    
+    if (pendingDeposit.amount > 2000) {
+        availableMethods = availableMethods.filter(m => m.type !== 'qr');
+    }
+    
+    if (availableMethods.length === 0) return null;
+    
+    if (availableMethods.length === 1) {
+        const method = availableMethods[0];
+        setLastUsedId('last_payment_method', method.id);
+        return method;
+    }
+
+    const lastMethodId = getLastUsedId('last_payment_method');
+    let selectableMethods = availableMethods.filter(m => m.id !== lastMethodId);
+    
+    if (selectableMethods.length === 0) {
+        selectableMethods = availableMethods;
+    }
+    
+    const randomMethod = selectableMethods[Math.floor(Math.random() * selectableMethods.length)];
+    setLastUsedId('last_payment_method', randomMethod.id);
+    
+    return randomMethod;
+  }, [paymentSettings, pendingDeposit]);
+
 
   if (!pendingDeposit) {
     return null; // or a loading/redirecting indicator
@@ -21,39 +68,31 @@ const PaymentGatewayScreen: React.FC = () => {
 
   const handlePay = async () => {
     setStatus('processing');
-    // Simulate payment processing delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const result = await processDeposit(pendingDeposit.userId, pendingDeposit.amount);
     
     if (result.success) {
       setStatus('success');
-      // Wait a bit on the success screen before redirecting
       setTimeout(() => {
         setCurrentView('home');
       }, 2500);
     } else {
-      // In a real app, you'd handle failure more gracefully
       setStatus('pending'); 
     }
   };
 
   const handleCancel = () => {
-    // In a real app, you might want to call a function to clear the pending deposit state.
     setCurrentView('deposit');
   };
 
   const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text).then(() => {
           addNotification("Copied to clipboard!", "success");
-      }, (err) => {
+      }, () => {
           addNotification("Failed to copy.", "error");
       });
   };
-
-  const isQrDisabled = pendingDeposit.amount > 2000;
-  const activeUpiIds = paymentSettings.upiIds.filter(u => u.isActive);
-  const upiToShow = activeUpiIds.length > 0 ? activeUpiIds[Math.floor(Math.random() * activeUpiIds.length)] : null;
 
   const renderContent = () => {
     switch(status) {
@@ -83,62 +122,43 @@ const PaymentGatewayScreen: React.FC = () => {
                 <p className="text-5xl font-bold text-gray-800 tracking-tight">₹{pendingDeposit.amount.toFixed(2)}</p>
             </div>
 
-            <div className="flex border border-gray-200 rounded-lg p-1 bg-gray-100 mb-4">
-                <button onClick={() => setSelectedMethod('upi')} className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${selectedMethod === 'upi' ? 'bg-white shadow' : ''}`}>UPI Payment</button>
-                <button onClick={() => setSelectedMethod('qr')} disabled={isQrDisabled} className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${selectedMethod === 'qr' ? 'bg-white shadow' : 'disabled:text-gray-400'}`}>QR Code</button>
-            </div>
-            
-            {selectedMethod === 'upi' && (
-                <div>
-                    {upiToShow ? (
+            {!selectedMethod ? (
+                <div className="text-center text-red-500 p-4 bg-red-50 rounded-lg">
+                    No payment methods are currently available for this amount. Please contact support.
+                </div>
+            ) : (
+                <div className="space-y-6">
+                    {selectedMethod.type === 'qr' && (
                         <div className="text-center">
-                            <p className="text-sm text-gray-600 mb-2">Please pay to the UPI ID below:</p>
-                            <div className="bg-green-50 p-3 rounded-lg flex items-center justify-center gap-2">
-                                <p className="font-mono text-lg text-green-800">{upiToShow.upi}</p>
-                                <button onClick={() => copyToClipboard(upiToShow.upi)} className="p-1 text-gray-500 hover:text-green-700"><ClipboardCopy size={18}/></button>
+                            <h3 className="font-semibold text-gray-800 mb-2">{selectedMethod.name} (QR Code)</h3>
+                            <div className="flex justify-center">
+                                <img src={selectedMethod.value} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
                             </div>
+                            <p className="text-xs text-gray-500 mt-2">Scan the QR code with your payment app</p>
+                            <p className="text-xs font-semibold text-blue-600 mt-1">For payments from ₹200 to ₹2000</p>
                         </div>
-                    ) : (
-                        <p className="text-center text-gray-500 p-4 bg-gray-100 rounded-lg">UPI payment is currently unavailable.</p>
+                    )}
+                    
+                    {selectedMethod.type === 'upi' && (
+                         <div className="text-center">
+                            <h3 className="font-semibold text-gray-800 mb-2">{selectedMethod.name} (UPI ID)</h3>
+                            <div className="bg-green-50 p-3 rounded-lg flex items-center justify-center gap-2">
+                                <p className="font-mono text-lg text-green-800 break-all">{selectedMethod.value}</p>
+                                <button onClick={() => copyToClipboard(selectedMethod.value)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">Copy the UPI ID and pay using your app</p>
+                         </div>
                     )}
                 </div>
-            )}
-            
-            {selectedMethod === 'qr' && (
-                <div>
-                    {isQrDisabled ? (
-                        <p className="text-center text-red-500 p-4 bg-red-50 rounded-lg">QR Code payment is only available for amounts up to ₹2000.</p>
-                    ) : paymentSettings.qrCode ? (
-                        <div className="flex flex-col items-center">
-                           <p className="text-sm text-gray-600 mb-2">Scan the QR code to pay</p>
-                           <img src={paymentSettings.qrCode} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg"/>
-                        </div>
-                    ) : (
-                        <p className="text-center text-gray-500 p-4 bg-gray-100 rounded-lg">QR Code payment is currently unavailable.</p>
-                    )}
-                </div>
-            )}
-            
-            {(upiToShow || (selectedMethod === 'qr' && !isQrDisabled && paymentSettings.qrCode)) && (
-              <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-700">Transaction ID / UTR</label>
-                  <input
-                    type="text"
-                    value={referenceNumber}
-                    onChange={(e) => setReferenceNumber(e.target.value)}
-                    placeholder="Enter 12-digit reference number"
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
-                  />
-              </div>
             )}
 
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3 mt-8">
                 <button
                     onClick={handlePay}
-                    disabled={!referenceNumber.trim()}
+                    disabled={!selectedMethod}
                     className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-gray-300"
                 >
-                    I have paid, Confirm
+                    I Have Paid
                 </button>
                 <button
                     onClick={handleCancel}

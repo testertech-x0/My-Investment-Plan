@@ -100,8 +100,7 @@ const initialLuckyDrawPrizes: Prize[] = [
 ];
 
 const initialPaymentSettings: PaymentSettings = {
-    upiIds: [],
-    qrCode: null,
+    paymentMethods: [],
 };
 
 // --- API Functions ---
