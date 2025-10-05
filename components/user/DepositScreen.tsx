@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const DepositScreen: React.FC = () => {
-  const { currentUser, setCurrentView, addNotification, makeDeposit } = useApp();
+  const { currentUser, setCurrentView, addNotification, initiateDeposit } = useApp();
   const [activeTab, setActiveTab] = useState('CASH');
   const [amount, setAmount] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('C');
@@ -27,10 +27,8 @@ const DepositScreen: React.FC = () => {
       return;
     }
     
-    const result = await makeDeposit(currentUser.id, depositAmount);
-    if (result.success) {
-      setAmount('');
-    }
+    initiateDeposit(depositAmount);
+    setCurrentView('payment-gateway');
   };
 
   return (
@@ -117,7 +115,7 @@ const DepositScreen: React.FC = () => {
               disabled={!isValid}
               className={`w-full py-3 rounded-lg font-semibold transition text-white mt-4 ${isValid ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
             >
-              To Deposit
+              Proceed to Pay
             </button>
           </div>
         ) : (

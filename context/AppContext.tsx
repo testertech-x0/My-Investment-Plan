@@ -35,6 +35,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
   const [mockSms, setMockSms] = useState<MockSms[]>([]);
   const [luckyDrawPrizes, setLuckyDrawPrizes] = useState<Prize[]>([]);
+  const [pendingDeposit, setPendingDeposit] = useState<{ amount: number; userId: string } | null>(null);
 
 
  useEffect(() => {
@@ -53,6 +54,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setChatSessions(data.chatSessions);
         setSocialLinks(data.socialLinks);
         setLuckyDrawPrizes(data.luckyDrawPrizes);
+        setPendingDeposit(data.pendingDeposit);
 
         // Determine initial view after loading data
         if (data.admin.isLoggedIn) {
@@ -359,13 +361,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true, message };
   };
 
-  const makeDeposit = async (userId: string, amount: number): Promise<{ success: boolean }> => {
+  const initiateDeposit = async (amount: number) => {
+    if (currentUser) {
+      const depositData = { amount, userId: currentUser.id };
+      setPendingDeposit(depositData);
+      await api.savePendingDeposit(depositData);
+    }
+  };
+
+  const processDeposit = async (userId: string, amount: number): Promise<{ success: boolean }> => {
     const user = users.find(u => u.id === userId);
     if (!user) {
         addNotification('User not found.', 'error');
         return { success: false };
     }
-    const newTransaction: Transaction = { id: generateTxId(), type: 'deposit', amount, description: 'Deposit', date: new Date().toISOString(), read: false };
+    const newTransaction: Transaction = { id: generateTxId(), type: 'deposit', amount, description: `Deposit via Gateway`, date: new Date().toISOString(), read: false };
     const updatedUser: Partial<User> = {
         balance: user.balance + amount,
         rechargeAmount: user.rechargeAmount + amount,
@@ -375,6 +385,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await updateUser(userId, updatedUser);
     await logActivity(userId, `Deposited ₹${amount.toFixed(2)}`);
     addNotification(`Successfully deposited ₹${amount.toFixed(2)}.`, 'success');
+    setPendingDeposit(null);
+    await api.savePendingDeposit(null);
     return { success: true };
   };
 
@@ -772,15 +784,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms, luckyDrawPrizes,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms, luckyDrawPrizes, pendingDeposit,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
-    addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
+    addNotification, showConfirmation, hideConfirmation, handleConfirm, processDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
     updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks,
     requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp, dismissSms,
-    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize,
+    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, initiateDeposit
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -156,6 +156,7 @@ export interface AppContextType {
   socialLinks: SocialLinks;
   mockSms: MockSms[];
   luckyDrawPrizes: Prize[];
+  pendingDeposit: { amount: number; userId: string } | null;
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
@@ -171,7 +172,8 @@ export interface AppContextType {
   addNotification: (message: string, type?: NotificationType) => void;
   showConfirmation: (title: string, message: string | ReactNode, onConfirm: () => void) => void;
   dismissSms: (id: number) => void;
-  makeDeposit: (userId: string, amount: number) => Promise<{ success: boolean }>;
+  initiateDeposit: (amount: number) => void;
+  processDeposit: (userId: string, amount: number) => Promise<{ success: boolean }>;
   makeWithdrawal: (userId: string, amount: number) => Promise<{ success: boolean; message?: string }>;
   changeUserPassword: (userId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
   addInvestmentPlan: (planData: Omit<InvestmentPlan, 'id'>) => Promise<{ success: boolean; message?: string }>;

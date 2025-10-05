@@ -25,6 +25,7 @@ import HelpScreen from './components/user/HelpScreen';
 import LoginActivityScreen from './components/user/LoginActivityScreen';
 import CommentScreen from './components/user/CommentScreen';
 import ChatScreen from './components/user/ChatScreen';
+import PaymentGatewayScreen from './components/user/PaymentGatewayScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
@@ -203,6 +204,9 @@ function AppContent() {
         break;
       case 'chat':
         viewComponent = <ChatScreen />;
+        break;
+      case 'payment-gateway':
+        viewComponent = <PaymentGatewayScreen />;
         break;
       default:
         viewComponent = <HomeDashboard />;

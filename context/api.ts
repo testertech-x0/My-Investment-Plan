@@ -116,9 +116,10 @@ export async function getInitialData() {
     const chatSessions = storage.getItem<ChatSession[]>('app_chatSessions', initialChatSessions);
     const socialLinks = storage.getItem<SocialLinks>('app_socialLinks', { telegram: '', whatsapp: '' });
     const luckyDrawPrizes = storage.getItem<Prize[]>('app_luckyDrawPrizes', initialLuckyDrawPrizes);
+    const pendingDeposit = storage.getItem<{ amount: number; userId: string } | null>('app_pendingDeposit', null);
 
     return {
-        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks, luckyDrawPrizes
+        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks, luckyDrawPrizes, pendingDeposit
     };
 }
 
@@ -197,6 +198,15 @@ export async function saveSocialLinks(links: SocialLinks): Promise<void> {
 export async function saveLuckyDrawPrizes(prizes: Prize[]): Promise<void> {
     await delay(FAKE_LATENCY);
     storage.setItem('app_luckyDrawPrizes', prizes);
+}
+
+export async function savePendingDeposit(deposit: { amount: number; userId: string } | null): Promise<void> {
+    await delay(FAKE_LATENCY);
+    if (deposit) {
+        storage.setItem('app_pendingDeposit', deposit);
+    } else {
+        storage.removeItem('app_pendingDeposit');
+    }
 }
 
 // Higher-level logical operations
