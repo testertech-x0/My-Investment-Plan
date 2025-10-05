@@ -1,4 +1,4 @@
-import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession, SocialLinks } from '../types';
+import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession, SocialLinks, PaymentSettings } from '../types';
 
 // --- MOCK API with localStorage ---
 // This service simulates an API by using localStorage.
@@ -99,6 +99,11 @@ const initialLuckyDrawPrizes: Prize[] = [
     { id: 'prize-8', name: 'Thank you', type: 'nothing', amount: 0 },
 ];
 
+const initialPaymentSettings: PaymentSettings = {
+    upiIds: [],
+    qrCode: null,
+};
+
 // --- API Functions ---
 
 export async function getInitialData() {
@@ -116,10 +121,11 @@ export async function getInitialData() {
     const chatSessions = storage.getItem<ChatSession[]>('app_chatSessions', initialChatSessions);
     const socialLinks = storage.getItem<SocialLinks>('app_socialLinks', { telegram: '', whatsapp: '' });
     const luckyDrawPrizes = storage.getItem<Prize[]>('app_luckyDrawPrizes', initialLuckyDrawPrizes);
+    const paymentSettings = storage.getItem<PaymentSettings>('app_paymentSettings', initialPaymentSettings);
     const pendingDeposit = storage.getItem<{ amount: number; userId: string } | null>('app_pendingDeposit', null);
 
     return {
-        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks, luckyDrawPrizes, pendingDeposit
+        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks, luckyDrawPrizes, paymentSettings, pendingDeposit
     };
 }
 
@@ -198,6 +204,11 @@ export async function saveSocialLinks(links: SocialLinks): Promise<void> {
 export async function saveLuckyDrawPrizes(prizes: Prize[]): Promise<void> {
     await delay(FAKE_LATENCY);
     storage.setItem('app_luckyDrawPrizes', prizes);
+}
+
+export async function savePaymentSettings(settings: PaymentSettings): Promise<void> {
+    await delay(FAKE_LATENCY);
+    storage.setItem('app_paymentSettings', settings);
 }
 
 export async function savePendingDeposit(deposit: { amount: number; userId: string } | null): Promise<void> {

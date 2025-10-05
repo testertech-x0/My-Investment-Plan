@@ -133,6 +133,18 @@ export interface SocialLinks {
   whatsapp?: string;
 }
 
+export interface UpiId {
+  id: string;
+  upi: string;
+  isActive: boolean;
+}
+
+export interface PaymentSettings {
+  upiIds: UpiId[];
+  qrCode: string | null; // Base64 encoded image
+}
+
+
 export interface MockSms {
   id: number;
   to: string;
@@ -156,6 +168,7 @@ export interface AppContextType {
   socialLinks: SocialLinks;
   mockSms: MockSms[];
   luckyDrawPrizes: Prize[];
+  paymentSettings: PaymentSettings;
   pendingDeposit: { amount: number; userId: string } | null;
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }) => Promise<{ success: boolean; userId?: string }>;
@@ -194,6 +207,7 @@ export interface AppContextType {
   sendChatMessage: (userId: string, message: { text?: string; imageUrl?: string }) => Promise<void>;
   markChatAsRead: (userId: string) => Promise<void>;
   updateSocialLinks: (links: Partial<SocialLinks>) => Promise<void>;
+  updatePaymentSettings: (settings: Partial<PaymentSettings>) => Promise<void>;
   requestPasswordResetOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
   resetPasswordWithOtp: (phone: string, otp: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   requestRegisterOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;

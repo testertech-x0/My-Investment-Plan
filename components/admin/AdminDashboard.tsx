@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
@@ -474,6 +474,108 @@ const AdminChatView = () => {
 };
 // --- END OF CHAT COMPONENTS ---
 
+const PaymentSettingsView = () => {
+    const { paymentSettings, updatePaymentSettings, addNotification } = useApp();
+    const [newUpi, setNewUpi] = useState('');
+
+    const handleAddUpi = () => {
+        if (!newUpi.trim() || !newUpi.includes('@')) {
+            addNotification('Please enter a valid UPI ID.', 'error');
+            return;
+        }
+        const updatedSettings = {
+            ...paymentSettings,
+            upiIds: [...paymentSettings.upiIds, { id: `upi-${Date.now()}`, upi: newUpi, isActive: true }]
+        };
+        updatePaymentSettings(updatedSettings);
+        setNewUpi('');
+    };
+
+    const handleDeleteUpi = (id: string) => {
+        const updatedSettings = {
+            ...paymentSettings,
+            upiIds: paymentSettings.upiIds.filter(upi => upi.id !== id)
+        };
+        updatePaymentSettings(updatedSettings);
+    };
+
+    const handleToggleUpi = (id: string) => {
+        const updatedSettings = {
+            ...paymentSettings,
+            upiIds: paymentSettings.upiIds.map(upi => upi.id === id ? { ...upi, isActive: !upi.isActive } : upi)
+        };
+        updatePaymentSettings(updatedSettings);
+    };
+
+    const handleQrCodeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const result = event.target?.result as string;
+                updatePaymentSettings({ ...paymentSettings, qrCode: result });
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+    
+    const handleRemoveQr = () => {
+        updatePaymentSettings({ ...paymentSettings, qrCode: null });
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow mt-8 lg:col-span-2">
+            <div className="p-6 border-b flex items-center gap-3">
+                <CreditCard className="text-gray-500" />
+                <h2 className="text-xl font-semibold text-gray-800">Payment Gateway Settings</h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* UPI Management */}
+                <div>
+                    <h3 className="font-semibold text-gray-700 mb-4">UPI IDs Management</h3>
+                    <div className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-2">
+                        {paymentSettings.upiIds.map(upi => (
+                            <div key={upi.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                                <span className="text-sm text-gray-800 break-all">{upi.upi}</span>
+                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                    <button onClick={() => handleToggleUpi(upi.id)} className={`px-2 py-0.5 text-xs rounded-full ${upi.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {upi.isActive ? 'Active' : 'Inactive'}
+                                    </button>
+                                    <button onClick={() => handleDeleteUpi(upi.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                </div>
+                            </div>
+                        ))}
+                        {paymentSettings.upiIds.length === 0 && <p className="text-sm text-gray-400 text-center py-2">No UPI IDs added.</p>}
+                    </div>
+                    <div className="flex gap-2">
+                        <input type="text" value={newUpi} onChange={e => setNewUpi(e.target.value)} placeholder="Enter new UPI ID" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                        <button onClick={handleAddUpi} className="bg-gray-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-900">Add</button>
+                    </div>
+                </div>
+
+                {/* QR Code Management */}
+                <div>
+                    <h3 className="font-semibold text-gray-700 mb-4">QR Code Management</h3>
+                    <div className="flex flex-col items-center">
+                        {paymentSettings.qrCode ? (
+                            <div className="mb-2 text-center">
+                                <img src={paymentSettings.qrCode} alt="QR Code Preview" className="w-40 h-40 object-contain border rounded-lg" />
+                                <button onClick={handleRemoveQr} className="text-xs text-red-500 mt-2 hover:underline">Remove QR Code</button>
+                            </div>
+                        ) : (
+                            <div className="w-40 h-40 bg-gray-100 border-2 border-dashed rounded-lg flex items-center justify-center text-gray-400 text-sm mb-2">No QR Code</div>
+                        )}
+                        <input type="file" id="qr-upload" accept="image/*" onChange={handleQrCodeUpload} className="hidden" />
+                        <label htmlFor="qr-upload" className="w-full text-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition cursor-pointer">
+                            Upload New QR Code
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const AdminDashboard: React.FC = () => {
   const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks, luckyDrawPrizes, addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize } = useApp();
   
@@ -909,6 +1011,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+             <PaymentSettingsView />
         </div>
         
         {/* Chat Support */}

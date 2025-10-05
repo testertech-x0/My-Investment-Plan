@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms, PaymentSettings } from '../types';
 import * as api from './api';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,6 +35,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
   const [mockSms, setMockSms] = useState<MockSms[]>([]);
   const [luckyDrawPrizes, setLuckyDrawPrizes] = useState<Prize[]>([]);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ upiIds: [], qrCode: null });
   const [pendingDeposit, setPendingDeposit] = useState<{ amount: number; userId: string } | null>(null);
 
 
@@ -54,6 +55,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setChatSessions(data.chatSessions);
         setSocialLinks(data.socialLinks);
         setLuckyDrawPrizes(data.luckyDrawPrizes);
+        setPaymentSettings(data.paymentSettings);
         setPendingDeposit(data.pendingDeposit);
 
         // Determine initial view after loading data
@@ -723,6 +725,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addNotification('Social links updated successfully!', 'success');
   };
   
+  const updatePaymentSettings = async (settings: Partial<PaymentSettings>) => {
+      const newSettings = { ...paymentSettings, ...settings };
+      setPaymentSettings(newSettings);
+      await api.savePaymentSettings(newSettings);
+      addNotification('Payment settings updated!', 'success');
+  };
+
   const requestPasswordResetOtp = async (phone: string): Promise<{ success: boolean; message?: string }> => {
     const user = users.find(u => u.phone === phone);
     if (!user) return { success: false, message: "Phone number not found." };
@@ -784,13 +793,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms, luckyDrawPrizes, pendingDeposit,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms, luckyDrawPrizes, paymentSettings, pendingDeposit,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, processDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks,
+    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks, updatePaymentSettings,
     requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp, dismissSms,
     addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, initiateDeposit
   };
