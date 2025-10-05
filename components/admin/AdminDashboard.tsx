@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo, FC } from 'react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 
+// --- STYLING & THEME ---
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
     { name: 'green', bgClass: 'bg-green-500' },
     { name: 'blue', bgClass: 'bg-blue-500' },
@@ -15,7 +16,10 @@ const themeOptions: { name: ThemeColor; bgClass: string }[] = [
     { name: 'pink', bgClass: 'bg-pink-500' },
 ];
 
-const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: string, onCropComplete: (croppedImage: string) => void, onCancel: () => void }) => {
+const primaryColor = 'indigo';
+
+// --- MODAL COMPONENTS ---
+const ImageCropperModal: FC<{ imageSrc: string, onCropComplete: (croppedImage: string) => void, onCancel: () => void }> = ({ imageSrc, onCropComplete, onCancel }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -105,9 +109,7 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
         setCrop(c => ({ ...c, x: newX, y: newY }));
     };
 
-    const handleMouseUp = () => {
-        setDragInfo({ isDragging: false, startX: 0, startY: 0 });
-    };
+    const handleMouseUp = () => setDragInfo({ isDragging: false, startX: 0, startY: 0 });
 
     const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -136,7 +138,7 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 animate-fade-in-up">
+            <div className="bg-white rounded-lg max-w-lg w-full p-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Crop Your Logo</h3>
                 <p className="text-sm text-gray-500 mb-4">Drag to move, scroll to zoom.</p>
                 <div 
@@ -162,8 +164,8 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
                 <div className="flex gap-3 mt-6">
-                    <button onClick={onCancel} className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-                    <button onClick={getCroppedImg} className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition flex items-center justify-center gap-2">
+                    <button onClick={onCancel} className={`flex-1 py-2.5 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition`}>Cancel</button>
+                    <button onClick={getCroppedImg} className={`flex-1 py-2.5 bg-${primaryColor}-600 text-white rounded-lg font-semibold hover:bg-${primaryColor}-700 transition flex items-center justify-center gap-2`}>
                         <Crop size={18} /> Crop & Save
                     </button>
                 </div>
@@ -172,7 +174,7 @@ const ImageCropperModal = ({ imageSrc, onCropComplete, onCancel }: { imageSrc: s
     );
 };
 
-const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User, onClose: () => void, onEdit: (user: User) => void, onToggleStatus: (user: User) => Promise<void> }) => {
+const UserDetailModal: FC<{ user: User, onClose: () => void, onEdit: (user: User) => void, onToggleStatus: (user: User) => Promise<void> }> = ({ user, onClose, onEdit, onToggleStatus }) => {
     const [activeTab, setActiveTab] = useState('overview');
     
     const tabs = [
@@ -271,7 +273,7 @@ const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-fade-in-up">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
                 <header className="p-4 border-b flex justify-between items-center">
                     <div>
                         <h3 className="text-xl font-bold text-gray-800">{user.name}</h3>
@@ -284,7 +286,7 @@ const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User
                 <nav className="flex border-b shrink-0">
                     {tabs.map(tab => (
                         <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 p-3 font-medium transition-colors ${activeTab === tab.id ? 'text-gray-800 border-b-2 border-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
+                            className={`flex-1 flex items-center justify-center gap-2 p-3 font-medium transition-colors ${activeTab === tab.id ? `text-${primaryColor}-600 border-b-2 border-${primaryColor}-600` : 'text-gray-500 hover:bg-gray-50'}`}>
                             <tab.icon size={18} /> {tab.label}
                         </button>
                     ))}
@@ -297,34 +299,24 @@ const UserDetailModal = ({ user, onClose, onEdit, onToggleStatus }: { user: User
     );
 };
 
-// --- START OF CHAT COMPONENTS ---
-const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) => (
+const ImagePreviewModal: FC<{ imageUrl: string; onClose: () => void }> = ({ imageUrl, onClose }) => (
     <div 
-        className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[60] animate-fade-in"
+        className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[60]"
         onClick={onClose}
     >
         <button 
             className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/75 transition-colors z-10"
             onClick={onClose}
-        >
-            <X size={24} />
-        </button>
-        <div className="relative max-w-full max-h-full animate-scale-up" onClick={e => e.stopPropagation()}>
+        ><X size={24} /></button>
+        <div className="relative max-w-full max-h-full" onClick={e => e.stopPropagation()}>
             <img src={imageUrl} alt="Full screen preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
         </div>
-        <style>{`
-            @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
-            .animate-fade-in { animation: fade-in 0.3s ease-out; }
-            @keyframes scale-up { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
-            .animate-scale-up { animation: scale-up 0.3s ease-out; }
-        `}</style>
     </div>
 );
 
-// FIX: Changed component definition to use React.FC to correctly type props and avoid issues with the 'key' prop.
-const ChatMessageBubble: React.FC<{ message: ChatMessage; isSender: boolean; onImageClick: (url: string) => void; }> = ({ message, isSender, onImageClick }) => {
+const ChatMessageBubble: FC<{ message: ChatMessage; isSender: boolean; onImageClick: (url: string) => void; }> = ({ message, isSender, onImageClick }) => {
     const bubbleClass = isSender
-        ? 'bg-green-600 text-white self-end rounded-l-lg rounded-tr-lg'
+        ? `bg-${primaryColor}-600 text-white self-end rounded-l-lg rounded-tr-lg`
         : 'bg-gray-200 text-gray-800 self-start rounded-r-lg rounded-tl-lg';
 
     return (
@@ -342,321 +334,455 @@ const ChatMessageBubble: React.FC<{ message: ChatMessage; isSender: boolean; onI
     );
 };
 
+// --- VIEW COMPONENTS ---
+const DashboardView: FC<AppContextType> = (props) => {
+    const { users, activityLog } = props;
+    const totalInvestments = users.reduce((sum, user) => sum + user.investments.reduce((s, inv) => s + inv.investedAmount, 0), 0);
+    const totalBalance = users.reduce((sum, user) => sum + user.balance, 0);
+    const activeUsers = users.filter(u => u.isActive).length;
 
-const AdminChatView = () => {
-    const { users, chatSessions, sendChatMessage, markChatAsRead } = useApp();
+    const stats = [
+        { title: 'Total Users', value: users.length, icon: Users, color: 'blue' },
+        { title: 'Active Users', value: activeUsers, icon: Activity, color: 'green' },
+        { title: 'Total Investments', value: `₹${totalInvestments.toLocaleString('en-IN', {maximumFractionDigits: 2})}`, icon: TrendingUp, color: 'purple' },
+        { title: 'Platform Balance', value: `₹${totalBalance.toLocaleString('en-IN', {maximumFractionDigits: 2})}`, icon: Wallet, color: 'orange' },
+    ];
+
+    return (
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map(stat => (
+                    <div key={stat.title} className="bg-white rounded-lg shadow p-6 flex items-center gap-6">
+                        <div className={`p-4 rounded-full bg-${stat.color}-100`}>
+                            <stat.icon className={`text-${stat.color}-500`} size={28} />
+                        </div>
+                        <div>
+                            <p className="text-gray-500 text-sm font-medium">{stat.title}</p>
+                            <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b">
+                    <h2 className="text-xl font-semibold text-gray-800">Recent Activity</h2>
+                    <p className="text-sm text-gray-500">A log of recent significant user actions.</p>
+                </div>
+                <div>
+                    {activityLog.length > 0 ? (
+                        <ul className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                            {activityLog.slice(0, 10).map(log => (
+                                <li key={log.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div>
+                                        <p className="font-medium text-gray-900">{log.action}</p>
+                                        <p className="text-sm text-gray-500">User: {log.userName} ({log.userId})</p>
+                                    </div>
+                                    <p className="text-sm text-gray-500 shrink-0">{log.timestamp.toLocaleString()}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-center text-gray-500 py-8">No activity recorded yet.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const UserManagementView: FC<AppContextType & { onUserSelect: (user: User, action: 'view' | 'edit' | 'delete' | 'login' | 'toggle') => Promise<void>, searchTerm: string, setSearchTerm: (term: string) => void }> = (props) => {
+    const { users, onUserSelect, searchTerm, setSearchTerm } = props;
+
+    const filteredUsers = users.filter(user =>
+        user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.phone.includes(searchTerm) ||
+        user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+         <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b">
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Search by User ID, phone, or name..." />
+                </div>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {filteredUsers.map(user => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                                <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                <p className="text-xs text-gray-500">{user.id} &middot; {user.phone}</p>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{user.balance.toFixed(2)}</td>
+                            <td className="px-6 py-4">
+                            <button onClick={() => onUserSelect(user, 'toggle')}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {user.isActive ? 'Active' : 'Blocked'}
+                            </button>
+                            </td>
+                            <td className="px-6 py-4">
+                            <div className="flex gap-1">
+                                <button onClick={() => onUserSelect(user, 'view')} className="p-2 text-gray-600 hover:bg-gray-100 rounded" title="View"><Eye size={18} /></button>
+                                <button onClick={() => onUserSelect(user, 'edit')} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><Edit size={18} /></button>
+                                <button onClick={() => onUserSelect(user, 'login')} className="p-2 text-green-600 hover:bg-green-50 rounded" title="Login As"><LogIn size={18} /></button>
+                                <button onClick={() => onUserSelect(user, 'delete')} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete"><Trash2 size={18} /></button>
+                            </div>
+                            </td>
+                        </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {filteredUsers.length === 0 && <p className="text-center text-gray-500 py-8">No users found.</p>}
+            </div>
+        </div>
+    );
+};
+
+const PaymentSettingsView: FC = () => {
+    const { paymentSettings, updatePaymentSettings, addNotification, showConfirmation } = useApp();
+
+    const [newMethod, setNewMethod] = useState({ name: '', type: 'upi' as 'upi' | 'qr', value: '' });
+    const [qrFile, setQrFile] = useState<File | null>(null);
+    const qrFileInputRef = useRef<HTMLInputElement>(null);
+
+    const [newQuickAmount, setNewQuickAmount] = useState('');
+
+    const handleAddMethod = async () => {
+        if (!newMethod.name || (newMethod.type === 'upi' && !newMethod.value) || (newMethod.type === 'qr' && !qrFile)) {
+            addNotification('Please fill all required fields.', 'error');
+            return;
+        }
+
+        if (newMethod.type === 'qr' && qrFile) {
+            const reader = new FileReader();
+            reader.readAsDataURL(qrFile);
+            reader.onload = async () => {
+                const base64Value = reader.result as string;
+                const finalNewMethod: PaymentMethod = { id: `pm-${Date.now()}`, type: 'qr', name: newMethod.name, value: base64Value, isActive: true };
+                await updatePaymentSettings({ paymentMethods: [...paymentSettings.paymentMethods, finalNewMethod] });
+                setNewMethod({ name: '', type: 'upi', value: '' });
+                setQrFile(null);
+                if (qrFileInputRef.current) qrFileInputRef.current.value = '';
+                addNotification('QR Code method added.', 'success');
+            };
+            reader.onerror = () => addNotification('Failed to read QR image.', 'error');
+        } else {
+            const finalNewMethod: PaymentMethod = { id: `pm-${Date.now()}`, ...newMethod, isActive: true };
+            await updatePaymentSettings({ paymentMethods: [...paymentSettings.paymentMethods, finalNewMethod] });
+            setNewMethod({ name: '', type: 'upi', value: '' });
+            addNotification('UPI method added.', 'success');
+        }
+    };
+
+    const handleToggleMethodStatus = async (id: string) => {
+        const updatedMethods = paymentSettings.paymentMethods.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m);
+        await updatePaymentSettings({ paymentMethods: updatedMethods });
+    };
+
+    const handleDeleteMethod = (id: string, name: string) => {
+        showConfirmation('Delete Payment Method', <>Are you sure you want to delete <strong>{name}</strong>?</>, async () => {
+            const updatedMethods = paymentSettings.paymentMethods.filter(m => m.id !== id);
+            await updatePaymentSettings({ paymentMethods: updatedMethods });
+            addNotification('Method deleted.', 'success');
+        });
+    };
+
+    const handleAddQuickAmount = async () => {
+        const amount = parseInt(newQuickAmount, 10);
+        if (isNaN(amount) || amount <= 0) { addNotification('Please enter a valid positive amount.', 'error'); return; }
+        if (paymentSettings.quickAmounts.includes(amount)) { addNotification('This amount already exists.', 'info'); return; }
+        const updatedAmounts = [...paymentSettings.quickAmounts, amount].sort((a, b) => a - b);
+        await updatePaymentSettings({ quickAmounts: updatedAmounts });
+        setNewQuickAmount('');
+        addNotification('Quick amount added.', 'success');
+    };
+
+    const handleDeleteQuickAmount = (amountToDelete: number) => {
+        showConfirmation('Delete Quick Amount', <>Are you sure you want to delete <strong>₹{amountToDelete}</strong>?</>, async () => {
+            const updatedAmounts = paymentSettings.quickAmounts.filter(a => a !== amountToDelete);
+            await updatePaymentSettings({ quickAmounts: updatedAmounts });
+            addNotification('Quick amount deleted.', 'success');
+        });
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b flex items-center gap-3"><CreditCard /><h3 className="text-lg font-semibold">Payment Methods</h3></div>
+                <div className="p-6 border-b bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="col-span-1 md:col-span-3"><h4 className="font-semibold text-gray-700">Add New Method</h4></div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Name Tag</label>
+                        <input type="text" value={newMethod.name} onChange={e => setNewMethod(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Main UPI" className="w-full p-2 border border-gray-300 rounded-lg" />
+                    </div>
+                     <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Type</label>
+                        <select value={newMethod.type} onChange={e => setNewMethod(p => ({ ...p, type: e.target.value as 'upi' | 'qr' }))} className="w-full p-2 border border-gray-300 rounded-lg bg-white">
+                            <option value="upi">UPI ID</option>
+                            <option value="qr">QR Code</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">{newMethod.type === 'upi' ? 'UPI ID' : 'QR Image'}</label>
+                        {newMethod.type === 'upi' ? (
+                            <input type="text" value={newMethod.value} onChange={e => setNewMethod(p => ({ ...p, value: e.target.value }))} placeholder="user@bank" className="w-full p-2 border border-gray-300 rounded-lg" />
+                        ) : (
+                            <input type="file" ref={qrFileInputRef} onChange={e => setQrFile(e.target.files ? e.target.files[0] : null)} accept="image/*" className="w-full p-1.5 border border-gray-300 rounded-lg text-sm bg-white file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                        )}
+                    </div>
+                    <div className="col-span-1 md:col-span-3">
+                        <button onClick={handleAddMethod} className={`w-full md:w-auto flex items-center justify-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition`}>
+                            <Plus size={20} /> Add Method
+                        </button>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name Tag</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {paymentSettings.paymentMethods.map(method => (
+                                <tr key={method.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 font-medium text-gray-900">{method.name}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${method.type === 'upi' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                                            {method.type === 'qr' && <QrCode size={14} />} {method.type.toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-600 font-mono break-all">
+                                        {method.type === 'upi' ? method.value : <img src={method.value} alt="QR Code" className="w-10 h-10 object-contain" />}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <button onClick={() => handleToggleMethodStatus(method.id)} className={`p-1.5 rounded-full ${method.isActive ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                                            {method.isActive ? <Check size={16} /> : <X size={16} />}
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <button onClick={() => handleDeleteMethod(method.id, method.name)} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Method">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                     {paymentSettings.paymentMethods.length === 0 && <p className="text-center text-gray-500 py-8">No payment methods configured.</p>}
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b flex items-center gap-3"><Wallet /><h3 className="text-lg font-semibold">Quick Deposit Amounts</h3></div>
+                <div className="p-6 border-b bg-gray-50 flex items-end gap-4">
+                    <div className="flex-grow">
+                        <label className="text-sm font-medium text-gray-700 block mb-1">New Amount (₹)</label>
+                        <input type="number" value={newQuickAmount} onChange={e => setNewQuickAmount(e.target.value)} placeholder="e.g., 5000" className="w-full p-2 border border-gray-300 rounded-lg" />
+                    </div>
+                    <button onClick={handleAddQuickAmount} className={`flex items-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition`}>
+                        <Plus size={20} /> Add
+                    </button>
+                </div>
+                <div className="p-6">
+                    {paymentSettings.quickAmounts.length > 0 ? (
+                        <div className="flex flex-wrap gap-3">
+                            {paymentSettings.quickAmounts.map(amount => (
+                                <div key={amount} className="flex items-center gap-2 bg-gray-100 rounded-full pl-4 pr-2 py-1 font-semibold text-gray-700">
+                                    ₹{amount.toLocaleString()}
+                                    <button onClick={() => handleDeleteQuickAmount(amount)} className="p-1 text-red-500 hover:bg-red-100 rounded-full"><Trash2 size={16}/></button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <p className="text-gray-500">No quick amounts configured.</p>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AdminChatView: FC<AppContextType & { setViewingImage: (url: string | null) => void }> = (props) => {
+    const { users, chatSessions, sendChatMessage, markChatAsRead, setViewingImage } = props;
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const [messageText, setMessageText] = useState('');
-    const [image, setImage] = useState<string | null>(null);
-    const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [newMessage, setNewMessage] = useState('');
+    const [newImage, setNewImage] = useState<string | null>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const sortedSessions = useMemo(() => 
-        [...chatSessions].sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime()),
-        [chatSessions]
-    );
+    const sortedSessions = useMemo(() => {
+        return [...chatSessions].sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
+    }, [chatSessions]);
 
-    const selectedSession = chatSessions.find(s => s.userId === selectedUserId);
+    const selectedSession = useMemo(() => {
+        return chatSessions.find(s => s.userId === selectedUserId);
+    }, [chatSessions, selectedUserId]);
+    
+    const selectedUser = useMemo(() => {
+        return users.find(u => u.id === selectedUserId);
+    }, [users, selectedUserId]);
 
     useEffect(() => {
         if (selectedUserId) {
             markChatAsRead(selectedUserId);
         }
     }, [selectedUserId, markChatAsRead]);
-    
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [selectedSession?.messages]);
 
-    const handleSelectUser = (userId: string) => {
+    const handleSelectSession = (userId: string) => {
         setSelectedUserId(userId);
     };
 
     const handleSendMessage = async () => {
-        if ((!messageText.trim() && !image) || !selectedUserId) return;
+        if (!selectedUserId || (!newMessage.trim() && !newImage)) return;
         
-        await sendChatMessage(selectedUserId, { text: messageText, imageUrl: image || undefined });
+        await sendChatMessage(selectedUserId, { text: newMessage.trim(), imageUrl: newImage || undefined });
         
-        setMessageText('');
-        setImage(null);
+        setNewMessage('');
+        setNewImage(null);
     };
-    
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
-            reader.onload = (event) => setImage(event.target?.result as string);
+            reader.onload = (event) => setNewImage(event.target?.result as string);
             reader.readAsDataURL(e.target.files[0]);
         }
+        e.target.value = '';
     };
 
-    const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown User';
-    const getLastMessageSnippet = (session: ChatSession) => {
-        const lastMsg = session.messages[session.messages.length - 1];
-        if (!lastMsg) return "No messages yet";
-        if (lastMsg.text) return lastMsg.text.length > 25 ? `${lastMsg.text.substring(0, 25)}...` : lastMsg.text;
-        if (lastMsg.imageUrl) return "Sent an image";
-        return "";
+    const formatTimeAgo = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000);
+        if (diffSeconds < 60) return `${diffSeconds}s ago`;
+        const diffMinutes = Math.round(diffSeconds / 60);
+        if (diffMinutes < 60) return `${diffMinutes}m ago`;
+        const diffHours = Math.round(diffMinutes / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return date.toLocaleDateString();
     };
 
     return (
-        <div className="bg-white rounded-xl shadow mt-8 flex h-[70vh]">
-            {viewingImage && <ImagePreviewModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />}
+        <div className="bg-white rounded-lg shadow h-[calc(100vh-12rem)] flex">
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-
-            {/* Left Panel: Conversation List */}
+            
             <div className="w-1/3 border-r flex flex-col">
                 <div className="p-4 border-b">
-                    <h2 className="text-xl font-semibold text-gray-800">Chat Support</h2>
+                    <h3 className="text-lg font-semibold text-gray-800">Conversations</h3>
                 </div>
-                <div className="overflow-y-auto">
-                    {sortedSessions.map(session => (
-                        <button
-                            key={session.userId}
-                            onClick={() => handleSelectUser(session.userId)}
-                            className={`w-full text-left p-4 border-b flex justify-between items-center transition-colors ${selectedUserId === session.userId ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
-                        >
-                            <div>
-                                <p className="font-semibold text-gray-800">{getUserName(session.userId)}</p>
-                                <p className="text-sm text-gray-500">{getLastMessageSnippet(session)}</p>
-                            </div>
-                            {session.adminUnreadCount > 0 && (
-                                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">{session.adminUnreadCount}</span>
-                            )}
-                        </button>
-                    ))}
-                    {sortedSessions.length === 0 && <p className="text-center text-gray-500 p-8">No active chats.</p>}
+                <div className="flex-1 overflow-y-auto">
+                    {sortedSessions.length > 0 ? (
+                        sortedSessions.map(session => {
+                            const user = users.find(u => u.id === session.userId);
+                            const lastMessage = session.messages[session.messages.length - 1];
+                            const isActive = selectedUserId === session.userId;
+                            return (
+                                <button key={session.userId} onClick={() => handleSelectSession(session.userId)}
+                                    className={`w-full text-left p-4 border-b hover:bg-gray-50 flex items-start gap-3 transition-colors ${isActive ? 'bg-indigo-50' : ''}`}
+                                >
+                                    <div className="relative shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
+                                            {user?.name.charAt(0)}
+                                        </div>
+                                        {session.adminUnreadCount > 0 && 
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                                                {session.adminUnreadCount}
+                                            </span>
+                                        }
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="font-semibold text-gray-800 truncate">{user?.name || 'Unknown User'}</p>
+                                            <p className="text-xs text-gray-400 shrink-0 ml-2">{formatTimeAgo(session.lastMessageTimestamp)}</p>
+                                        </div>
+                                        <p className="text-sm text-gray-500 truncate">
+                                            {lastMessage?.imageUrl ? 'Sent an image' : lastMessage?.text}
+                                        </p>
+                                    </div>
+                                </button>
+                            )
+                        })
+                    ) : (
+                        <p className="text-center text-gray-500 p-8">No active chats.</p>
+                    )}
                 </div>
             </div>
 
-            {/* Right Panel: Chat Window */}
             <div className="w-2/3 flex flex-col">
-                {selectedSession ? (
+                {selectedSession && selectedUser ? (
                     <>
                         <div className="p-4 border-b flex items-center">
-                            <h3 className="text-lg font-semibold text-gray-800">{getUserName(selectedSession.userId)}</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{selectedUser.name} <span className="text-sm text-gray-500 font-normal">({selectedUser.id})</span></h3>
                         </div>
                         <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col gap-4">
                             {selectedSession.messages.map(msg => (
-                                <ChatMessageBubble key={msg.id} message={msg} isSender={msg.senderId === 'admin'} onImageClick={setViewingImage} />
+                                <ChatMessageBubble 
+                                    key={msg.id} 
+                                    message={msg} 
+                                    isSender={msg.senderId === 'admin'} 
+                                    onImageClick={setViewingImage}
+                                />
                             ))}
                             <div ref={messagesEndRef} />
                         </div>
                         <div className="p-4 border-t bg-white">
-                            {image && (
-                                <div className="relative w-24 h-24 mb-2">
-                                    <img src={image} alt="preview" className="w-full h-full object-cover rounded-md" />
-                                    <button onClick={() => setImage(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5"><X size={14} /></button>
+                            {newImage && (
+                                <div className="relative w-20 h-20 mb-2 p-1 bg-gray-100 rounded-lg">
+                                    <img src={newImage} alt="preview" className="w-full h-full object-cover rounded" />
+                                    <button onClick={() => setNewImage(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 rounded-full shadow"><X size={14}/></button>
                                 </div>
                             )}
                             <div className="flex items-center gap-2">
-                                <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><Paperclip size={20} /></button>
-                                <input
-                                    type="text"
-                                    value={messageText}
-                                    onChange={e => setMessageText(e.target.value)}
-                                    onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder="Type a message..."
-                                    className="flex-1 px-4 py-2 border rounded-full focus:ring-2 focus:ring-gray-800"
-                                />
-                                <button onClick={handleSendMessage} className="p-2 bg-gray-800 text-white rounded-full hover:bg-gray-900"><Send size={20} /></button>
+                                <button onClick={() => fileInputRef.current?.click()} className="p-3 text-gray-500 hover:bg-gray-100 rounded-full"><Paperclip size={20}/></button>
+                                <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type a message..." className="flex-1 px-4 py-2.5 bg-gray-100 border-transparent rounded-full focus:ring-2 focus:ring-indigo-500 focus:bg-white" />
+                                <button onClick={handleSendMessage} disabled={!newMessage.trim() && !newImage} className={`p-3 bg-${primaryColor}-600 text-white rounded-full hover:bg-${primaryColor}-700 transition disabled:bg-gray-300`}>
+                                    <Send size={20}/>
+                                </button>
                             </div>
                         </div>
                     </>
                 ) : (
                     <div className="flex-1 flex items-center justify-center text-gray-500">
-                        <p>Select a conversation to start chatting.</p>
+                        <div className="text-center">
+                            <MessageSquare size={48} className="mx-auto text-gray-300 mb-2" />
+                            <p>Select a conversation to start chatting.</p>
+                        </div>
                     </div>
                 )}
             </div>
         </div>
     );
 };
-// --- END OF CHAT COMPONENTS ---
-
-const PaymentSettingsView = () => {
-    const { paymentSettings, updatePaymentSettings, addNotification } = useApp();
-    const [newMethodName, setNewMethodName] = useState('');
-    const [newMethodType, setNewMethodType] = useState<'upi' | 'qr'>('upi');
-    const [newMethodUpi, setNewMethodUpi] = useState('');
-    const [newMethodQr, setNewMethodQr] = useState<string | null>(null);
-    const [newQuickAmount, setNewQuickAmount] = useState('');
-
-    const resetForm = () => {
-        setNewMethodName('');
-        setNewMethodType('upi');
-        setNewMethodUpi('');
-        setNewMethodQr(null);
-    };
-
-    const handleAddMethod = () => {
-        if (!newMethodName.trim()) {
-            addNotification('Please enter a name tag for the method.', 'error');
-            return;
-        }
-
-        const value = newMethodType === 'upi' ? newMethodUpi.trim() : newMethodQr;
-
-        if (!value) {
-            addNotification(`Please provide a ${newMethodType === 'upi' ? 'UPI ID' : 'QR Code'}.`, 'error');
-            return;
-        }
-
-        if (newMethodType === 'upi' && !value.includes('@')) {
-            addNotification('Please enter a valid UPI ID.', 'error');
-            return;
-        }
-
-        const newMethod: PaymentMethod = {
-            id: `pm-${Date.now()}`,
-            name: newMethodName,
-            type: newMethodType,
-            value,
-            isActive: true,
-        };
-
-        const updatedMethods = [...paymentSettings.paymentMethods, newMethod];
-        updatePaymentSettings({ ...paymentSettings, paymentMethods: updatedMethods });
-        resetForm();
-    };
-    
-    const handleDeleteMethod = (id: string) => {
-        const updatedMethods = paymentSettings.paymentMethods.filter(m => m.id !== id);
-        updatePaymentSettings({ ...paymentSettings, paymentMethods: updatedMethods });
-    };
-
-    const handleToggleMethod = (id: string) => {
-        const updatedMethods = paymentSettings.paymentMethods.map(m =>
-            m.id === id ? { ...m, isActive: !m.isActive } : m
-        );
-        updatePaymentSettings({ ...paymentSettings, paymentMethods: updatedMethods });
-    };
-    
-    const handleQrCodeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setNewMethodQr(event.target?.result as string);
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        }
-    };
-    
-    const handleAddQuickAmount = () => {
-        const amount = parseInt(newQuickAmount, 10);
-        if (isNaN(amount) || amount <= 0) {
-            addNotification("Please enter a valid amount.", 'error');
-            return;
-        }
-        const updatedAmounts = [...paymentSettings.quickAmounts, amount].sort((a,b) => a-b);
-        updatePaymentSettings({ ...paymentSettings, quickAmounts: updatedAmounts });
-        setNewQuickAmount('');
-    };
-
-    const handleDeleteQuickAmount = (amountToDelete: number) => {
-        const updatedAmounts = paymentSettings.quickAmounts.filter(a => a !== amountToDelete);
-        updatePaymentSettings({ ...paymentSettings, quickAmounts: updatedAmounts });
-    };
-
-    return (
-        <div className="bg-white rounded-xl shadow mt-8 lg:col-span-2">
-            <div className="p-6 border-b flex items-center gap-3">
-                <CreditCard className="text-gray-500" />
-                <h2 className="text-xl font-semibold text-gray-800">Payment Gateway Settings</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left Side: Methods */}
-                <div>
-                    {/* Add New Method */}
-                    <div className="border-b border-gray-200 pb-6 mb-6">
-                        <h3 className="font-semibold text-gray-700 mb-4">Add New Payment Method</h3>
-                        <div className="space-y-4">
-                             <div>
-                                <label className="text-sm font-medium text-gray-600">Name Tag</label>
-                                <input type="text" value={newMethodName} onChange={e => setNewMethodName(e.target.value)} placeholder="e.g. Primary Account" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-600">Type</label>
-                                <div className="flex gap-2 mt-1">
-                                    <button onClick={() => setNewMethodType('upi')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'upi' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>UPI</button>
-                                    <button onClick={() => setNewMethodType('qr')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'qr' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>QR Code</button>
-                                </div>
-                            </div>
-
-                            {newMethodType === 'upi' ? (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-600">UPI ID</label>
-                                    <input type="text" value={newMethodUpi} onChange={e => setNewMethodUpi(e.target.value)} placeholder="Enter UPI ID" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                                </div>
-                            ) : (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-600">QR Code Image</label>
-                                    {newMethodQr ? (
-                                         <div className="mt-1 text-center">
-                                            <img src={newMethodQr} alt="QR Preview" className="w-24 h-24 object-contain border rounded-lg inline-block" />
-                                            <button onClick={() => setNewMethodQr(null)} className="text-xs text-red-500 mt-1 hover:underline block">Remove Image</button>
-                                        </div>
-                                    ) : (
-                                        <input type="file" id="qr-upload" accept="image/*" onChange={handleQrCodeUpload} className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
-                                    )}
-                                </div>
-                            )}
-                            <div className="pt-2">
-                                 <button onClick={handleAddMethod} className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-gray-900">Add Method</button>
-                            </div>
-                        </div>
-                    </div>
-                     {/* Current Methods */}
-                    <div>
-                        <h3 className="font-semibold text-gray-700 mb-4">Current Payment Methods</h3>
-                        <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-                            {paymentSettings.paymentMethods.map(method => (
-                                <div key={method.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        {method.type === 'qr' ? <QrCode className="text-blue-600 flex-shrink-0"/> : <span className="font-bold text-green-600 text-sm flex-shrink-0">UPI</span>}
-                                        <div className="overflow-hidden">
-                                            <p className="font-semibold text-gray-800 text-sm truncate">{method.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{method.type === 'upi' ? method.value : 'QR Code Image'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <button onClick={() => handleToggleMethod(method.id)} className={`px-2 py-0.5 text-xs rounded-full ${method.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {method.isActive ? 'Active' : 'Inactive'}
-                                        </button>
-                                        <button onClick={() => handleDeleteMethod(method.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
-                                    </div>
-                                </div>
-                            ))}
-                            {paymentSettings.paymentMethods.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No payment methods added.</p>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Side: Quick Amounts */}
-                <div className="border-t md:border-t-0 md:border-l border-gray-200 md:pl-8 pt-6 md:pt-0">
-                    <h3 className="font-semibold text-gray-700 mb-4">Quick Deposit Amounts</h3>
-                    <div className="flex gap-2 mb-4">
-                        <input type="number" value={newQuickAmount} onChange={e => setNewQuickAmount(e.target.value)} placeholder="e.g. 5000" className="flex-1 mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                        <button onClick={handleAddQuickAmount} className="bg-gray-800 text-white px-4 py-2 mt-1 rounded-lg font-semibold hover:bg-gray-900">Add</button>
-                    </div>
-                    <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                        {paymentSettings.quickAmounts.map(amount => (
-                             <div key={amount} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between gap-2">
-                                <p className="font-semibold text-gray-800">₹{amount.toLocaleString()}</p>
-                                <button onClick={() => handleDeleteQuickAmount(amount)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
-                             </div>
-                        ))}
-                        {paymentSettings.quickAmounts.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No quick amounts configured.</p>}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 
+// --- MAIN DASHBOARD COMPONENT ---
 const AdminDashboard: React.FC = () => {
-  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks, luckyDrawPrizes, addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize } = useApp();
+  const context = useApp();
+  const { adminLogout, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks, addNotification, showConfirmation, luckyDrawPrizes, paymentSettings } = context;
+
+  const [activeView, setActiveView] = useState('dashboard');
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
@@ -674,107 +800,52 @@ const AdminDashboard: React.FC = () => {
   const [showPrizeModal, setShowPrizeModal] = useState(false);
   const [editingPrize, setEditingPrize] = useState<Prize | null>(null);
   const [prizeData, setPrizeData] = useState<Omit<Prize, 'id'>>({ name: '', type: 'money', amount: 0 });
-
-  // Activity Log modal state
-  const [selectedLogEntry, setSelectedLogEntry] = useState<ActivityLogEntry | null>(null);
-
+  
   // Platform settings state
   const [newAppName, setNewAppName] = useState(appName);
   const [logoPreview, setLogoPreview] = useState<string | null>(appLogo);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [socialLinksData, setSocialLinksData] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
+
 
   // Admin security state
   const [adminPassData, setAdminPassData] = useState({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
 
-  useEffect(() => {
-    setSocialLinksData(socialLinks);
-  }, [socialLinks]);
-  
-  useEffect(() => {
-      if (prizeData.type === 'physical' || prizeData.type === 'nothing') {
-          setPrizeData(prev => ({ ...prev, amount: 0 }));
+  useEffect(() => { setSocialLinksData(socialLinks); }, [socialLinks]);
+  useEffect(() => { if (prizeData.type === 'physical' || prizeData.type === 'nothing') { setPrizeData(prev => ({ ...prev, amount: 0 })); } }, [prizeData.type]);
+
+  const handleUserSelection = async (user: User, action: 'view' | 'edit' | 'delete' | 'login' | 'toggle') => {
+      switch(action) {
+          case 'view': setDetailedUser(user); break;
+          case 'edit':
+              setDetailedUser(null);
+              setSelectedUser(user);
+              setEditUserData({ name: user.name, phone: user.phone, balance: user.balance, email: user.email });
+              setShowUserEditModal(true);
+              break;
+          case 'delete':
+              showConfirmation( 'Delete User', <>Are you sure you want to delete <strong>{user.name}</strong> ({user.id})?</>, async () => await context.deleteUser(user.id));
+              break;
+          case 'login': 
+              await context.loginAsUserFunc(user.id);
+              break;
+          case 'toggle':
+              await context.updateUser(user.id, { isActive: !user.isActive });
+              setDetailedUser(prev => prev ? {...prev, isActive: !user.isActive} : null);
+              addNotification(`User ${user.name} has been ${!user.isActive ? 'activated' : 'blocked'}.`, 'info');
+              break;
       }
-  }, [prizeData.type]);
-
-
-  const filteredUsers = users.filter(user =>
-    user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm) ||
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalInvestments = users.reduce((sum, user) => sum + user.investments.reduce((s, inv) => s + inv.investedAmount, 0), 0);
-  const totalBalance = users.reduce((sum, user) => sum + user.balance, 0);
-  const activeUsers = users.filter(u => u.isActive).length;
-
-  // User management functions
-  const handleEditUser = (user: User) => {
-    setDetailedUser(null);
-    setSelectedUser(user);
-    setEditUserData({ name: user.name, phone: user.phone, balance: user.balance, email: user.email });
-    setShowUserEditModal(true);
   };
   
-  const handleViewUser = (user: User) => {
-    setDetailedUser(user);
-  };
-
   const saveUserEdit = async () => {
     if (selectedUser) {
-      await updateUser(selectedUser.id, editUserData);
+      await context.updateUser(selectedUser.id, editUserData);
       addNotification(`User ${selectedUser.name} updated successfully.`, 'success');
       setShowUserEditModal(false);
       setSelectedUser(null);
-      setDetailedUser(prev => prev ? {...prev, ...editUserData} : null); // Update detailed view if open
+      setDetailedUser(prev => prev ? {...prev, ...editUserData} : null);
     }
-  };
-
-  const handleDeleteUser = (user: User) => {
-    showConfirmation(
-      'Delete User',
-      <>Are you sure you want to delete <strong>{user.name}</strong> ({user.id})? This action cannot be undone.</>,
-      async () => await deleteUser(user.id)
-    );
-  };
-
-  const toggleUserStatus = async (user: User) => {
-    const newStatus = !user.isActive;
-    await updateUser(user.id, { isActive: newStatus });
-    setDetailedUser(prev => prev ? {...prev, isActive: newStatus} : null);
-    addNotification(`User ${user.name} has been ${newStatus ? 'activated' : 'blocked'}.`, 'info');
-  };
-
-  // Plan management functions
-  const handleAddNewPlan = () => {
-    setEditingPlan(null);
-    setPlanData({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '' });
-    setShowPlanModal(true);
-  };
-
-  const handleEditPlan = (plan: InvestmentPlan) => {
-    setEditingPlan(plan);
-    setPlanData({
-        name: plan.name,
-        minInvestment: String(plan.minInvestment),
-        dailyReturn: String(plan.dailyReturn),
-        duration: String(plan.duration),
-        category: plan.category
-    });
-    setShowPlanModal(true);
-  };
-  
-  const handleDeletePlan = (plan: InvestmentPlan) => {
-    showConfirmation(
-      'Delete Plan',
-      <>Are you sure you want to delete the plan <strong>{plan.name}</strong> ({plan.id})?</>,
-      async () => await deleteInvestmentPlan(plan.id)
-    );
-  };
-  
-  const handlePlanFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPlanData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSavePlan = async () => {
@@ -785,89 +856,19 @@ const AdminDashboard: React.FC = () => {
         duration: parseInt(planData.duration, 10),
         category: planData.category.toUpperCase(),
     };
-
     if (Object.values(parsedData).some(v => !v || (typeof v === 'number' && isNaN(v)))) {
-      addNotification('Please fill all fields correctly.', 'error');
-      return;
+      addNotification('Please fill all fields correctly.', 'error'); return;
     }
-
-    let result;
-    if (editingPlan) {
-        result = await updateInvestmentPlan(editingPlan.id, parsedData);
-    } else {
-        result = await addInvestmentPlan(parsedData);
-    }
-    
-    if (result.success) {
-      setShowPlanModal(false);
-    }
-  };
-
-  // Prize Management functions
-  const handleAddNewPrize = () => {
-    if (luckyDrawPrizes.length >= 8) {
-        addNotification("The lucky wheel can only have 8 prizes.", 'error');
-        return;
-    }
-    setEditingPrize(null);
-    setPrizeData({ name: '', type: 'money', amount: 0 });
-    setShowPrizeModal(true);
-  };
-
-  const handleEditPrize = (prize: Prize) => {
-    setEditingPrize(prize);
-    setPrizeData({ name: prize.name, type: prize.type, amount: prize.amount });
-    setShowPrizeModal(true);
-  };
-
-  const handleDeletePrize = (prize: Prize) => {
-    showConfirmation(
-        'Delete Prize',
-        <>Are you sure you want to delete the prize <strong>{prize.name}</strong>?</>,
-        async () => await deleteLuckyDrawPrize(prize.id)
-    );
-  };
-
-  const handlePrizeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setPrizeData(prev => ({ ...prev, [name]: value }));
+    const result = editingPlan ? await context.updateInvestmentPlan(editingPlan.id, parsedData) : await context.addInvestmentPlan(parsedData);
+    if (result.success) setShowPlanModal(false);
   };
   
   const handleSavePrize = async () => {
-      if (!prizeData.name) {
-          addNotification('Prize name is required.', 'error');
-          return;
-      }
-      const dataToSave = {
-          ...prizeData,
-          amount: parseFloat(String(prizeData.amount)) || 0,
-      };
-
-      let result;
-      if (editingPrize) {
-          result = await updateLuckyDrawPrize(editingPrize.id, dataToSave);
-      } else {
-          result = await addLuckyDrawPrize(dataToSave);
-      }
-
-      if (result.success) {
-          setShowPrizeModal(false);
-      } else if (result.message) {
-          addNotification(result.message, 'error');
-      }
-  };
-
-
-  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setImageToCrop(result);
-      };
-      reader.readAsDataURL(e.target.files[0]);
-      e.target.value = ''; // Reset input
-    }
+      if (!prizeData.name) { addNotification('Prize name is required.', 'error'); return; }
+      const dataToSave = { ...prizeData, amount: parseFloat(String(prizeData.amount)) || 0 };
+      const result = editingPrize ? await context.updateLuckyDrawPrize(editingPrize.id, dataToSave) : await context.addLuckyDrawPrize(dataToSave);
+      if (result.success) setShowPrizeModal(false);
+      else if (result.message) addNotification(result.message, 'error');
   };
 
   const handleCropComplete = async (croppedImage: string) => {
@@ -876,543 +877,289 @@ const AdminDashboard: React.FC = () => {
     setImageToCrop(null);
     addNotification('Logo updated successfully!', 'success');
   }
-
-  const handleSaveSettings = async () => {
-    await updateAppName(newAppName);
-    addNotification('App name saved!', 'success');
-  };
-
+  
   const handleAdminPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassData.newPassword !== adminPassData.confirmNewPassword) {
-        addNotification("New passwords do not match.", 'error');
-        return;
-    }
+    if (adminPassData.newPassword !== adminPassData.confirmNewPassword) { addNotification("New passwords do not match.", 'error'); return; }
     const result = await changeAdminPassword(adminPassData.oldPassword, adminPassData.newPassword);
-    if (result.success) {
-        setAdminPassData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
-    }
+    if (result.success) setAdminPassData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
   };
   
-  const handleSocialLinksChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSocialLinksData(prev => ({ ...prev, [name]: value }));
-  };
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'plans', label: 'Plan Management', icon: Briefcase },
+    { id: 'lucky_draw', label: 'Lucky Draw', icon: Gift },
+    { id: 'payment_settings', label: 'Payment Settings', icon: CreditCard },
+    { id: 'chat', label: 'Chat Support', icon: MessageSquare },
+    { id: 'activity_log', label: 'Activity Log', icon: Activity },
+    { id: 'settings', label: 'Platform Settings', icon: Settings },
+  ];
+
+  const activeLabel = navigationItems.find(item => item.id === activeView)?.label || 'Dashboard';
   
-  const handleSaveSocialLinks = async () => {
-    await updateSocialLinks(socialLinksData);
-  };
-
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-gray-800 text-white shadow-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <button onClick={adminLogout} className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition">
-              <LogOut size={20} /> Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        {imageToCrop && (
-            <ImageCropperModal 
-                imageSrc={imageToCrop}
-                onCropComplete={handleCropComplete}
-                onCancel={() => setImageToCrop(null)}
-            />
-        )}
-        {detailedUser && <UserDetailModal user={detailedUser} onClose={() => setDetailedUser(null)} onEdit={handleEditUser} onToggleStatus={toggleUserStatus} />}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[
-            { title: 'Total Users', value: users.length, icon: Users, color: 'blue' },
-            { title: 'Active Users', value: activeUsers, icon: Activity, color: 'green' },
-            { title: 'Total Investments', value: `₹${totalInvestments.toFixed(2)}`, icon: TrendingUp, color: 'purple' },
-            { title: 'Total Platform Balance', value: `₹${totalBalance.toFixed(2)}`, icon: Wallet, color: 'orange' },
-          ].map(stat => (
-            <div key={stat.title} className="bg-white rounded-xl shadow p-6 flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
-              </div>
-              <div className={`p-3 rounded-full bg-${stat.color}-100`}>
-                <stat.icon className={`text-${stat.color}-500`} size={32} />
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Platform Customization */}
-            <div className="bg-white rounded-xl shadow">
-                <div className="p-6 border-b flex items-center gap-3">
-                    <Settings className="text-gray-500" />
-                    <h2 className="text-xl font-semibold text-gray-800">Platform Customization</h2>
-                </div>
-                <div className="p-6 space-y-8">
-                    <div className="flex flex-col md:flex-row md:items-center md:gap-8">
-                        <div className="flex-shrink-0 mb-6 md:mb-0 text-center md:text-left">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
-                            <input
-                                type="file"
-                                accept="image/png, image/jpeg"
-                                onChange={handleLogoFileChange}
-                                id="logo-upload"
-                                className="hidden"
-                            />
-                            <label htmlFor="logo-upload" className="cursor-pointer group relative w-24 h-24 block mx-auto md:mx-0">
-                                {logoPreview ? (
-                                    <>
-                                        <img src={logoPreview} alt="Current Logo" className="w-full h-full rounded-full object-cover border-2 border-gray-200" />
-                                        <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center">
-                                            <Camera size={24} className="text-white opacity-0 group-hover:opacity-100 transition" />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center rounded-full bg-gray-100 border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-200 transition-colors">
-                                        <div className="text-center">
-                                            <Camera size={24} className="text-gray-400 mx-auto mb-1" />
-                                            <span className="text-xs text-gray-500">Upload</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </label>
-                        </div>
-
-                        <div className="flex-grow">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newAppName}
-                                    onChange={(e) => setNewAppName(e.target.value)}
-                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                                    placeholder="Enter App Name"
-                                />
-                                <button
-                                    onClick={handleSaveSettings}
-                                    className="bg-gray-800 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition font-semibold"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
+  const renderView = () => {
+    switch (activeView) {
+        case 'dashboard': return <DashboardView {...context} />;
+        case 'users': return <UserManagementView {...context} onUserSelect={handleUserSelection} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />;
+        case 'plans': return (
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b flex justify-between items-center">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
-                        <div className="flex flex-wrap gap-3">
-                            {themeOptions.map(option => (
-                                <button key={option.name} onClick={() => updateThemeColor(option.name)}
-                                    className={`w-10 h-10 rounded-full ${option.bgClass} flex items-center justify-center transition-all duration-200
-                                    ${themeColor === option.name ? 'ring-4 ring-offset-2 ring-gray-800' : 'hover:scale-110'}`}
-                                    title={option.name.charAt(0).toUpperCase() + option.name.slice(1)}
-                                >
-                                    {themeColor === option.name && <Check className="text-white" size={20} />}
-                                </button>
+                        <h2 className="text-xl font-semibold text-gray-800">Investment Plan Management</h2>
+                        <p className="text-sm text-gray-500">Add, edit, or remove investment plans.</p>
+                    </div>
+                    <button onClick={() => { setEditingPlan(null); setPlanData({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '' }); setShowPlanModal(true); }} className={`flex items-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition`}>
+                        <Plus size={20} /> Add New Plan
+                    </button>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Min Invest</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daily Return</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {context.investmentPlans.map(plan => (
+                                <tr key={plan.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{plan.name}</td>
+                                    <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">{plan.category}</span></td>
+                                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">₹{plan.minInvestment}</td>
+                                    <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{plan.dailyReturn}</td>
+                                    <td className="px-6 py-4 text-sm font-semibold text-blue-600">{plan.duration} days</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex gap-1">
+                                            <button onClick={() => { setEditingPlan(plan); setPlanData({ name: plan.name, minInvestment: String(plan.minInvestment), dailyReturn: String(plan.dailyReturn), duration: String(plan.duration), category: plan.category }); setShowPlanModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Plan"><Edit size={18} /></button>
+                                            <button onClick={() => showConfirmation('Delete Plan', <>Are you sure you want to delete <strong>{plan.name}</strong>?</>, async () => await context.deleteInvestmentPlan(plan.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Plan"><Trash2 size={18} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
                             ))}
-                        </div>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            {/* Admin Security */}
-            <div className="bg-white rounded-xl shadow">
-                <div className="p-6 border-b flex items-center gap-3">
-                    <Shield className="text-gray-500" />
-                    <h2 className="text-xl font-semibold text-gray-800">Admin Security</h2>
-                </div>
-                <form className="p-6 space-y-4" onSubmit={handleAdminPasswordChange}>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
-                        <input type="password" value={adminPassData.oldPassword} onChange={e => setAdminPassData({...adminPassData, oldPassword: e.target.value})} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                        <input type="password" value={adminPassData.newPassword} onChange={e => setAdminPassData({...adminPassData, newPassword: e.target.value})} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                    </div>
+        );
+        case 'lucky_draw': return (
+             <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b flex justify-between items-center">
                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
-                        <input type="password" value={adminPassData.confirmNewPassword} onChange={e => setAdminPassData({...adminPassData, confirmNewPassword: e.target.value})} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                        <h2 className="text-xl font-semibold text-gray-800">Lucky Draw Management</h2>
+                        <p className="text-sm text-gray-500">Configure the 8 prizes for the lucky wheel.</p>
                     </div>
-                    <div className="pt-2">
-                        <button type="submit" className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition">Change Password</button>
-                    </div>
-                </form>
-            </div>
-
-             {/* Social Media Management */}
-            <div className="bg-white rounded-xl shadow lg:col-span-2">
-                <div className="p-6 border-b flex items-center gap-3">
-                    <Share2 className="text-gray-500" />
-                    <h2 className="text-xl font-semibold text-gray-800">Social Media Management</h2>
+                    <button onClick={() => { if (luckyDrawPrizes.length >= 8) { addNotification("Max 8 prizes allowed.", 'error'); return; } setEditingPrize(null); setPrizeData({ name: '', type: 'money', amount: 0 }); setShowPrizeModal(true); }} disabled={luckyDrawPrizes.length >= 8} className={`flex items-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition disabled:bg-gray-400`}>
+                        <Plus size={20} /> Add New Prize
+                    </button>
                 </div>
-                <div className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Link</label>
-                        <div className="relative">
-                            <Send className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                name="telegram"
-                                value={socialLinksData.telegram || ''}
-                                onChange={handleSocialLinksChange}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800"
-                                placeholder="https://t.me/yourchannel"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Link</label>
-                        <div className="relative">
-                            <MessageSquare className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                name="whatsapp"
-                                value={socialLinksData.whatsapp || ''}
-                                onChange={handleSocialLinksChange}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800"
-                                placeholder="https://wa.me/yournumber"
-                            />
-                        </div>
-                    </div>
-                    <div className="pt-2">
-                        <button
-                            onClick={handleSaveSocialLinks}
-                            className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition"
-                        >
-                            Save Social Links
-                        </button>
-                    </div>
-                </div>
-            </div>
-             <PaymentSettingsView />
-        </div>
-        
-        {/* Chat Support */}
-        <AdminChatView />
-
-        {/* User Management */}
-        <div className="bg-white rounded-xl shadow mt-8">
-          <div className="p-6 border-b">
-             <h2 className="text-xl font-semibold text-gray-800 mb-4">User Management</h2>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                placeholder="Search by User ID, phone, or name..." />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredUsers.map(user => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">{user.id}</p>
-                        <p className="text-xs text-gray-500">{user.phone}</p>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{user.name}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{user.balance.toFixed(2)}</td>
-                    <td className="px-6 py-4">
-                      <button onClick={() => toggleUserStatus(user)}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {user.isActive ? 'Active' : 'Blocked'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-1">
-                        <button onClick={() => handleViewUser(user)} className="p-2 text-gray-600 hover:bg-gray-100 rounded transition" title="View Details"><Eye size={18} /></button>
-                        <button onClick={() => handleEditUser(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit"><Edit size={18} /></button>
-                        <button onClick={() => loginAsUserFunc(user.id)} className="p-2 text-green-600 hover:bg-green-50 rounded transition" title="Login As User"><LogIn size={18} /></button>
-                        <button onClick={() => handleDeleteUser(user)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Delete"><Trash2 size={18} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-             {filteredUsers.length === 0 && <p className="text-center text-gray-500 py-8">No users found.</p>}
-          </div>
-        </div>
-
-        {/* Investment Plan Management */}
-        <div className="bg-white rounded-xl shadow mt-8">
-            <div className="p-6 border-b flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Investment Plan Management</h2>
-                    <p className="text-sm text-gray-500">Add, edit, or remove investment plans.</p>
-                </div>
-                <button onClick={handleAddNewPlan} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
-                    <Plus size={20} /> Add New Plan
-                </button>
-            </div>
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Min Invest</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daily Return</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {investmentPlans.map(plan => (
-                            <tr key={plan.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{plan.id}</td>
-                                <td className="px-6 py-4 text-sm text-gray-600">{plan.name}</td>
-                                <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">{plan.category}</span></td>
-                                <td className="px-6 py-4 text-sm font-semibold text-gray-800">₹{plan.minInvestment}</td>
-                                <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{plan.dailyReturn}</td>
-                                <td className="px-6 py-4 text-sm font-semibold text-blue-600">{plan.duration} days</td>
-                                <td className="px-6 py-4">
-                                    <div className="flex gap-1">
-                                        <button onClick={() => handleEditPlan(plan)} className="p-2 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit Plan"><Edit size={18} /></button>
-                                        <button onClick={() => handleDeletePlan(plan)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Delete Plan"><Trash2 size={18} /></button>
-                                    </div>
-                                </td>
+                 {luckyDrawPrizes.length !== 8 && (
+                    <div className="p-4 bg-yellow-100 text-yellow-800 text-sm text-center">The lucky wheel requires exactly 8 prizes. You currently have {luckyDrawPrizes.length}.</div>
+                 )}
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {investmentPlans.length === 0 && <p className="text-center text-gray-500 py-8">No investment plans found.</p>}
-            </div>
-        </div>
-        
-        {/* Lucky Draw Management */}
-        <div className="bg-white rounded-xl shadow mt-8">
-            <div className="p-6 border-b flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Lucky Draw Management</h2>
-                    <p className="text-sm text-gray-500">Configure the 8 prizes for the lucky wheel.</p>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {luckyDrawPrizes.map(prize => (
+                                <tr key={prize.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{prize.name}</td>
+                                    <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium capitalize">{prize.type}</span></td>
+                                    <td className="px-6 py-4 text-sm font-semibold text-green-600">{prize.type === 'money' || prize.type === 'bonus' ? `₹${prize.amount}`: 'N/A'}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex gap-1">
+                                            <button onClick={() => { setEditingPrize(prize); setPrizeData({ name: prize.name, type: prize.type, amount: prize.amount }); setShowPrizeModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Prize"><Edit size={18} /></button>
+                                            <button onClick={() => showConfirmation('Delete Prize', <>Are you sure you want to delete <strong>{prize.name}</strong>?</>, async () => await context.deleteLuckyDrawPrize(prize.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Prize"><Trash2 size={18} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-                <button onClick={handleAddNewPrize} disabled={luckyDrawPrizes.length >= 8} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    <Plus size={20} /> Add New Prize
-                </button>
             </div>
-             {luckyDrawPrizes.length !== 8 && (
-                <div className="p-4 bg-yellow-100 text-yellow-800 text-sm font-medium text-center">
-                    The lucky wheel requires exactly 8 prizes. You currently have {luckyDrawPrizes.length}.
-                </div>
-             )}
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {luckyDrawPrizes.map(prize => (
-                            <tr key={prize.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{prize.name}</td>
-                                <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium capitalize">{prize.type}</span></td>
-                                <td className="px-6 py-4 text-sm font-semibold text-green-600">{prize.type === 'money' || prize.type === 'bonus' ? `₹${prize.amount}`: 'N/A'}</td>
-                                <td className="px-6 py-4">
-                                    <div className="flex gap-1">
-                                        <button onClick={() => handleEditPrize(prize)} className="p-2 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit Prize"><Edit size={18} /></button>
-                                        <button onClick={() => handleDeletePrize(prize)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Delete Prize"><Trash2 size={18} /></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {luckyDrawPrizes.length === 0 && <p className="text-center text-gray-500 py-8">No prizes configured.</p>}
-            </div>
-        </div>
-
-        {/* Activity Log */}
-        <div className="bg-white rounded-xl shadow mt-8">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold text-gray-800">User Activity Log</h2>
-            <p className="text-sm text-gray-500">Recent significant actions performed by users.</p>
-          </div>
-          <div>
-             {activityLog.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No activity recorded yet.</p>
-             ) : (
-                <ul className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                  {activityLog.map(log => (
-                    <li key={log.id} onClick={() => setSelectedLogEntry(log)} className="p-4 flex items-center justify-between hover:bg-gray-100 sm:flex-row flex-col sm:text-left text-center cursor-pointer transition-colors duration-150">
-                        <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                            <div className="hidden sm:block bg-gray-100 p-2 rounded-full">
-                                <FileText size={20} className="text-gray-500" />
-                            </div>
-                            <div>
-                                <p className="font-medium text-gray-900">{log.action}</p>
-                                <p className="text-sm text-gray-500">
-                                    User: {log.userName} ({log.userId})
-                                </p>
-                            </div>
+        );
+        case 'payment_settings': return <PaymentSettingsView />;
+        case 'chat': return <AdminChatView {...context} setViewingImage={setViewingImage} />;
+        case 'activity_log': return (
+             <div className="bg-white rounded-lg shadow">
+                 <div className="p-6 border-b"><h2 className="text-xl font-semibold text-gray-800">Full Activity Log</h2></div>
+                 <ul className="divide-y divide-gray-200 max-h-[70vh] overflow-y-auto">
+                  {context.activityLog.map(log => (
+                    <li key={log.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                        <div>
+                            <p className="font-medium text-gray-900">{log.action}</p>
+                            <p className="text-sm text-gray-500">User: {log.userName} ({log.userId})</p>
                         </div>
-                        <p className="text-sm text-gray-500 text-right shrink-0">
-                            {log.timestamp.toLocaleString()}
-                        </p>
+                        <p className="text-sm text-gray-500 shrink-0">{log.timestamp.toLocaleString()}</p>
                     </li>
                   ))}
                 </ul>
-             )}
-          </div>
-        </div>
-      </main>
-
-      {/* User Edit Modal */}
-      {showUserEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold text-gray-800">Edit User ({selectedUser.id})</h3><button onClick={() => setShowUserEditModal(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button></div>
-            <div className="space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Name</label><input type="text" value={editUserData.name} onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Phone</label><input type="tel" value={editUserData.phone} onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Balance</label><input type="number" value={editUserData.balance} onChange={(e) => setEditUserData({ ...editUserData, balance: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={editUserData.email} onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:border-transparent" /></div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowUserEditModal(false)} className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-              <button onClick={saveUserEdit} className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition">Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Plan Edit/Add Modal */}
-      {showPlanModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-2xl max-w-md w-full p-6">
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold text-gray-800">{editingPlan ? 'Edit Plan' : 'Add New Plan'}</h3>
-                      <button onClick={() => setShowPlanModal(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-                  </div>
-                  <div className="space-y-4">
-                      <div><label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label><input type="text" name="name" value={planData.name} onChange={handlePlanFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" /></div>
-                      <div><label className="block text-sm font-medium text-gray-700 mb-2">Category</label><input type="text" name="category" placeholder="e.g. EVSE-A" value={planData.category} onChange={handlePlanFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" /></div>
-                      <div><label className="block text-sm font-medium text-gray-700 mb-2">Min Investment (₹)</label><input type="number" name="minInvestment" value={planData.minInvestment} onChange={handlePlanFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" /></div>
-                      <div><label className="block text-sm font-medium text-gray-700 mb-2">Daily Return (₹)</label><input type="number" name="dailyReturn" value={planData.dailyReturn} onChange={handlePlanFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" /></div>
-                      <div><label className="block text-sm font-medium text-gray-700 mb-2">Duration (Days)</label><input type="number" name="duration" value={planData.duration} onChange={handlePlanFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" /></div>
-                  </div>
-                  <div className="flex gap-3 mt-6">
-                      <button onClick={() => setShowPlanModal(false)} className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-                      <button onClick={handleSavePlan} className="flex-1 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Save Plan</button>
-                  </div>
-              </div>
-          </div>
-      )}
-
-      {/* Prize Edit/Add Modal */}
-      {showPrizeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-2xl max-w-md w-full p-6">
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold text-gray-800">{editingPrize ? 'Edit Prize' : 'Add New Prize'}</h3>
-                      <button onClick={() => setShowPrizeModal(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-                  </div>
-                  <div className="space-y-4">
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Prize Name</label>
-                          <input type="text" name="name" value={prizeData.name} onChange={handlePrizeFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="e.g., iPhone 16 or ₹500" />
-                      </div>
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Prize Type</label>
-                          <select name="type" value={prizeData.type} onChange={handlePrizeFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
-                              <option value="money">Money</option>
-                              <option value="bonus">Bonus</option>
-                              <option value="physical">Physical Item</option>
-                              <option value="nothing">Nothing (Thank You)</option>
-                          </select>
-                      </div>
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Amount (₹)</label>
-                          <input type="number" name="amount" value={prizeData.amount} onChange={handlePrizeFormChange} 
-                                 disabled={prizeData.type === 'physical' || prizeData.type === 'nothing'}
-                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg disabled:bg-gray-100" />
-                      </div>
-                  </div>
-                  <div className="flex gap-3 mt-6">
-                      <button onClick={() => setShowPrizeModal(false)} className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-                      <button onClick={handleSavePrize} className="flex-1 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Save Prize</button>
-                  </div>
-              </div>
-          </div>
-      )}
-
-
-      {/* Activity Log Detail Modal */}
-      {selectedLogEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-full">
-                            <FileText className="text-blue-600" size={24} />
+        );
+        case 'settings': return (
+             <div className="space-y-8">
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-6 border-b flex items-center gap-3"><Palette /><h3 className="text-lg font-semibold">Platform Customization</h3></div>
+                    <div className="p-6 space-y-6">
+                        <div className="flex items-center gap-8">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">App Logo</label>
+                                <input type="file" accept="image/*" onChange={(e) => { if(e.target.files?.[0]) { const reader = new FileReader(); reader.onload = (ev) => setImageToCrop(ev.target?.result as string); reader.readAsDataURL(e.target.files[0]); e.target.value = ''; } }} id="logo-upload" className="hidden" />
+                                <label htmlFor="logo-upload" className="cursor-pointer group relative w-24 h-24 block">
+                                    <img src={logoPreview || `https://ui-avatars.com/api/?name=${appName}&background=f3f4f6&color=1f2937`} alt="Logo" className="w-full h-full rounded-full object-cover border-2" />
+                                    <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center"><Camera size={24} className="text-white opacity-0 group-hover:opacity-100" /></div>
+                                </label>
+                            </div>
+                            <div className="flex-grow">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">App Name</label>
+                                <div className="flex gap-2">
+                                    <input type="text" value={newAppName} onChange={(e) => setNewAppName(e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"/>
+                                    <button onClick={async () => { await updateAppName(newAppName); addNotification('App name saved!', 'success'); }} className={`bg-${primaryColor}-600 text-white px-5 py-2 rounded-lg hover:bg-${primaryColor}-700 font-semibold`}>Save</button>
+                                </div>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800">Activity Detail</h3>
-                    </div>
-                    <button onClick={() => setSelectedLogEntry(null)} className="text-gray-500 hover:text-gray-700">
-                        <X size={24} />
-                    </button>
-                </div>
-                <div className="space-y-3 text-gray-700 border-t border-b py-4 mb-6">
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-500">Timestamp:</span>
-                        <span className="font-semibold">{selectedLogEntry.timestamp.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-500">User ID:</span>
-                        <span className="font-semibold">{selectedLogEntry.userId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-500">User Name:</span>
-                        <span className="font-semibold">{selectedLogEntry.userName}</span>
-                    </div>
-                    <div className="flex flex-col text-left mt-2">
-                        <span className="font-medium text-gray-500 mb-1">Action Description:</span>
-                        <p className="font-semibold bg-gray-50 p-3 rounded-md">{selectedLogEntry.action}</p>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
+                            <div className="flex flex-wrap gap-3">
+                                {themeOptions.map(option => (
+                                    <button key={option.name} onClick={() => updateThemeColor(option.name)} className={`w-10 h-10 rounded-full ${option.bgClass} flex items-center justify-center ${themeColor === option.name ? 'ring-4 ring-offset-2 ring-indigo-500' : ''}`} />
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className="flex justify-end">
-                    <button onClick={() => setSelectedLogEntry(null)} className="flex-1 sm:flex-none px-6 py-2.5 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition">
-                        Close
-                    </button>
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-6 border-b flex items-center gap-3"><Share2 /><h3 className="text-lg font-semibold">Social Links</h3></div>
+                     <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Link</label>
+                            <input type="text" name="telegram" value={socialLinksData.telegram || ''} onChange={(e) => setSocialLinksData(p => ({...p, telegram: e.target.value}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="https://t.me/yourchannel"/>
+                        </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Link</label>
+                            <input type="text" name="whatsapp" value={socialLinksData.whatsapp || ''} onChange={(e) => setSocialLinksData(p => ({...p, whatsapp: e.target.value}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="https://wa.me/yournumber" />
+                        </div>
+                        <button onClick={async () => await updateSocialLinks(socialLinksData)} className={`w-full bg-${primaryColor}-600 text-white py-2.5 rounded-lg font-semibold`}>Save Social Links</button>
+                    </div>
                 </div>
-                <style>{`
-                @keyframes fade-in-up {
-                    0% {
-                    opacity: 0;
-                    transform: translateY(20px) scale(0.95);
-                    }
-                    100% {
-                    opacity: 1;
-                    transform: translateY(0) scale(1);
-                    }
-                }
-                .animate-fade-in-up {
-                    animation: fade-in-up 0.3s ease-out forwards;
-                }
-                `}</style>
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-6 border-b flex items-center gap-3"><Shield /><h3 className="text-lg font-semibold">Admin Security</h3></div>
+                    <form className="p-6 space-y-4" onSubmit={handleAdminPasswordChange}>
+                        <input type="password" value={adminPassData.oldPassword} onChange={e => setAdminPassData({...adminPassData, oldPassword: e.target.value})} required className="w-full px-4 py-2 border rounded-lg" placeholder="Current Password" />
+                        <input type="password" value={adminPassData.newPassword} onChange={e => setAdminPassData({...adminPassData, newPassword: e.target.value})} required className="w-full px-4 py-2 border rounded-lg" placeholder="New Password" />
+                        <input type="password" value={adminPassData.confirmNewPassword} onChange={e => setAdminPassData({...adminPassData, confirmNewPassword: e.target.value})} required className="w-full px-4 py-2 border rounded-lg" placeholder="Confirm New Password" />
+                        <button type="submit" className={`w-full bg-${primaryColor}-600 text-white py-2.5 rounded-lg font-semibold`}>Change Password</button>
+                    </form>
+                </div>
+             </div>
+        );
+        default: return <DashboardView {...context} />;
+    }
+  }
+
+  return (
+    <div className="h-screen flex bg-gray-100 font-sans">
+      {imageToCrop && <ImageCropperModal imageSrc={imageToCrop} onCropComplete={handleCropComplete} onCancel={() => setImageToCrop(null)} />}
+      {detailedUser && <UserDetailModal user={detailedUser} onClose={() => setDetailedUser(null)} onEdit={(user) => handleUserSelection(user, 'edit')} onToggleStatus={(user) => handleUserSelection(user, 'toggle')} />}
+      {viewingImage && <ImagePreviewModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />}
+      
+      {/* Sidebar */}
+      <aside className="w-64 bg-slate-800 text-slate-300 flex flex-col shrink-0">
+          <div className="h-16 flex items-center justify-center text-white text-xl font-bold border-b border-slate-700">
+              {appName}
+          </div>
+          <nav className="flex-1 px-4 py-6 space-y-2">
+              {navigationItems.map(item => (
+                  <button key={item.id} onClick={() => setActiveView(item.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeView === item.id ? `bg-slate-700 text-white font-semibold border-l-4 border-${primaryColor}-500` : 'hover:bg-slate-700'}`}
+                  >
+                      <item.icon size={20} />
+                      <span>{item.label}</span>
+                  </button>
+              ))}
+          </nav>
+          <div className="p-4 border-t border-slate-700">
+               <button onClick={adminLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-700">
+                  <LogOut size={20} /> Logout
+              </button>
+          </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-16 bg-white border-b border-gray-200 flex items-center px-8 justify-between shrink-0">
+              <h1 className="text-xl font-semibold text-gray-800">{activeLabel}</h1>
+          </header>
+          <main className="flex-1 overflow-y-auto p-8">
+              {renderView()}
+          </main>
+      </div>
+
+      {/* Modals */}
+        {showUserEditModal && selectedUser && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-md w-full p-6">
+                    <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Edit User ({selectedUser.id})</h3><button onClick={() => setShowUserEditModal(false)}><X/></button></div>
+                    <div className="space-y-4">
+                        <input type="text" value={editUserData.name} onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })} className="w-full p-2 border rounded-lg" placeholder="Name" />
+                        <input type="tel" value={editUserData.phone} onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })} className="w-full p-2 border rounded-lg" placeholder="Phone"/>
+                        <input type="number" value={editUserData.balance} onChange={(e) => setEditUserData({ ...editUserData, balance: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg" placeholder="Balance" />
+                        <input type="email" value={editUserData.email} onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })} className="w-full p-2 border rounded-lg" placeholder="Email" />
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                        <button onClick={() => setShowUserEditModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button>
+                        <button onClick={saveUserEdit} className={`flex-1 py-2 bg-${primaryColor}-600 text-white rounded-lg`}>Save Changes</button>
+                    </div>
+                </div>
             </div>
-        </div>
-      )}
+        )}
+        {showPlanModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-md w-full p-6">
+                    <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">{editingPlan ? 'Edit Plan' : 'Add New Plan'}</h3><button onClick={() => setShowPlanModal(false)}><X /></button></div>
+                    <div className="space-y-4">
+                        <input type="text" name="name" value={planData.name} onChange={(e) => setPlanData(p => ({...p, name: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Plan Name"/>
+                        <input type="text" name="category" value={planData.category} onChange={(e) => setPlanData(p => ({...p, category: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Category" />
+                        <input type="number" name="minInvestment" value={planData.minInvestment} onChange={(e) => setPlanData(p => ({...p, minInvestment: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Min Investment"/>
+                        <input type="number" name="dailyReturn" value={planData.dailyReturn} onChange={(e) => setPlanData(p => ({...p, dailyReturn: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Daily Return"/>
+                        <input type="number" name="duration" value={planData.duration} onChange={(e) => setPlanData(p => ({...p, duration: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Duration"/>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                        <button onClick={() => setShowPlanModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button>
+                        <button onClick={handleSavePlan} className={`flex-1 py-2 bg-${primaryColor}-600 text-white rounded-lg`}>Save Plan</button>
+                    </div>
+                </div>
+            </div>
+        )}
+        {showPrizeModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-md w-full p-6">
+                    <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">{editingPrize ? 'Edit Prize' : 'Add New Prize'}</h3><button onClick={() => setShowPrizeModal(false)}><X/></button></div>
+                    <div className="space-y-4">
+                        <input type="text" name="name" value={prizeData.name} onChange={(e) => setPrizeData(p => ({...p, name: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Prize Name"/>
+                        <select name="type" value={prizeData.type} onChange={(e) => setPrizeData(p => ({...p, type: e.target.value as Prize['type']}))} className="w-full p-2 border rounded-lg bg-white">
+                            <option value="money">Money</option><option value="bonus">Bonus</option><option value="physical">Physical</option><option value="nothing">Nothing</option>
+                        </select>
+                        <input type="number" name="amount" value={prizeData.amount} onChange={(e) => setPrizeData(p => ({...p, amount: Number(e.target.value)}))} disabled={prizeData.type === 'physical' || prizeData.type === 'nothing'} className="w-full p-2 border rounded-lg disabled:bg-gray-100" placeholder="Amount"/>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                        <button onClick={() => setShowPrizeModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button>
+                        <button onClick={handleSavePrize} className={`flex-1 py-2 bg-${primaryColor}-600 text-white rounded-lg`}>Save Prize</button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };

@@ -148,7 +148,7 @@ const PaymentGatewayScreen: React.FC = () => {
                 <div className="space-y-4">
                     {selectedQr && (
                         <div className="text-center">
-                            <h3 className="font-semibold text-gray-800 mb-2">{selectedQr.name} (QR Code)</h3>
+                            <h3 className="font-semibold text-gray-800 mb-2">Pay via QR Code</h3>
                             <div className="flex justify-center">
                                 <img src={selectedQr.value} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
                             </div>
@@ -167,7 +167,7 @@ const PaymentGatewayScreen: React.FC = () => {
 
                     {selectedUpi && (
                          <div className="text-center">
-                            <h3 className="font-semibold text-gray-800 mb-2">{selectedUpi.name} (UPI ID)</h3>
+                            <h3 className="font-semibold text-gray-800 mb-2">Pay via UPI ID</h3>
                             <div className="bg-green-50 p-3 rounded-lg flex items-center justify-center gap-2">
                                 <p className="font-mono text-lg text-green-800 break-all">{selectedUpi.value}</p>
                                 <button onClick={() => copyToClipboard(selectedUpi.value)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
