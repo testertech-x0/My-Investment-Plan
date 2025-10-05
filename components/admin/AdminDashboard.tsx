@@ -321,7 +321,8 @@ const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string; onClose: (
     </div>
 );
 
-const ChatMessageBubble = ({ message, isSender, onImageClick }: { message: ChatMessage; isSender: boolean; onImageClick: (url: string) => void; }) => {
+// FIX: Changed component definition to use React.FC to correctly type props and avoid issues with the 'key' prop.
+const ChatMessageBubble: React.FC<{ message: ChatMessage; isSender: boolean; onImageClick: (url: string) => void; }> = ({ message, isSender, onImageClick }) => {
     const bubbleClass = isSender
         ? 'bg-green-600 text-white self-end rounded-l-lg rounded-tr-lg'
         : 'bg-gray-200 text-gray-800 self-start rounded-r-lg rounded-tl-lg';

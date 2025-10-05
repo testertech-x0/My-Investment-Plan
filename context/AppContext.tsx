@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms } from '../types';
 import * as api from './api';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -33,6 +33,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [comments, setComments] = useState<Comment[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
+  const [mockSms, setMockSms] = useState<MockSms[]>([]);
 
  useEffect(() => {
     const loadInitialData = async () => {
@@ -113,6 +114,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return phone.substring(0, 2) + '****' + phone.substring(phone.length - 4);
   };
 
+  const dismissSms = (id: number) => {
+    setMockSms(prev => prev.filter(sms => sms.id !== id));
+  };
+
+  const sendOtpSms = async (phone: string, otp: string, purpose: string) => {
+    // In a real application, this would integrate with an SMS gateway API.
+    // For this simulation, we create a mock SMS notification.
+    console.log(`Simulating SMS to ${phone} for ${purpose}. OTP: ${otp}`);
+    
+    const newSms: MockSms = {
+        id: Date.now(),
+        to: phone,
+        body: `Your verification code for ${appName} ${purpose} is: ${otp}. Do not share this code.`
+    };
+    setMockSms(prev => [newSms, ...prev.slice(0, 2)]); // Keep max 3 sms notifications
+
+    // Auto-dismiss after some time
+    setTimeout(() => dismissSms(newSms.id), 15000);
+
+    addNotification(`An SMS with the OTP has been sent to ${maskPhone(phone)}.`, 'success');
+  };
+
   const requestRegisterOtp = async (phone: string): Promise<{ success: boolean; message?: string }> => {
     if (users.some(u => u.phone === phone)) {
       return { success: false, message: "This phone number is already registered." };
@@ -122,7 +145,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
     setRegisterOtps(prev => ({ ...prev, [phone]: { otp, expires } }));
 
-    addNotification(`Your registration OTP is: ${otp}`, 'info');
+    await sendOtpSms(phone, otp, 'registration');
     return { success: true, message: 'OTP sent successfully.' };
   };
 
@@ -454,7 +477,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const expires = Date.now() + 5 * 60 * 1000;
     setBankOtps(prev => ({ ...prev, [userId]: { otp, expires } }));
 
-    addNotification(`Your OTP for Bank Account is: ${otp}`, 'info');
+    await sendOtpSms(user.phone, otp, 'Bank Account update');
     return { success: true, message: 'OTP sent successfully.' };
   };
 
@@ -487,10 +510,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const requestFundPasswordOtp = async (userId: string): Promise<{ success: boolean; message?: string }> => {
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+        addNotification("User not found to send OTP.", "error");
+        return { success: false, message: "User not found" };
+    }
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = Date.now() + 5 * 60 * 1000;
     setFundPasswordOtps(prev => ({ ...prev, [userId]: { otp, expires } }));
-    addNotification(`Your OTP for Fund Password is: ${otp}`, 'info');
+    await sendOtpSms(user.phone, otp, 'Fund Password setup');
     return { success: true, message: 'OTP sent successfully.' };
   };
 
@@ -688,7 +716,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const expires = Date.now() + 5 * 60 * 1000;
     setPasswordResetOtps(prev => ({ ...prev, [phone]: { otp, expires } }));
 
-    addNotification(`Your OTP for password reset is: ${otp}`, 'info');
+    await sendOtpSms(phone, otp, 'password reset');
     return { success: true, message: 'OTP sent successfully.' };
   };
   
@@ -713,14 +741,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
     updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks,
-    requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp,
+    requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp, dismissSms,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

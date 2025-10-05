@@ -155,7 +155,8 @@ const NewCommentModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 
-const CommentCard = ({ comment, onImageClick }: { comment: Comment; onImageClick: (url: string) => void; }) => (
+// FIX: Changed component definition to use React.FC to correctly type props and avoid issues with the 'key' prop.
+const CommentCard: React.FC<{ comment: Comment; onImageClick: (url: string) => void; }> = ({ comment, onImageClick }) => (
     <div className="bg-white p-4 border-b border-gray-100">
         <div className="flex items-start gap-3">
             <img src={comment.userAvatar} alt={comment.userName} className="w-10 h-10 rounded-full object-cover" />

@@ -132,6 +132,12 @@ export interface SocialLinks {
   whatsapp?: string;
 }
 
+export interface MockSms {
+  id: number;
+  to: string;
+  body: string;
+}
+
 export interface AppContextType {
   users: User[];
   currentUser: User | null;
@@ -147,6 +153,7 @@ export interface AppContextType {
   comments: Comment[];
   chatSessions: ChatSession[];
   socialLinks: SocialLinks;
+  mockSms: MockSms[];
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
@@ -161,6 +168,7 @@ export interface AppContextType {
   maskPhone: (phone: string) => string;
   addNotification: (message: string, type?: NotificationType) => void;
   showConfirmation: (title: string, message: string | ReactNode, onConfirm: () => void) => void;
+  dismissSms: (id: number) => void;
   makeDeposit: (userId: string, amount: number) => Promise<{ success: boolean }>;
   makeWithdrawal: (userId: string, amount: number) => Promise<{ success: boolean; message?: string }>;
   changeUserPassword: (userId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
