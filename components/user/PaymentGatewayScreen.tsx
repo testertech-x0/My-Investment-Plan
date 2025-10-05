@@ -31,35 +31,53 @@ const PaymentGatewayScreen: React.FC = () => {
     }
   }, [pendingDeposit, setCurrentView]);
 
-  const selectedMethod = useMemo(() => {
-    if (!pendingDeposit) return null;
+  const selectedQr = useMemo(() => {
+    if (!pendingDeposit || pendingDeposit.amount > 2000) return null;
 
-    let availableMethods = paymentSettings.paymentMethods.filter(m => m.isActive);
+    const availableQrMethods = paymentSettings.paymentMethods.filter(m => m.isActive && m.type === 'qr');
+    if (availableQrMethods.length === 0) return null;
     
-    if (pendingDeposit.amount > 2000) {
-        availableMethods = availableMethods.filter(m => m.type !== 'qr');
-    }
-    
-    if (availableMethods.length === 0) return null;
-    
-    if (availableMethods.length === 1) {
-        const method = availableMethods[0];
-        setLastUsedId('last_payment_method', method.id);
+    if (availableQrMethods.length === 1) {
+        const method = availableQrMethods[0];
+        setLastUsedId('last_qr_method_id', method.id);
         return method;
     }
 
-    const lastMethodId = getLastUsedId('last_payment_method');
-    let selectableMethods = availableMethods.filter(m => m.id !== lastMethodId);
+    const lastQrId = getLastUsedId('last_qr_method_id');
+    let selectableMethods = availableQrMethods.filter(m => m.id !== lastQrId);
     
     if (selectableMethods.length === 0) {
-        selectableMethods = availableMethods;
+        selectableMethods = availableQrMethods;
     }
     
     const randomMethod = selectableMethods[Math.floor(Math.random() * selectableMethods.length)];
-    setLastUsedId('last_payment_method', randomMethod.id);
+    setLastUsedId('last_qr_method_id', randomMethod.id);
     
     return randomMethod;
   }, [paymentSettings, pendingDeposit]);
+
+  const selectedUpi = useMemo(() => {
+    const availableUpiMethods = paymentSettings.paymentMethods.filter(m => m.isActive && m.type === 'upi');
+    if (availableUpiMethods.length === 0) return null;
+
+    if (availableUpiMethods.length === 1) {
+        const method = availableUpiMethods[0];
+        setLastUsedId('last_upi_method_id', method.id);
+        return method;
+    }
+
+    const lastUpiId = getLastUsedId('last_upi_method_id');
+    let selectableMethods = availableUpiMethods.filter(m => m.id !== lastUpiId);
+    
+    if (selectableMethods.length === 0) {
+        selectableMethods = availableUpiMethods;
+    }
+    
+    const randomMethod = selectableMethods[Math.floor(Math.random() * selectableMethods.length)];
+    setLastUsedId('last_upi_method_id', randomMethod.id);
+    
+    return randomMethod;
+  }, [paymentSettings]);
 
 
   if (!pendingDeposit) {
@@ -122,31 +140,39 @@ const PaymentGatewayScreen: React.FC = () => {
                 <p className="text-5xl font-bold text-gray-800 tracking-tight">₹{pendingDeposit.amount.toFixed(2)}</p>
             </div>
 
-            {!selectedMethod ? (
+            {!selectedQr && !selectedUpi ? (
                 <div className="text-center text-red-500 p-4 bg-red-50 rounded-lg">
-                    No payment methods are currently available for this amount. Please contact support.
+                    No payment methods are currently available. Please contact support.
                 </div>
             ) : (
-                <div className="space-y-6">
-                    {selectedMethod.type === 'qr' && (
+                <div className="space-y-4">
+                    {selectedQr && (
                         <div className="text-center">
-                            <h3 className="font-semibold text-gray-800 mb-2">{selectedMethod.name} (QR Code)</h3>
+                            <h3 className="font-semibold text-gray-800 mb-2">{selectedQr.name} (QR Code)</h3>
                             <div className="flex justify-center">
-                                <img src={selectedMethod.value} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
+                                <img src={selectedQr.value} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">Scan the QR code with your payment app</p>
-                            <p className="text-xs font-semibold text-blue-600 mt-1">For payments from ₹200 to ₹2000</p>
+                            <p className="text-xs text-gray-500 mt-2">Scan the QR code with your payment app.</p>
+                            <p className="text-xs font-semibold text-blue-600 mt-1">For payments up to ₹2000</p>
                         </div>
                     )}
                     
-                    {selectedMethod.type === 'upi' && (
+                    {selectedQr && selectedUpi && (
+                        <div className="relative flex items-center">
+                            <div className="flex-grow border-t border-gray-200"></div>
+                            <span className="flex-shrink mx-4 text-gray-400 font-semibold text-sm">OR</span>
+                            <div className="flex-grow border-t border-gray-200"></div>
+                        </div>
+                    )}
+
+                    {selectedUpi && (
                          <div className="text-center">
-                            <h3 className="font-semibold text-gray-800 mb-2">{selectedMethod.name} (UPI ID)</h3>
+                            <h3 className="font-semibold text-gray-800 mb-2">{selectedUpi.name} (UPI ID)</h3>
                             <div className="bg-green-50 p-3 rounded-lg flex items-center justify-center gap-2">
-                                <p className="font-mono text-lg text-green-800 break-all">{selectedMethod.value}</p>
-                                <button onClick={() => copyToClipboard(selectedMethod.value)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
+                                <p className="font-mono text-lg text-green-800 break-all">{selectedUpi.value}</p>
+                                <button onClick={() => copyToClipboard(selectedUpi.value)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">Copy the UPI ID and pay using your app</p>
+                            <p className="text-xs text-gray-500 mt-2">Copy the UPI ID and pay using your app.</p>
                          </div>
                     )}
                 </div>
@@ -155,7 +181,7 @@ const PaymentGatewayScreen: React.FC = () => {
             <div className="space-y-3 mt-8">
                 <button
                     onClick={handlePay}
-                    disabled={!selectedMethod}
+                    disabled={!selectedQr && !selectedUpi}
                     className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-gray-300"
                 >
                     I Have Paid

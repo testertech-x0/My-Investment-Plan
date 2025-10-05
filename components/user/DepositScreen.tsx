@@ -6,15 +6,8 @@ const DepositScreen: React.FC = () => {
   const { currentUser, setCurrentView, addNotification, initiateDeposit } = useApp();
   const [activeTab, setActiveTab] = useState('CASH');
   const [amount, setAmount] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('C');
 
   if (!currentUser) return null;
-
-  const paymentChannels = [
-    { id: 'C', name: 'Payment Method C', range: '₹200 ~ ₹100000' },
-    { id: 'B', name: 'Payment Method B', range: '₹200 ~ ₹100000' },
-    { id: 'A', name: 'Payment Method A', range: '₹200 ~ ₹100000' },
-  ];
 
   const quickAmounts = [10000, 50000, 100000];
   
@@ -86,26 +79,6 @@ const DepositScreen: React.FC = () => {
                   >
                     ₹{qAmount.toLocaleString()}
                   </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Payment Channel</h3>
-              <div className="space-y-3">
-                {paymentChannels.map(channel => (
-                  <div key={channel.id} 
-                    className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition ${selectedChannel === channel.id ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}
-                    onClick={() => setSelectedChannel(channel.id)}
-                  >
-                    <div>
-                      <p className="font-semibold text-gray-800">{channel.name}</p>
-                      <p className="text-xs text-gray-500">{channel.range}</p>
-                    </div>
-                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedChannel === channel.id ? 'border-green-500' : 'border-gray-400'}`}>
-                      {selectedChannel === channel.id && <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>}
-                    </div>
-                  </div>
                 ))}
               </div>
             </div>
