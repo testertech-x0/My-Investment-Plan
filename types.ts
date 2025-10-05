@@ -135,9 +135,9 @@ export interface SocialLinks {
 
 export interface PaymentMethod {
   id: string;
-  type: 'upi' | 'qr';
   name: string; // Name tag for admin identification
-  value: string; // UPI ID string or QR Base64 string
+  upiId: string; // UPI ID string, can be empty
+  qrCode: string; // QR Base64 string, can be empty
   isActive: boolean;
 }
 

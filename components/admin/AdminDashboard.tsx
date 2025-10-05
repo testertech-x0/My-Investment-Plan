@@ -455,38 +455,52 @@ const UserManagementView: FC<AppContextType & { onUserSelect: (user: User, actio
 const PaymentSettingsView: FC = () => {
     const { paymentSettings, updatePaymentSettings, addNotification, showConfirmation } = useApp();
 
-    const [newMethod, setNewMethod] = useState({ name: '', type: 'upi' as 'upi' | 'qr', value: '' });
+    const [newMethod, setNewMethod] = useState({ name: '', upiId: '' });
     const [qrFile, setQrFile] = useState<File | null>(null);
     const qrFileInputRef = useRef<HTMLInputElement>(null);
 
     const [newQuickAmount, setNewQuickAmount] = useState('');
 
     const handleAddMethod = async () => {
-        if (!newMethod.name || (newMethod.type === 'upi' && !newMethod.value) || (newMethod.type === 'qr' && !qrFile)) {
-            addNotification('Please fill all required fields.', 'error');
+        if (!newMethod.name || (!newMethod.upiId && !qrFile)) {
+            addNotification('Please provide a name and at least one payment method (UPI or QR).', 'error');
             return;
         }
 
-        if (newMethod.type === 'qr' && qrFile) {
-            const reader = new FileReader();
-            reader.readAsDataURL(qrFile);
-            reader.onload = async () => {
-                const base64Value = reader.result as string;
-                const finalNewMethod: PaymentMethod = { id: `pm-${Date.now()}`, type: 'qr', name: newMethod.name, value: base64Value, isActive: true };
-                await updatePaymentSettings({ paymentMethods: [...paymentSettings.paymentMethods, finalNewMethod] });
-                setNewMethod({ name: '', type: 'upi', value: '' });
-                setQrFile(null);
-                if (qrFileInputRef.current) qrFileInputRef.current.value = '';
-                addNotification('QR Code method added.', 'success');
-            };
-            reader.onerror = () => addNotification('Failed to read QR image.', 'error');
-        } else {
-            const finalNewMethod: PaymentMethod = { id: `pm-${Date.now()}`, ...newMethod, isActive: true };
-            await updatePaymentSettings({ paymentMethods: [...paymentSettings.paymentMethods, finalNewMethod] });
-            setNewMethod({ name: '', type: 'upi', value: '' });
-            addNotification('UPI method added.', 'success');
+        let qrCodeBase64 = '';
+        if (qrFile) {
+            try {
+                qrCodeBase64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(qrFile);
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = (error) => reject(error);
+                });
+            } catch (error) {
+                addNotification('Failed to read QR image file.', 'error');
+                return;
+            }
         }
+
+        const finalNewMethod: PaymentMethod = {
+            id: `pm-${Date.now()}`,
+            name: newMethod.name,
+            upiId: newMethod.upiId,
+            qrCode: qrCodeBase64,
+            isActive: true
+        };
+
+        await updatePaymentSettings({ paymentMethods: [...paymentSettings.paymentMethods, finalNewMethod] });
+        
+        // Reset form state
+        setNewMethod({ name: '', upiId: '' });
+        setQrFile(null);
+        if (qrFileInputRef.current) {
+            qrFileInputRef.current.value = '';
+        }
+        addNotification('Payment method added successfully.', 'success');
     };
+
 
     const handleToggleMethodStatus = async (id: string) => {
         const updatedMethods = paymentSettings.paymentMethods.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m);
@@ -523,28 +537,21 @@ const PaymentSettingsView: FC = () => {
         <div className="space-y-8">
             <div className="bg-white rounded-lg shadow">
                 <div className="p-6 border-b flex items-center gap-3"><CreditCard /><h3 className="text-lg font-semibold">Payment Methods</h3></div>
-                <div className="p-6 border-b bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div className="col-span-1 md:col-span-3"><h4 className="font-semibold text-gray-700">Add New Method</h4></div>
+                <div className="p-6 border-b bg-gray-50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                    <div className="col-span-full"><h4 className="font-semibold text-gray-700">Add New Method</h4></div>
                     <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">Name Tag</label>
-                        <input type="text" value={newMethod.name} onChange={e => setNewMethod(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Main UPI" className="w-full p-2 border border-gray-300 rounded-lg" />
+                        <input type="text" value={newMethod.name} onChange={e => setNewMethod(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Main Payment" className="w-full p-2 border border-gray-300 rounded-lg" />
                     </div>
                      <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-1">Type</label>
-                        <select value={newMethod.type} onChange={e => setNewMethod(p => ({ ...p, type: e.target.value as 'upi' | 'qr' }))} className="w-full p-2 border border-gray-300 rounded-lg bg-white">
-                            <option value="upi">UPI ID</option>
-                            <option value="qr">QR Code</option>
-                        </select>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">UPI ID (Optional)</label>
+                        <input type="text" value={newMethod.upiId} onChange={e => setNewMethod(p => ({ ...p, upiId: e.target.value }))} placeholder="user@bank" className="w-full p-2 border border-gray-300 rounded-lg" />
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-1">{newMethod.type === 'upi' ? 'UPI ID' : 'QR Image'}</label>
-                        {newMethod.type === 'upi' ? (
-                            <input type="text" value={newMethod.value} onChange={e => setNewMethod(p => ({ ...p, value: e.target.value }))} placeholder="user@bank" className="w-full p-2 border border-gray-300 rounded-lg" />
-                        ) : (
-                            <input type="file" ref={qrFileInputRef} onChange={e => setQrFile(e.target.files ? e.target.files[0] : null)} accept="image/*" className="w-full p-1.5 border border-gray-300 rounded-lg text-sm bg-white file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                        )}
+                        <label className="text-sm font-medium text-gray-700 block mb-1">QR Image (Optional)</label>
+                        <input type="file" ref={qrFileInputRef} onChange={e => setQrFile(e.target.files ? e.target.files[0] : null)} accept="image/*" className="w-full p-1.5 border border-gray-300 rounded-lg text-sm bg-white file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
                     </div>
-                    <div className="col-span-1 md:col-span-3">
+                    <div className="col-span-full">
                         <button onClick={handleAddMethod} className={`w-full md:w-auto flex items-center justify-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition`}>
                             <Plus size={20} /> Add Method
                         </button>
@@ -555,8 +562,8 @@ const PaymentSettingsView: FC = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name Tag</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">UPI ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">QR Code</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
@@ -565,13 +572,9 @@ const PaymentSettingsView: FC = () => {
                             {paymentSettings.paymentMethods.map(method => (
                                 <tr key={method.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 font-medium text-gray-900">{method.name}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-600 font-mono break-all">{method.upiId || 'N/A'}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${method.type === 'upi' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-                                            {method.type === 'qr' && <QrCode size={14} />} {method.type.toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600 font-mono break-all">
-                                        {method.type === 'upi' ? method.value : <img src={method.value} alt="QR Code" className="w-10 h-10 object-contain" />}
+                                        {method.qrCode ? <img src={method.qrCode} alt="QR Code" className="w-12 h-12 object-contain" /> : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4">
                                         <button onClick={() => handleToggleMethodStatus(method.id)} className={`p-1.5 rounded-full ${method.isActive ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
