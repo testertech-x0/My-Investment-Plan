@@ -3,13 +3,13 @@ import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const DepositScreen: React.FC = () => {
-  const { currentUser, setCurrentView, addNotification, initiateDeposit } = useApp();
+  const { currentUser, setCurrentView, addNotification, initiateDeposit, paymentSettings } = useApp();
   const [activeTab, setActiveTab] = useState('CASH');
   const [amount, setAmount] = useState('');
 
   if (!currentUser) return null;
 
-  const quickAmounts = [10000, 50000, 100000];
+  const { quickAmounts } = paymentSettings;
   
   const depositAmount = parseFloat(amount);
   const isValid = !isNaN(depositAmount) && depositAmount >= 200;

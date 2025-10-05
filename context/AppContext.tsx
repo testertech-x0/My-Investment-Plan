@@ -35,7 +35,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
   const [mockSms, setMockSms] = useState<MockSms[]>([]);
   const [luckyDrawPrizes, setLuckyDrawPrizes] = useState<Prize[]>([]);
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ paymentMethods: [] });
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ paymentMethods: [], quickAmounts: [] });
   const [pendingDeposit, setPendingDeposit] = useState<{ amount: number; userId: string } | null>(null);
 
 

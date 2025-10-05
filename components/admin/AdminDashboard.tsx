@@ -480,6 +480,7 @@ const PaymentSettingsView = () => {
     const [newMethodType, setNewMethodType] = useState<'upi' | 'qr'>('upi');
     const [newMethodUpi, setNewMethodUpi] = useState('');
     const [newMethodQr, setNewMethodQr] = useState<string | null>(null);
+    const [newQuickAmount, setNewQuickAmount] = useState('');
 
     const resetForm = () => {
         setNewMethodName('');
@@ -515,20 +516,20 @@ const PaymentSettingsView = () => {
         };
 
         const updatedMethods = [...paymentSettings.paymentMethods, newMethod];
-        updatePaymentSettings({ paymentMethods: updatedMethods });
+        updatePaymentSettings({ ...paymentSettings, paymentMethods: updatedMethods });
         resetForm();
     };
     
     const handleDeleteMethod = (id: string) => {
         const updatedMethods = paymentSettings.paymentMethods.filter(m => m.id !== id);
-        updatePaymentSettings({ paymentMethods: updatedMethods });
+        updatePaymentSettings({ ...paymentSettings, paymentMethods: updatedMethods });
     };
 
     const handleToggleMethod = (id: string) => {
         const updatedMethods = paymentSettings.paymentMethods.map(m =>
             m.id === id ? { ...m, isActive: !m.isActive } : m
         );
-        updatePaymentSettings({ paymentMethods: updatedMethods });
+        updatePaymentSettings({ ...paymentSettings, paymentMethods: updatedMethods });
     };
     
     const handleQrCodeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -541,6 +542,22 @@ const PaymentSettingsView = () => {
         }
     };
     
+    const handleAddQuickAmount = () => {
+        const amount = parseInt(newQuickAmount, 10);
+        if (isNaN(amount) || amount <= 0) {
+            addNotification("Please enter a valid amount.", 'error');
+            return;
+        }
+        const updatedAmounts = [...paymentSettings.quickAmounts, amount].sort((a,b) => a-b);
+        updatePaymentSettings({ ...paymentSettings, quickAmounts: updatedAmounts });
+        setNewQuickAmount('');
+    };
+
+    const handleDeleteQuickAmount = (amountToDelete: number) => {
+        const updatedAmounts = paymentSettings.quickAmounts.filter(a => a !== amountToDelete);
+        updatePaymentSettings({ ...paymentSettings, quickAmounts: updatedAmounts });
+    };
+
     return (
         <div className="bg-white rounded-xl shadow mt-8 lg:col-span-2">
             <div className="p-6 border-b flex items-center gap-3">
@@ -548,68 +565,88 @@ const PaymentSettingsView = () => {
                 <h2 className="text-xl font-semibold text-gray-800">Payment Gateway Settings</h2>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Current Methods */}
+                {/* Left Side: Methods */}
                 <div>
-                    <h3 className="font-semibold text-gray-700 mb-4">Current Payment Methods</h3>
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-                        {paymentSettings.paymentMethods.map(method => (
-                            <div key={method.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                    {method.type === 'qr' ? <QrCode className="text-blue-600 flex-shrink-0"/> : <span className="font-bold text-green-600 text-sm flex-shrink-0">UPI</span>}
-                                    <div className="overflow-hidden">
-                                        <p className="font-semibold text-gray-800 text-sm truncate">{method.name}</p>
-                                        <p className="text-xs text-gray-500 truncate">{method.type === 'upi' ? method.value : 'QR Code Image'}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <button onClick={() => handleToggleMethod(method.id)} className={`px-2 py-0.5 text-xs rounded-full ${method.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {method.isActive ? 'Active' : 'Inactive'}
-                                    </button>
-                                    <button onClick={() => handleDeleteMethod(method.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                    {/* Add New Method */}
+                    <div className="border-b border-gray-200 pb-6 mb-6">
+                        <h3 className="font-semibold text-gray-700 mb-4">Add New Payment Method</h3>
+                        <div className="space-y-4">
+                             <div>
+                                <label className="text-sm font-medium text-gray-600">Name Tag</label>
+                                <input type="text" value={newMethodName} onChange={e => setNewMethodName(e.target.value)} placeholder="e.g. Primary Account" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-600">Type</label>
+                                <div className="flex gap-2 mt-1">
+                                    <button onClick={() => setNewMethodType('upi')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'upi' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>UPI</button>
+                                    <button onClick={() => setNewMethodType('qr')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'qr' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>QR Code</button>
                                 </div>
                             </div>
-                        ))}
-                        {paymentSettings.paymentMethods.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No payment methods added.</p>}
+
+                            {newMethodType === 'upi' ? (
+                                <div>
+                                    <label className="text-sm font-medium text-gray-600">UPI ID</label>
+                                    <input type="text" value={newMethodUpi} onChange={e => setNewMethodUpi(e.target.value)} placeholder="Enter UPI ID" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="text-sm font-medium text-gray-600">QR Code Image</label>
+                                    {newMethodQr ? (
+                                         <div className="mt-1 text-center">
+                                            <img src={newMethodQr} alt="QR Preview" className="w-24 h-24 object-contain border rounded-lg inline-block" />
+                                            <button onClick={() => setNewMethodQr(null)} className="text-xs text-red-500 mt-1 hover:underline block">Remove Image</button>
+                                        </div>
+                                    ) : (
+                                        <input type="file" id="qr-upload" accept="image/*" onChange={handleQrCodeUpload} className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                                    )}
+                                </div>
+                            )}
+                            <div className="pt-2">
+                                 <button onClick={handleAddMethod} className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-gray-900">Add Method</button>
+                            </div>
+                        </div>
+                    </div>
+                     {/* Current Methods */}
+                    <div>
+                        <h3 className="font-semibold text-gray-700 mb-4">Current Payment Methods</h3>
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+                            {paymentSettings.paymentMethods.map(method => (
+                                <div key={method.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        {method.type === 'qr' ? <QrCode className="text-blue-600 flex-shrink-0"/> : <span className="font-bold text-green-600 text-sm flex-shrink-0">UPI</span>}
+                                        <div className="overflow-hidden">
+                                            <p className="font-semibold text-gray-800 text-sm truncate">{method.name}</p>
+                                            <p className="text-xs text-gray-500 truncate">{method.type === 'upi' ? method.value : 'QR Code Image'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => handleToggleMethod(method.id)} className={`px-2 py-0.5 text-xs rounded-full ${method.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {method.isActive ? 'Active' : 'Inactive'}
+                                        </button>
+                                        <button onClick={() => handleDeleteMethod(method.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                    </div>
+                                </div>
+                            ))}
+                            {paymentSettings.paymentMethods.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No payment methods added.</p>}
+                        </div>
                     </div>
                 </div>
 
-                {/* Add New Method */}
+                {/* Right Side: Quick Amounts */}
                 <div className="border-t md:border-t-0 md:border-l border-gray-200 md:pl-8 pt-6 md:pt-0">
-                    <h3 className="font-semibold text-gray-700 mb-4">Add New Method</h3>
-                    <div className="space-y-4">
-                         <div>
-                            <label className="text-sm font-medium text-gray-600">Name Tag</label>
-                            <input type="text" value={newMethodName} onChange={e => setNewMethodName(e.target.value)} placeholder="e.g. Primary Account" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Type</label>
-                            <div className="flex gap-2 mt-1">
-                                <button onClick={() => setNewMethodType('upi')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'upi' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>UPI</button>
-                                <button onClick={() => setNewMethodType('qr')} className={`flex-1 py-2 rounded-lg border ${newMethodType === 'qr' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white'}`}>QR Code</button>
-                            </div>
-                        </div>
-
-                        {newMethodType === 'upi' ? (
-                            <div>
-                                <label className="text-sm font-medium text-gray-600">UPI ID</label>
-                                <input type="text" value={newMethodUpi} onChange={e => setNewMethodUpi(e.target.value)} placeholder="Enter UPI ID" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
-                            </div>
-                        ) : (
-                            <div>
-                                <label className="text-sm font-medium text-gray-600">QR Code Image</label>
-                                {newMethodQr ? (
-                                     <div className="mt-1 text-center">
-                                        <img src={newMethodQr} alt="QR Preview" className="w-24 h-24 object-contain border rounded-lg inline-block" />
-                                        <button onClick={() => setNewMethodQr(null)} className="text-xs text-red-500 mt-1 hover:underline block">Remove Image</button>
-                                    </div>
-                                ) : (
-                                    <input type="file" id="qr-upload" accept="image/*" onChange={handleQrCodeUpload} className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
-                                )}
-                            </div>
-                        )}
-                        <div className="pt-2">
-                             <button onClick={handleAddMethod} className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-gray-900">Add Method</button>
-                        </div>
+                    <h3 className="font-semibold text-gray-700 mb-4">Quick Deposit Amounts</h3>
+                    <div className="flex gap-2 mb-4">
+                        <input type="number" value={newQuickAmount} onChange={e => setNewQuickAmount(e.target.value)} placeholder="e.g. 5000" className="flex-1 mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800" />
+                        <button onClick={handleAddQuickAmount} className="bg-gray-800 text-white px-4 py-2 mt-1 rounded-lg font-semibold hover:bg-gray-900">Add</button>
+                    </div>
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                        {paymentSettings.quickAmounts.map(amount => (
+                             <div key={amount} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between gap-2">
+                                <p className="font-semibold text-gray-800">₹{amount.toLocaleString()}</p>
+                                <button onClick={() => handleDeleteQuickAmount(amount)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                             </div>
+                        ))}
+                        {paymentSettings.quickAmounts.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No quick amounts configured.</p>}
                     </div>
                 </div>
             </div>

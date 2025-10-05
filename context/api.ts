@@ -101,6 +101,7 @@ const initialLuckyDrawPrizes: Prize[] = [
 
 const initialPaymentSettings: PaymentSettings = {
     paymentMethods: [],
+    quickAmounts: [10000, 50000, 100000],
 };
 
 // --- API Functions ---

@@ -143,6 +143,7 @@ export interface PaymentMethod {
 
 export interface PaymentSettings {
   paymentMethods: PaymentMethod[];
+  quickAmounts: number[];
 }
 
 export interface MockSms {
