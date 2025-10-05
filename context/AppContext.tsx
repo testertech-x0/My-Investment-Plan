@@ -34,6 +34,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
   const [mockSms, setMockSms] = useState<MockSms[]>([]);
+  const [luckyDrawPrizes, setLuckyDrawPrizes] = useState<Prize[]>([]);
+
 
  useEffect(() => {
     const loadInitialData = async () => {
@@ -50,6 +52,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setComments(data.comments);
         setChatSessions(data.chatSessions);
         setSocialLinks(data.socialLinks);
+        setLuckyDrawPrizes(data.luckyDrawPrizes);
 
         // Determine initial view after loading data
         if (data.admin.isLoggedIn) {
@@ -739,9 +742,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true };
   };
 
+  const addLuckyDrawPrize = async (prizeData: Omit<Prize, 'id'>): Promise<{ success: boolean; message?: string }> => {
+      if (luckyDrawPrizes.length >= 8) {
+          return { success: false, message: "Maximum of 8 prizes allowed." };
+      }
+      const newId = `prize-${Date.now()}`;
+      const newPrize: Prize = { id: newId, ...prizeData };
+      const newPrizes = [...luckyDrawPrizes, newPrize];
+      setLuckyDrawPrizes(newPrizes);
+      await api.saveLuckyDrawPrizes(newPrizes);
+      addNotification(`New prize "${prizeData.name}" added.`, 'success');
+      return { success: true };
+  };
+
+  const updateLuckyDrawPrize = async (prizeId: string, updates: Partial<Omit<Prize, 'id'>>): Promise<{ success: boolean; message?: string }> => {
+      const newPrizes = luckyDrawPrizes.map(p => p.id === prizeId ? { ...p, ...updates } : p);
+      setLuckyDrawPrizes(newPrizes);
+      await api.saveLuckyDrawPrizes(newPrizes);
+      addNotification(`Prize updated successfully.`, 'success');
+      return { success: true };
+  };
+
+  const deleteLuckyDrawPrize = async (prizeId: string) => {
+      const newPrizes = luckyDrawPrizes.filter(p => p.id !== prizeId);
+      setLuckyDrawPrizes(newPrizes);
+      await api.saveLuckyDrawPrizes(newPrizes);
+      addNotification(`Prize has been deleted.`, 'success');
+  };
+
 
   const value: AppContextType & { notifications: Notification[], confirmation: ConfirmationState, hideConfirmation: () => void, handleConfirm: () => void } = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, notifications, confirmation, activityLog, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, mockSms, luckyDrawPrizes,
     setCurrentView, register, login, adminLogin, logout, adminLogout,
     loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
     addNotification, showConfirmation, hideConfirmation, handleConfirm, makeDeposit, makeWithdrawal, changeUserPassword,
@@ -749,6 +780,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
     updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks,
     requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp, dismissSms,
+    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

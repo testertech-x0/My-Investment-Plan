@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, Gift, CircleDollarSign, Smile, Smartphone, AirVent, Refrigerator, UserCircle, X, Star } from 'lucide-react';
+import { ArrowLeft, Gift, CircleDollarSign, Smile, Smartphone, AirVent, Refrigerator, X, Star } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { Prize } from '../../types';
 
@@ -46,36 +46,34 @@ const RulesModal = ({ onClose }: { onClose: () => void }) => {
                     </div>
                 </div>
             </div>
-            <style>{`
-                @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
-                .animate-fade-in { animation: fade-in 0.3s ease-out; }
-                @keyframes scale-up { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
-                .animate-scale-up { animation: scale-up 0.3s ease-out; }
-            `}</style>
         </div>
     );
 };
 
-const PrizeModal = ({ prize, onClose }: { prize: Prize; onClose: () => void }) => {
-    const iconMap: { [key: string]: React.ReactNode } = {
-        'Random Bonus': <Gift className="w-16 h-16 text-orange-500" />,
-        '₹50': <CircleDollarSign className="w-16 h-16 text-yellow-500" />,
-        '₹500': <CircleDollarSign className="w-16 h-16 text-yellow-500" />,
-        'Thank you': <Smile className="w-16 h-16 text-blue-500" />,
-        'iPhone 16': <Smartphone className="w-16 h-16 text-gray-700" />,
-        '₹10000': <CircleDollarSign className="w-16 h-16 text-yellow-500" />,
-        'Air condition': <AirVent className="w-16 h-16 text-cyan-500" />,
-        'Refrigerator': <Refrigerator className="w-16 h-16 text-gray-500" />,
-    };
+const getPrizeIcon = (prize: Prize, size: string = 'w-8 h-8') => {
+    const className = `${size} mx-auto mb-1 drop-shadow-lg`;
+    const lowerCaseName = prize.name.toLowerCase();
 
+    if (lowerCaseName.includes('bonus')) return <Gift className={`${className} text-orange-400`} />;
+    if (lowerCaseName.includes('iphone')) return <Smartphone className={`${className} text-gray-600`} />;
+    if (lowerCaseName.includes('refrigerator')) return <Refrigerator className={`${className} text-slate-400`} />;
+    if (lowerCaseName.includes('air condition')) return <AirVent className={`${className} text-sky-400`} />;
+    if (prize.type === 'nothing') return <Smile className={`${className} text-indigo-400`} />;
+    if (prize.type === 'money') return <CircleDollarSign className={`${className} text-yellow-400`} />;
+
+    return <Star className={`${className} text-amber-300`} />;
+};
+
+const PrizeModal = ({ prize, onClose }: { prize: Prize; onClose: () => void }) => {
     const isSuccess = prize.type !== 'nothing';
     const title = isSuccess ? 'Congratulations!' : 'Better Luck Next Time!';
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-white text-gray-800 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl animate-scale-up">
-                <div className="mx-auto mb-4 w-24 h-24 flex items-center justify-center bg-gray-100 rounded-full">
-                    {iconMap[prize.name] || <Star className="w-16 h-16 text-yellow-400" />}
+            <div className="relative bg-white text-gray-800 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl animate-scale-up overflow-hidden">
+                {isSuccess && Array.from({ length: 30 }).map((_, i) => <div key={i} className="confetti"></div>)}
+                <div className="mx-auto mb-4 w-24 h-24 flex items-center justify-center bg-gray-100 rounded-full border-4 border-yellow-300">
+                    {getPrizeIcon(prize, 'w-16 h-16')}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">{title}</h2>
                 <p className="text-gray-600 mb-6">You have won <span className="font-bold text-green-600">{prize.name}</span>!</p>
@@ -92,23 +90,17 @@ const PrizeModal = ({ prize, onClose }: { prize: Prize; onClose: () => void }) =
 
 
 const LuckyWheelScreen: React.FC = () => {
-    const { currentUser, setCurrentView, playLuckyDraw, addNotification } = useApp();
+    const { currentUser, setCurrentView, playLuckyDraw, addNotification, luckyDrawPrizes } = useApp();
     const [isSpinning, setIsSpinning] = useState(false);
     const [rotation, setRotation] = useState(0);
     const [showRules, setShowRules] = useState(false);
     const [wonPrize, setWonPrize] = useState<Prize | null>(null);
     const prizeRef = useRef<Prize | null>(null);
 
-    const wheelPrizes = [
-        { name: 'Random Bonus', icon: <Gift className="w-8 h-8 mx-auto mb-1 text-orange-500" /> },
-        { name: '₹50', icon: <CircleDollarSign className="w-8 h-8 mx-auto mb-1 text-yellow-500" /> },
-        { name: '₹500', icon: <CircleDollarSign className="w-8 h-8 mx-auto mb-1 text-yellow-500" /> },
-        { name: 'iPhone 16', icon: <Smartphone className="w-8 h-8 mx-auto mb-1 text-gray-700" /> },
-        { name: 'Refrigerator', icon: <Refrigerator className="w-8 h-8 mx-auto mb-1 text-gray-500" /> },
-        { name: 'Air condition', icon: <AirVent className="w-8 h-8 mx-auto mb-1 text-cyan-500" /> },
-        { name: '₹10000', icon: <CircleDollarSign className="w-8 h-8 mx-auto mb-1 text-yellow-500" /> },
-        { name: 'Thank you', icon: <Smile className="w-8 h-8 mx-auto mb-1 text-blue-500" /> },
-    ];
+    const wheelPrizes = luckyDrawPrizes.slice(0, 8);
+    while(wheelPrizes.length < 8) {
+        wheelPrizes.push({ id: `filler-${wheelPrizes.length}`, name: 'Thank you', type: 'nothing', amount: 0 });
+    }
 
     const handleDraw = async () => {
         if (isSpinning || !currentUser || currentUser.luckyDrawChances <= 0) {
@@ -121,10 +113,9 @@ const LuckyWheelScreen: React.FC = () => {
 
         if (result.success && result.prize) {
             prizeRef.current = result.prize;
-            const prizeIndex = wheelPrizes.findIndex(p => p.name === result.prize!.name);
+            const prizeIndex = wheelPrizes.findIndex(p => p.id === result.prize!.id);
             
             if (prizeIndex === -1) {
-                // Fallback if prize not on wheel
                 setIsSpinning(false);
                 addNotification('An error occurred, please try again.', 'error');
                 return;
@@ -132,8 +123,8 @@ const LuckyWheelScreen: React.FC = () => {
 
             const totalSpins = 5;
             const degreesPerPrize = 360 / wheelPrizes.length;
-            const randomOffset = Math.random() * degreesPerPrize * 0.8 - (degreesPerPrize * 0.4);
-            const targetRotation = (360 * totalSpins) - (prizeIndex * degreesPerPrize) + randomOffset;
+            const randomOffset = Math.random() * (degreesPerPrize - 10) - ((degreesPerPrize - 10) / 2);
+            const targetRotation = (360 * totalSpins) - (prizeIndex * degreesPerPrize) - randomOffset;
             
             setRotation(prev => prev + targetRotation);
         } else {
@@ -152,41 +143,60 @@ const LuckyWheelScreen: React.FC = () => {
     };
     
     const raffleRecords = [
-      { id: 1, user: '75****3726', date: 'Oct 04 2025', prize: 'Got an Thank you as a prize' },
-      { id: 2, user: '75****3726', date: 'Oct 04 2025', prize: 'Got an ₹50 as a prize' },
-      { id: 3, user: '93****7583', date: 'Oct 04 2025', prize: 'Got an Random Bonus as a prize' },
+      { user: '75****3726', prize: 'Got an Thank you as a prize' },
+      { user: '75****3726', prize: 'Got an ₹50 as a prize' },
+      { user: '93****7583', prize: 'Got an Random Bonus as a prize' },
+      { user: '88****1234', prize: 'Won an iPhone 16!' },
+      { user: '91****5678', prize: 'Received ₹500' },
     ];
 
     if (!currentUser) return null;
 
     return (
-        <div className="min-h-screen bg-[#61b866] text-white font-sans p-4 pb-20 overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-green-800 via-green-900 to-gray-900 text-white font-sans p-4 pb-8 overflow-hidden">
+            {Array.from({ length: 15 }).map((_, i) => <div key={i} className="sparkle"></div>)}
             {showRules && <RulesModal onClose={() => setShowRules(false)} />}
             {wonPrize && <PrizeModal prize={wonPrize} onClose={() => setWonPrize(null)} />}
             
-            <header className="flex items-center justify-between mb-4">
+            <header className="flex items-center justify-between mb-4 relative z-10">
                 <button onClick={() => setCurrentView('home')} className="p-2">
                     <ArrowLeft size={24} />
                 </button>
-                <h1 className="text-xl font-bold">Lucky draw</h1>
-                <button onClick={() => setShowRules(true)} className="bg-white/30 text-white text-sm font-semibold px-4 py-1.5 rounded-full">Rules</button>
+                <h1 className="text-xl font-bold tracking-wider">Lucky Wheel</h1>
+                <button onClick={() => setShowRules(true)} className="bg-white/20 text-white text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-white/30 transition">Rules</button>
             </header>
 
-            <div className="bg-white/80 text-[#3c8c40] text-center py-2 rounded-full mb-6 shadow-inner">
-                You have {currentUser.luckyDrawChances} chances to participate in the lottery
-            </div>
-
-            <div className="relative flex flex-col items-center justify-center mb-6">
-                <div className="absolute -top-2 z-10">
-                    <div className="w-0 h-0 border-l-8 border-r-8 border-t-16 border-l-transparent border-r-transparent border-t-yellow-400" style={{borderWidth: '12px 8px 0 8px'}}></div>
+            <main className="flex flex-col items-center">
+                <div className="bg-white/20 backdrop-blur-sm text-center py-2 px-6 rounded-full my-4 shadow-lg relative z-10">
+                    You have <span className="font-bold text-yellow-300 text-lg">{currentUser.luckyDrawChances}</span> chances left
                 </div>
 
-                <div className="w-80 h-80 relative">
+                <div className="relative flex items-center justify-center w-80 h-80 sm:w-96 sm:h-96 my-8">
+                     <div className="absolute top-[-24px] z-20 drop-shadow-lg">
+                        <div className="w-8 h-8 bg-yellow-400 rounded-full border-4 border-yellow-200 flex items-end justify-center">
+                            <div style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} className="w-4 h-4 bg-yellow-400"></div>
+                        </div>
+                    </div>
+
                     <div 
-                        className="w-full h-full rounded-full border-8 border-yellow-300 bg-gradient-to-br from-[#d4f7d5] to-[#a8e6aa] shadow-2xl"
+                        className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 shadow-2xl flex items-center justify-center"
+                        style={{ padding: '12px' }}
+                    >
+                         <div className="relative w-full h-full rounded-full bg-slate-700 flex items-center justify-center">
+                             {Array.from({ length: 8 }).map((_, i) => (
+                                 <div key={i} className="absolute w-1 h-full" style={{transform: `rotate(${i * 45}deg)`}}>
+                                    <div className="w-1 h-full bg-yellow-400/50 rounded-full"></div>
+                                 </div>
+                             ))}
+                         </div>
+                    </div>
+                   
+                    <div 
+                        className="w-[calc(100%-24px)] h-[calc(100%-24px)] rounded-full relative"
                         style={{ 
                             transform: `rotate(${rotation}deg)`,
-                            transition: 'transform 5000ms cubic-bezier(0.1, 0.7, 0.3, 1)' 
+                            transition: 'transform 6000ms cubic-bezier(0.25, 1, 0.5, 1)',
+                            background: `conic-gradient(from -22.5deg, ${wheelPrizes.map((_, i) => `${i % 2 === 0 ? '#FEF9C3' : '#FDF4FF'} ${i * 45}deg ${(i + 1) * 45}deg`).join(', ')})`
                         }}
                         onTransitionEnd={handleSpinEnd}
                     >
@@ -194,50 +204,95 @@ const LuckyWheelScreen: React.FC = () => {
                             const angle = (360 / wheelPrizes.length) * index;
                             return (
                                 <div key={index}
-                                    className="absolute w-1/2 h-1/2 top-0 left-1/2 origin-bottom-left flex items-center justify-center"
+                                    className="absolute w-full h-full flex items-start justify-center"
                                     style={{ transform: `rotate(${angle}deg)` }}>
-                                    <div className="flex flex-col items-center text-center text-gray-800" style={{ transform: `rotate(${45/2}deg) translateY(-30%)` }}>
-                                        {item.icon}
-                                        <span className="text-xs font-semibold">{item.name}</span>
+                                    <div className="flex flex-col items-center text-center text-gray-800 pt-3">
+                                        {getPrizeIcon(item, 'w-6 h-6 sm:w-8 sm:h-8')}
+                                        <span className="text-[10px] sm:text-xs font-bold">{item.name}</span>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
                      <button onClick={handleDraw} disabled={isSpinning}
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-yellow-400 text-green-800 rounded-full flex flex-col items-center justify-center border-4 border-yellow-300 shadow-lg transform active:scale-95 transition-transform disabled:opacity-70 disabled:cursor-not-allowed z-10">
-                        <h2 className="text-2xl font-bold">Draw</h2>
+                        className="absolute w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full flex flex-col items-center justify-center border-4 border-white shadow-lg transform active:scale-95 transition disabled:opacity-70 disabled:cursor-not-allowed z-10">
+                        <h2 className="text-3xl font-extrabold tracking-tighter">SPIN</h2>
                     </button>
                 </div>
-            </div>
 
 
-            <div className="flex gap-4 mb-8">
-                <button className="flex-1 bg-gradient-to-r from-[#4caf50] to-[#8bc34a] py-3 rounded-full shadow-lg font-semibold">
-                    My balance: ₹{currentUser.balance.toFixed(2)}
-                </button>
-                 <button className="flex-1 bg-gradient-to-r from-[#4caf50] to-[#8bc34a] py-3 rounded-full shadow-lg font-semibold">
-                    My prizes
-                </button>
-            </div>
-
-            <div className="bg-white text-gray-800 rounded-2xl p-4">
-                <h3 className="text-lg font-bold mb-4 text-[#3c8c40]">Raffle Records</h3>
-                <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {raffleRecords.map((record) => (
-                        <div key={record.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                            <div className="flex items-center gap-3">
-                                <UserCircle size={36} className="text-gray-300"/>
-                                <div>
-                                    <p className="font-semibold text-sm">{record.user}</p>
-                                    <p className="text-xs text-gray-500">{record.date}</p>
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-sm rounded-2xl p-4 mt-8">
+                    <h3 className="text-lg font-bold mb-3 text-center tracking-wide text-yellow-300">🎉 Recent Winners 🎉</h3>
+                    <div className="h-24 overflow-hidden relative">
+                        <div className="absolute top-0 animate-marquee space-y-2">
+                             {[...raffleRecords, ...raffleRecords].map((record, index) => (
+                                <div key={index} className="flex items-center justify-between bg-white/10 rounded-lg p-2.5 text-sm">
+                                    <span className="font-semibold text-white/90">User {record.user}</span>
+                                    <span className="text-white/70">{record.prize}</span>
                                 </div>
-                            </div>
-                            <p className="text-xs text-gray-600 text-right">{record.prize}</p>
+                            ))}
                         </div>
-                    ))}
+                    </div>
                 </div>
-            </div>
+            </main>
+            <style>{`
+                @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+                .animate-fade-in { animation: fade-in 0.3s ease-out; }
+                @keyframes scale-up { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+                .animate-scale-up { animation: scale-up 0.3s ease-out; }
+
+                @keyframes sparkle-anim {
+                    0%, 100% { transform: scale(0) rotate(0deg); opacity: 0.2; }
+                    50% { transform: scale(1) rotate(180deg); opacity: 1; }
+                }
+                .sparkle {
+                    position: absolute;
+                    width: 3px; height: 3px; background: white; border-radius: 50%;
+                    animation: sparkle-anim 5s infinite; box-shadow: 0 0 5px white, 0 0 10px white;
+                }
+                .sparkle:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+                .sparkle:nth-child(2) { top: 25%; left: 80%; animation-delay: 0.5s; width: 4px; height: 4px; }
+                .sparkle:nth-child(3) { top: 60%; left: 10%; animation-delay: 1s; }
+                .sparkle:nth-child(4) { top: 80%; left: 90%; animation-delay: 1.5s; width: 2px; height: 2px; }
+                .sparkle:nth-child(5) { top: 40%; left: 50%; animation-delay: 2s; }
+                .sparkle:nth-child(6) { top: 5%; left: 50%; animation-delay: 2.5s; }
+                .sparkle:nth-child(7) { top: 95%; left: 50%; animation-delay: 3s; width: 4px; height: 4px; }
+                .sparkle:nth-child(8) { top: 50%; left: 5%; animation-delay: 3.5s; }
+                .sparkle:nth-child(9) { top: 50%; left: 95%; animation-delay: 4s; }
+                .sparkle:nth-child(10) { top: 20%; left: 30%; animation-delay: 4.5s; }
+
+                @keyframes marquee {
+                    0% { transform: translateY(0); }
+                    100% { transform: translateY(-50%); }
+                }
+                .animate-marquee {
+                    animation: marquee 15s linear infinite;
+                }
+
+                @keyframes confetti-fall {
+                    0% { transform: translateY(-100%) rotateZ(0deg); opacity: 1; }
+                    100% { transform: translateY(100vh) rotateZ(360deg); opacity: 0; }
+                }
+                .confetti {
+                    position: absolute; width: 8px; height: 15px;
+                    opacity: 0; animation: confetti-fall 3s ease-out infinite;
+                }
+                .confetti:nth-child(odd) { background-color: #f9a825; }
+                .confetti:nth-child(even) { background-color: #43a047; }
+                .confetti:nth-child(3n) { background-color: #1e88e5; }
+                .confetti:nth-child(4n) { background-color: #e53935; }
+                .confetti:nth-child(5n) { border-radius: 50%; }
+                .confetti:nth-child(1) { left: 10%; animation-delay: 0s; }
+                .confetti:nth-child(2) { left: 20%; animation-delay: -0.2s; }
+                .confetti:nth-child(3) { left: 30%; animation-delay: -0.4s; }
+                .confetti:nth-child(4) { left: 40%; animation-delay: -0.6s; }
+                .confetti:nth-child(5) { left: 50%; animation-delay: -0.8s; }
+                .confetti:nth-child(6) { left: 60%; animation-delay: -1s; }
+                .confetti:nth-child(7) { left: 70%; animation-delay: -1.2s; }
+                .confetti:nth-child(8) { left: 80%; animation-delay: -1.4s; }
+                .confetti:nth-child(9) { left: 90%; animation-delay: -1.6s; }
+                .confetti:nth-child(10) { left: 15%; animation-delay: -1.8s; }
+            `}</style>
         </div>
     );
 };

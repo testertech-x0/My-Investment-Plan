@@ -53,8 +53,8 @@ const initialComments: Comment[] = [
         maskedPhone: '80****3715',
         text: 'My first withdraw successful 🙌🥰',
         images: [
-            'https://images.unsplash.com/photo-1583521214690-73421a1829a9?q=80&w=2592&auto=format&fit=crop&ixlib=rb-4.0.3',
-            'https://images.unsplash.com/photo-1620714223084-86c9df2a5ae5?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+            'https://images.unsplash.com/photo-1583521214690-73421a1829a9?q=80&w=2592&auto=format&fit=crop&ixlib-rb-4.0.3',
+            'https://images.unsplash.com/photo-1620714223084-86c9df2a5ae5?q=80&w=2787&auto=format&fit=crop&ixlib-rb-4.0.3',
         ],
         timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     },
@@ -66,8 +66,8 @@ const initialComments: Comment[] = [
         maskedPhone: '79****3388',
         text: '100% safe this is the best earning platform for all. Everyone invest here and start earning',
         images: [
-            'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
-            'https://images.unsplash.com/photo-1589936353906-0b9201509923?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+            'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=2787&auto=format&fit=crop&ixlib-rb-4.0.3',
+            'https://images.unsplash.com/photo-1589936353906-0b9201509923?q=80&w=2787&auto=format&fit=crop&ixlib-rb-4.0.3',
         ],
         timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     },
@@ -79,14 +79,25 @@ const initialComments: Comment[] = [
         maskedPhone: '63****1749',
         text: 'My first withdrawn completed',
         images: [
-            'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?q=80&w=2832&auto=format&fit=crop&ixlib=rb-4.0.3',
-            'https://images.unsplash.com/photo-1587845986339-2a919385f973?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3',
+            'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?q=80&w=2832&auto=format&fit=crop&ixlib-rb-4.0.3',
+            'https://images.unsplash.com/photo-1587845986339-2a919385f973?q=80&w=2787&auto=format&fit=crop&ixlib-rb-4.0.3',
         ],
         timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     },
 ];
 
 const initialChatSessions: ChatSession[] = []; // Start with no chats
+
+const initialLuckyDrawPrizes: Prize[] = [
+    { id: 'prize-1', name: 'Random Bonus', type: 'bonus', amount: 10 },
+    { id: 'prize-2', name: '₹50', type: 'money', amount: 50 },
+    { id: 'prize-3', name: '₹500', type: 'money', amount: 500 },
+    { id: 'prize-4', name: 'iPhone 16', type: 'physical', amount: 0 },
+    { id: 'prize-5', name: 'Refrigerator', type: 'physical', amount: 0 },
+    { id: 'prize-6', name: 'Air condition', type: 'physical', amount: 0 },
+    { id: 'prize-7', name: '₹10000', type: 'money', amount: 10000 },
+    { id: 'prize-8', name: 'Thank you', type: 'nothing', amount: 0 },
+];
 
 // --- API Functions ---
 
@@ -104,9 +115,10 @@ export async function getInitialData() {
     const comments = storage.getItem<Comment[]>('app_comments', initialComments);
     const chatSessions = storage.getItem<ChatSession[]>('app_chatSessions', initialChatSessions);
     const socialLinks = storage.getItem<SocialLinks>('app_socialLinks', { telegram: '', whatsapp: '' });
+    const luckyDrawPrizes = storage.getItem<Prize[]>('app_luckyDrawPrizes', initialLuckyDrawPrizes);
 
     return {
-        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks
+        users, currentUser, admin, investmentPlans, loginAsUser, activityLog, appName, appLogo, themeColor, comments, chatSessions, socialLinks, luckyDrawPrizes
     };
 }
 
@@ -182,6 +194,11 @@ export async function saveSocialLinks(links: SocialLinks): Promise<void> {
     storage.setItem('app_socialLinks', links);
 }
 
+export async function saveLuckyDrawPrizes(prizes: Prize[]): Promise<void> {
+    await delay(FAKE_LATENCY);
+    storage.setItem('app_luckyDrawPrizes', prizes);
+}
+
 // Higher-level logical operations
 
 export async function playLuckyDrawApi(currentUser: User): Promise<{ success: boolean; prize?: Prize, updatedUser: User }> {
@@ -191,16 +208,7 @@ export async function playLuckyDrawApi(currentUser: User): Promise<{ success: bo
         return { success: false, updatedUser: currentUser };
     }
 
-    const prizes: Prize[] = [
-        { name: 'Random Bonus', type: 'bonus', amount: 10 },
-        { name: '₹50', type: 'money', amount: 50 },
-        { name: '₹500', type: 'money', amount: 500 },
-        { name: 'Thank you', type: 'nothing', amount: 0 },
-        { name: 'iPhone 16', type: 'physical', amount: 0 },
-        { name: '₹10000', type: 'money', amount: 10000 },
-        { name: 'Air condition', type: 'physical', amount: 0 },
-        { name: 'Refrigerator', type: 'physical', amount: 0 },
-    ];
+    const prizes = storage.getItem<Prize[]>('app_luckyDrawPrizes', initialLuckyDrawPrizes);
     
     const wonPrize = prizes[Math.floor(Math.random() * prizes.length)];
     

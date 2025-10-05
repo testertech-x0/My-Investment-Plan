@@ -95,6 +95,7 @@ export interface ActivityLogEntry {
 export type ThemeColor = 'green' | 'blue' | 'purple' | 'orange' | 'red' | 'yellow' | 'teal' | 'pink';
 
 export interface Prize {
+  id: string;
   name: string;
   type: 'bonus' | 'money' | 'nothing' | 'physical';
   amount: number;
@@ -154,6 +155,7 @@ export interface AppContextType {
   chatSessions: ChatSession[];
   socialLinks: SocialLinks;
   mockSms: MockSms[];
+  luckyDrawPrizes: Prize[];
   setCurrentView: (view: string) => void;
   register: (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
@@ -193,4 +195,7 @@ export interface AppContextType {
   requestPasswordResetOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
   resetPasswordWithOtp: (phone: string, otp: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   requestRegisterOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
+  addLuckyDrawPrize: (prizeData: Omit<Prize, 'id'>) => Promise<{ success: boolean; message?: string }>;
+  updateLuckyDrawPrize: (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => Promise<{ success: boolean; message?: string }>;
+  deleteLuckyDrawPrize: (prizeId: string) => Promise<void>;
 }

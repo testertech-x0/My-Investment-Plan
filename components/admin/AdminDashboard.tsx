@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2 } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, ZoomIn, ZoomOut, Move, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
@@ -475,7 +475,7 @@ const AdminChatView = () => {
 // --- END OF CHAT COMPONENTS ---
 
 const AdminDashboard: React.FC = () => {
-  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks } = useApp();
+  const { users, investmentPlans, adminLogout, loginAsUserFunc, updateUser, deleteUser, addNotification, showConfirmation, activityLog, addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks, luckyDrawPrizes, addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize } = useApp();
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
@@ -488,6 +488,11 @@ const AdminDashboard: React.FC = () => {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<InvestmentPlan | null>(null);
   const [planData, setPlanData] = useState({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '' });
+
+  // Prize management state
+  const [showPrizeModal, setShowPrizeModal] = useState(false);
+  const [editingPrize, setEditingPrize] = useState<Prize | null>(null);
+  const [prizeData, setPrizeData] = useState<Omit<Prize, 'id'>>({ name: '', type: 'money', amount: 0 });
 
   // Activity Log modal state
   const [selectedLogEntry, setSelectedLogEntry] = useState<ActivityLogEntry | null>(null);
@@ -504,6 +509,13 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     setSocialLinksData(socialLinks);
   }, [socialLinks]);
+  
+  useEffect(() => {
+      if (prizeData.type === 'physical' || prizeData.type === 'nothing') {
+          setPrizeData(prev => ({ ...prev, amount: 0 }));
+      }
+  }, [prizeData.type]);
+
 
   const filteredUsers = users.filter(user =>
     user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -609,6 +621,61 @@ const AdminDashboard: React.FC = () => {
       setShowPlanModal(false);
     }
   };
+
+  // Prize Management functions
+  const handleAddNewPrize = () => {
+    if (luckyDrawPrizes.length >= 8) {
+        addNotification("The lucky wheel can only have 8 prizes.", 'error');
+        return;
+    }
+    setEditingPrize(null);
+    setPrizeData({ name: '', type: 'money', amount: 0 });
+    setShowPrizeModal(true);
+  };
+
+  const handleEditPrize = (prize: Prize) => {
+    setEditingPrize(prize);
+    setPrizeData({ name: prize.name, type: prize.type, amount: prize.amount });
+    setShowPrizeModal(true);
+  };
+
+  const handleDeletePrize = (prize: Prize) => {
+    showConfirmation(
+        'Delete Prize',
+        <>Are you sure you want to delete the prize <strong>{prize.name}</strong>?</>,
+        async () => await deleteLuckyDrawPrize(prize.id)
+    );
+  };
+
+  const handlePrizeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setPrizeData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSavePrize = async () => {
+      if (!prizeData.name) {
+          addNotification('Prize name is required.', 'error');
+          return;
+      }
+      const dataToSave = {
+          ...prizeData,
+          amount: parseFloat(String(prizeData.amount)) || 0,
+      };
+
+      let result;
+      if (editingPrize) {
+          result = await updateLuckyDrawPrize(editingPrize.id, dataToSave);
+      } else {
+          result = await addLuckyDrawPrize(dataToSave);
+      }
+
+      if (result.success) {
+          setShowPrizeModal(false);
+      } else if (result.message) {
+          addNotification(result.message, 'error');
+      }
+  };
+
 
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -947,6 +1014,52 @@ const AdminDashboard: React.FC = () => {
             </div>
         </div>
         
+        {/* Lucky Draw Management */}
+        <div className="bg-white rounded-xl shadow mt-8">
+            <div className="p-6 border-b flex justify-between items-center">
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-800">Lucky Draw Management</h2>
+                    <p className="text-sm text-gray-500">Configure the 8 prizes for the lucky wheel.</p>
+                </div>
+                <button onClick={handleAddNewPrize} disabled={luckyDrawPrizes.length >= 8} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    <Plus size={20} /> Add New Prize
+                </button>
+            </div>
+             {luckyDrawPrizes.length !== 8 && (
+                <div className="p-4 bg-yellow-100 text-yellow-800 text-sm font-medium text-center">
+                    The lucky wheel requires exactly 8 prizes. You currently have {luckyDrawPrizes.length}.
+                </div>
+             )}
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {luckyDrawPrizes.map(prize => (
+                            <tr key={prize.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{prize.name}</td>
+                                <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium capitalize">{prize.type}</span></td>
+                                <td className="px-6 py-4 text-sm font-semibold text-green-600">{prize.type === 'money' || prize.type === 'bonus' ? `₹${prize.amount}`: 'N/A'}</td>
+                                <td className="px-6 py-4">
+                                    <div className="flex gap-1">
+                                        <button onClick={() => handleEditPrize(prize)} className="p-2 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit Prize"><Edit size={18} /></button>
+                                        <button onClick={() => handleDeletePrize(prize)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Delete Prize"><Trash2 size={18} /></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {luckyDrawPrizes.length === 0 && <p className="text-center text-gray-500 py-8">No prizes configured.</p>}
+            </div>
+        </div>
+
         {/* Activity Log */}
         <div className="bg-white rounded-xl shadow mt-8">
           <div className="p-6 border-b">
@@ -1023,6 +1136,44 @@ const AdminDashboard: React.FC = () => {
               </div>
           </div>
       )}
+
+      {/* Prize Edit/Add Modal */}
+      {showPrizeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl max-w-md w-full p-6">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold text-gray-800">{editingPrize ? 'Edit Prize' : 'Add New Prize'}</h3>
+                      <button onClick={() => setShowPrizeModal(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+                  </div>
+                  <div className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Prize Name</label>
+                          <input type="text" name="name" value={prizeData.name} onChange={handlePrizeFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="e.g., iPhone 16 or ₹500" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Prize Type</label>
+                          <select name="type" value={prizeData.type} onChange={handlePrizeFormChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
+                              <option value="money">Money</option>
+                              <option value="bonus">Bonus</option>
+                              <option value="physical">Physical Item</option>
+                              <option value="nothing">Nothing (Thank You)</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Amount (₹)</label>
+                          <input type="number" name="amount" value={prizeData.amount} onChange={handlePrizeFormChange} 
+                                 disabled={prizeData.type === 'physical' || prizeData.type === 'nothing'}
+                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg disabled:bg-gray-100" />
+                      </div>
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                      <button onClick={() => setShowPrizeModal(false)} className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                      <button onClick={handleSavePrize} className="flex-1 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Save Prize</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
 
       {/* Activity Log Detail Modal */}
       {selectedLogEntry && (
