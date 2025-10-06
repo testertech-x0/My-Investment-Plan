@@ -38,6 +38,7 @@ export interface User {
   password: string;
   name: string;
   email: string;
+  avatar?: string | null;
   balance: number;
   totalReturns: number;
   rechargeAmount: number;

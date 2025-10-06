@@ -275,11 +275,20 @@ const UserDetailModal: FC<{ user: User, onClose: () => void, onEdit: (user: User
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
                 <header className="p-4 border-b flex justify-between items-center">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800">{user.name}</h3>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {user.isActive ? 'Active' : 'Blocked'}
-                        </span>
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                            {user.avatar ? (
+                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <Users size={24} className="text-gray-500" />
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800">{user.name}</h3>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {user.isActive ? 'Active' : 'Blocked'}
+                            </span>
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
                 </header>
@@ -424,8 +433,19 @@ const UserManagementView: FC<AppContextType & { onUserSelect: (user: User, actio
                         {filteredUsers.map(user => (
                         <tr key={user.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4">
-                                <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                                <p className="text-xs text-gray-500">{user.id} &middot; {user.phone}</p>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Users size={20} className="text-gray-500" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                        <p className="text-xs text-gray-500">{user.id} &middot; {user.phone}</p>
+                                    </div>
+                                </div>
                             </td>
                             <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{user.balance.toFixed(2)}</td>
                             <td className="px-6 py-4">
@@ -706,8 +726,12 @@ const AdminChatView: FC<AppContextType & { setViewingImage: (url: string | null)
                                     className={`w-full text-left p-4 border-b hover:bg-gray-50 flex items-start gap-3 transition-colors ${isActive ? 'bg-indigo-50' : ''}`}
                                 >
                                     <div className="relative shrink-0">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">
-                                            {user?.name.charAt(0)}
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 overflow-hidden">
+                                            {user?.avatar ? (
+                                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                user?.name.charAt(0)
+                                            )}
                                         </div>
                                         {session.adminUnreadCount > 0 && 
                                             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
@@ -736,7 +760,14 @@ const AdminChatView: FC<AppContextType & { setViewingImage: (url: string | null)
             <div className="w-2/3 flex flex-col">
                 {selectedSession && selectedUser ? (
                     <>
-                        <div className="p-4 border-b flex items-center">
+                        <div className="p-4 border-b flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 overflow-hidden">
+                                {selectedUser.avatar ? (
+                                    <img src={selectedUser.avatar} alt={selectedUser.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    selectedUser.name.charAt(0)
+                                )}
+                            </div>
                             <h3 className="text-lg font-semibold text-gray-800">{selectedUser.name} <span className="text-sm text-gray-500 font-normal">({selectedUser.id})</span></h3>
                         </div>
                         <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col gap-4">

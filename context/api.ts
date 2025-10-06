@@ -1,4 +1,4 @@
-import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession, SocialLinks, PaymentSettings } from '../types';
+import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession, SocialLinks, PaymentSettings, Investment, Transaction } from '../types';
 
 // --- MOCK API with localStorage ---
 // This service simulates an API by using localStorage.
@@ -31,6 +31,8 @@ const storage = {
     }
 };
 
+const generateTxId = () => `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
 const initialInvestmentPlans: InvestmentPlan[] = [
   { id: 'EVSE-1', name: 'Home EVSE-1', minInvestment: 415, dailyReturn: 166, duration: 59, category: 'EVSE-A' },
   { id: 'EVSE-2', name: 'Home EVSE-2', minInvestment: 1315, dailyReturn: 539, duration: 59, category: 'EVSE-A' },
@@ -42,6 +44,67 @@ const initialAdmin: Admin = {
   username: 'admin',
   password: 'admin',
   isLoggedIn: false,
+};
+
+const defaultTestUser: User = {
+    id: 'ID:123456',
+    phone: '9876543210',
+    password: 'password123',
+    name: 'Test User',
+    email: 'test@example.com',
+    avatar: 'https://i.pravatar.cc/150?u=testuser',
+    balance: 5000,
+    totalReturns: 1200,
+    rechargeAmount: 10000,
+    withdrawals: 3800,
+    registrationDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // a week ago
+    isActive: true,
+    investments: [
+        {
+            planId: 'EVSE-1',
+            planName: 'Home EVSE-1',
+            investedAmount: 415,
+            totalRevenue: 166 * 59,
+            dailyEarnings: 166,
+            revenueDays: 59,
+            quantity: 1,
+            startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            category: 'EVSE-A',
+        },
+        {
+            planId: 'EVSE-2',
+            planName: 'Home EVSE-2',
+            investedAmount: 1315,
+            totalRevenue: 539 * 59,
+            dailyEarnings: 539,
+            revenueDays: 59,
+            quantity: 1,
+            startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            category: 'EVSE-A',
+        }
+    ],
+    transactions: [
+        { id: generateTxId(), type: 'deposit', amount: 10000, description: 'Initial Deposit', date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), read: true },
+        { id: generateTxId(), type: 'investment', amount: -415, description: 'Invest in Home EVSE-1', date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), read: true },
+        { id: generateTxId(), type: 'investment', amount: -1315, description: 'Invest in Home EVSE-2', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), read: false },
+        { id: generateTxId(), type: 'reward', amount: 1200, description: 'Investment Return', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), read: false },
+        { id: generateTxId(), type: 'withdrawal', amount: -3800, description: 'Withdrawal', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), read: false },
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    loginActivity: [
+        { date: new Date().toISOString(), device: 'Web Browser' }
+    ],
+    bankAccount: {
+        accountHolder: 'Test User',
+        accountNumber: '123456789012',
+        ifscCode: 'TEST0123456',
+    },
+    luckyDrawChances: 3,
+    fundPassword: '123456',
+    language: 'en',
+    dailyCheckIns: [
+        new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    ],
 };
 
 const initialComments: Comment[] = [
@@ -108,7 +171,13 @@ const initialPaymentSettings: PaymentSettings = {
 
 export async function getInitialData() {
     await delay(FAKE_LATENCY * 3); // Simulate a larger initial fetch
-    const users = storage.getItem<User[]>('app_users', []);
+    
+    let users = storage.getItem<User[]>('app_users', []);
+    if (users.length === 0) {
+        users = [defaultTestUser];
+        storage.setItem('app_users', users);
+    }
+    
     const currentUser = storage.getItem<User | null>('app_currentUser', null);
     const admin = storage.getItem<Admin>('app_admin', initialAdmin);
     const investmentPlans = storage.getItem<InvestmentPlan[]>('app_investmentPlans', initialInvestmentPlans);

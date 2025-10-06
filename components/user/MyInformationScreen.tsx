@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, User, Mail, Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -7,25 +7,54 @@ const MyInformationScreen: React.FC = () => {
 
     const [name, setName] = useState(currentUser?.name || '');
     const [email, setEmail] = useState(currentUser?.email || '');
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(currentUser?.avatar || null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (currentUser) {
             setName(currentUser.name);
             setEmail(currentUser.email);
+            setAvatarPreview(currentUser.avatar || null);
         }
     }, [currentUser]);
 
     if (!currentUser) return null;
 
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await updateUser(currentUser.id, { name, email });
+        const updates: Partial<Pick<User, 'name' | 'email' | 'avatar'>> = { name, email };
+        if (avatarPreview && avatarPreview !== currentUser.avatar) {
+            updates.avatar = avatarPreview;
+        }
+        await updateUser(currentUser.id, updates);
         addNotification('Information updated successfully!', 'success');
         setCurrentView('profile');
     };
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/png, image/jpeg"
+            />
             <header className="flex items-center p-4 border-b bg-white sticky top-0 z-10">
                 <button onClick={() => setCurrentView('profile')} className="p-2 -ml-2">
                     <ArrowLeft size={24} className="text-gray-800" />
@@ -37,12 +66,16 @@ const MyInformationScreen: React.FC = () => {
                 <div className="max-w-md mx-auto">
                     <div className="flex justify-center mb-8">
                         <div className="relative">
-                            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
-                                <User size={48} className="text-green-500" />
-                            </div>
-                            <button className="absolute bottom-0 right-0 bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white">
-                                <Camera size={16} />
+                            <button onClick={handleAvatarClick} className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-green-200">
+                                {avatarPreview ? (
+                                    <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={48} className="text-green-500" />
+                                )}
                             </button>
+                            <div className="absolute bottom-0 right-0 bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white pointer-events-none">
+                                <Camera size={16} />
+                            </div>
                         </div>
                     </div>
 

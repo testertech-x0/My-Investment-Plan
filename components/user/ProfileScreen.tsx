@@ -34,8 +34,12 @@ const ProfileScreen: React.FC = () => {
 
       <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 pb-16">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-            <User size={32} />
+          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center overflow-hidden">
+            {currentUser.avatar ? (
+                <img src={currentUser.avatar} alt="User Avatar" className="w-full h-full object-cover" />
+            ) : (
+                <User size={32} />
+            )}
           </div>
           <div>
             <h2 className="text-xl font-bold">{currentUser.name}</h2>

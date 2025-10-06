@@ -174,6 +174,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       password: userData.password,
       name: userData.name,
       email: '',
+      avatar: null,
       balance: 30,
       totalReturns: 0,
       rechargeAmount: 0,
@@ -650,7 +651,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         id: `comment-${Date.now()}`,
         userId: currentUser.id,
         userName: currentUser.name,
-        userAvatar: `https://i.pravatar.cc/150?u=${currentUser.id}`, // Generate a consistent avatar
+        userAvatar: currentUser.avatar || `https://i.pravatar.cc/150?u=${currentUser.id}`,
         maskedPhone: maskPhone(currentUser.phone),
         text: commentData.text,
         images: commentData.images,
