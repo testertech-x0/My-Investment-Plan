@@ -1,28 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ShieldCheck, TrendingUp, CheckCircle, ClipboardCopy } from 'lucide-react';
 import type { PaymentMethod } from '../../types';
 
-// Helper to get last used ID from localStorage
-const getLastUsedId = (key: string): string | null => {
-    try {
-        return localStorage.getItem(key);
-    } catch {
-        return null;
-    }
-};
-
-// Helper to set last used ID in localStorage
-const setLastUsedId = (key: string, id: string): void => {
-    try {
-        localStorage.setItem(key, id);
-    } catch {
-        // ignore errors
-    }
-};
-
 const PaymentGatewayScreen: React.FC = () => {
-  const { pendingDeposit, processDeposit, setCurrentView, appName, appLogo, paymentSettings, addNotification } = useApp();
+  const { pendingDeposit, processDeposit, setCurrentView, appName, appLogo, addNotification } = useApp();
   const [status, setStatus] = useState<'pending' | 'processing' | 'success'>('pending');
 
   useEffect(() => {
@@ -30,49 +12,6 @@ const PaymentGatewayScreen: React.FC = () => {
       setCurrentView('deposit');
     }
   }, [pendingDeposit, setCurrentView]);
-
- const { selectedQr, selectedUpi } = useMemo(() => {
-    const activeMethods = paymentSettings.paymentMethods.filter(m => m.isActive);
-    let qrResult: PaymentMethod | null = null;
-    let upiResult: PaymentMethod | null = null;
-
-    // Select QR
-    if (pendingDeposit && pendingDeposit.amount <= 2000) {
-      const availableQrMethods = activeMethods.filter(m => m.qrCode);
-      if (availableQrMethods.length > 0) {
-          if (availableQrMethods.length === 1) {
-              qrResult = availableQrMethods[0];
-          } else {
-              const lastQrId = getLastUsedId('last_qr_method_id');
-              let selectableMethods = availableQrMethods.filter(m => m.id !== lastQrId);
-              if (selectableMethods.length === 0) {
-                  selectableMethods = availableQrMethods;
-              }
-              qrResult = selectableMethods[Math.floor(Math.random() * selectableMethods.length)];
-          }
-          if (qrResult) setLastUsedId('last_qr_method_id', qrResult.id);
-      }
-    }
-
-    // Select UPI
-    const availableUpiMethods = activeMethods.filter(m => m.upiId);
-    if (availableUpiMethods.length > 0) {
-        if (availableUpiMethods.length === 1) {
-            upiResult = availableUpiMethods[0];
-        } else {
-            const lastUpiId = getLastUsedId('last_upi_method_id');
-            let selectableMethods = availableUpiMethods.filter(m => m.id !== lastUpiId);
-            if (selectableMethods.length === 0) {
-                selectableMethods = availableUpiMethods;
-            }
-            upiResult = selectableMethods[Math.floor(Math.random() * selectableMethods.length)];
-        }
-        if (upiResult) setLastUsedId('last_upi_method_id', upiResult.id);
-    }
-    
-    return { selectedQr: qrResult, selectedUpi: upiResult };
-  }, [paymentSettings, pendingDeposit]);
-
 
   if (!pendingDeposit) {
     return null; // or a loading/redirecting indicator
@@ -82,7 +21,8 @@ const PaymentGatewayScreen: React.FC = () => {
     setStatus('processing');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const result = await processDeposit(pendingDeposit.userId, pendingDeposit.amount);
+    // In a real app, a webhook would handle this. Here we simulate user confirmation.
+    const result = await processDeposit(pendingDeposit.transactionId, pendingDeposit.amount);
     
     if (result.success) {
       setStatus('success');
@@ -90,11 +30,13 @@ const PaymentGatewayScreen: React.FC = () => {
         setCurrentView('home');
       }, 2500);
     } else {
+      addNotification("Payment confirmation failed. Please contact support if you have already paid.", "error");
       setStatus('pending'); 
     }
   };
 
   const handleCancel = () => {
+    // Optional: could notify the backend that the transaction was cancelled.
     setCurrentView('deposit');
   };
 
@@ -106,13 +48,15 @@ const PaymentGatewayScreen: React.FC = () => {
       });
   };
 
+  const { qrCode, upiId } = pendingDeposit;
+
   const renderContent = () => {
     switch(status) {
       case 'processing':
         return (
           <div className="text-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
-            <p className="text-xl font-semibold text-gray-700 mt-6">Processing Payment...</p>
+            <p className="text-xl font-semibold text-gray-700 mt-6">Confirming Payment...</p>
             <p className="text-gray-500">Please do not close or refresh the page.</p>
           </div>
         );
@@ -120,7 +64,7 @@ const PaymentGatewayScreen: React.FC = () => {
         return (
           <div className="text-center py-20">
             <CheckCircle className="w-20 h-20 text-green-500 mx-auto animate-pulse" />
-            <p className="text-2xl font-bold text-gray-800 mt-6">Payment Successful!</p>
+            <p className="text-2xl font-bold text-gray-800 mt-6">Payment Confirmed!</p>
             <p className="text-gray-600 mt-2">Amount of ₹{pendingDeposit.amount.toFixed(2)} has been added to your account.</p>
             <p className="text-sm text-gray-500 mt-4">Redirecting you to the dashboard...</p>
           </div>
@@ -134,24 +78,23 @@ const PaymentGatewayScreen: React.FC = () => {
                 <p className="text-5xl font-bold text-gray-800 tracking-tight">₹{pendingDeposit.amount.toFixed(2)}</p>
             </div>
 
-            {!selectedQr && !selectedUpi ? (
+            {!qrCode && !upiId ? (
                 <div className="text-center text-red-500 p-4 bg-red-50 rounded-lg">
                     No payment methods are currently available. Please contact support.
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {selectedQr && (
+                    {qrCode && (
                         <div className="text-center">
                             <h3 className="font-semibold text-gray-800 mb-2">Pay via QR Code</h3>
                             <div className="flex justify-center">
-                                <img src={selectedQr.qrCode} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
+                                <img src={qrCode} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
                             </div>
                             <p className="text-xs text-gray-500 mt-2">Scan the QR code with your payment app.</p>
-                            <p className="text-xs font-semibold text-blue-600 mt-1">For payments up to ₹2000</p>
                         </div>
                     )}
                     
-                    {selectedQr && selectedUpi && (
+                    {qrCode && upiId && (
                         <div className="relative flex items-center">
                             <div className="flex-grow border-t border-gray-200"></div>
                             <span className="flex-shrink mx-4 text-gray-400 font-semibold text-sm">OR</span>
@@ -159,12 +102,12 @@ const PaymentGatewayScreen: React.FC = () => {
                         </div>
                     )}
 
-                    {selectedUpi && (
+                    {upiId && (
                          <div className="text-center">
                             <h3 className="font-semibold text-gray-800 mb-2">Pay via UPI ID</h3>
                             <div className="bg-green-50 p-3 rounded-lg flex items-center justify-center gap-2">
-                                <p className="font-mono text-lg text-green-800 break-all">{selectedUpi.upiId}</p>
-                                <button onClick={() => copyToClipboard(selectedUpi.upiId)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
+                                <p className="font-mono text-lg text-green-800 break-all">{upiId}</p>
+                                <button onClick={() => copyToClipboard(upiId)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
                             </div>
                             <p className="text-xs text-gray-500 mt-2">Copy the UPI ID and pay using your app.</p>
                          </div>
@@ -175,7 +118,7 @@ const PaymentGatewayScreen: React.FC = () => {
             <div className="space-y-3 mt-8">
                 <button
                     onClick={handlePay}
-                    disabled={!selectedQr && !selectedUpi}
+                    disabled={!qrCode && !upiId}
                     className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-gray-300"
                 >
                     I Have Paid

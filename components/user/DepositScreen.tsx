@@ -6,6 +6,7 @@ const DepositScreen: React.FC = () => {
   const { currentUser, setCurrentView, addNotification, initiateDeposit, paymentSettings } = useApp();
   const [activeTab, setActiveTab] = useState('CASH');
   const [amount, setAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   if (!currentUser) return null;
 
@@ -20,8 +21,11 @@ const DepositScreen: React.FC = () => {
       return;
     }
     
-    initiateDeposit(depositAmount);
+    setIsProcessing(true);
+    await initiateDeposit(depositAmount);
+    // The context will now have pendingPaymentDetails if successful
     setCurrentView('payment-gateway');
+    setIsProcessing(false);
   };
 
   return (
@@ -85,10 +89,10 @@ const DepositScreen: React.FC = () => {
 
             <button 
               onClick={handleDeposit}
-              disabled={!isValid}
-              className={`w-full py-3 rounded-lg font-semibold transition text-white mt-4 ${isValid ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
+              disabled={!isValid || isProcessing}
+              className={`w-full py-3 rounded-lg font-semibold transition text-white mt-4 ${isValid ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'} disabled:bg-green-300`}
             >
-              Proceed to Pay
+              {isProcessing ? 'Initiating...' : 'Proceed to Pay'}
             </button>
           </div>
         ) : (

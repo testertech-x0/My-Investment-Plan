@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Landmark } from 'lucide-react';
+import { ArrowLeft, Landmark, Lock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const WithdrawScreen: React.FC = () => {
     const { currentUser, setCurrentView, makeWithdrawal, addNotification } = useApp();
     const [activeTab, setActiveTab] = useState('CASH');
     const [amount, setAmount] = useState('');
+    const [fundPassword, setFundPassword] = useState('');
     const [isWithdrawing, setIsWithdrawing] = useState(false);
 
     if (!currentUser) return null;
@@ -17,10 +18,15 @@ const WithdrawScreen: React.FC = () => {
         if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
             return;
         }
+        if (!fundPassword) {
+            addNotification('Please enter your fund password.', 'error');
+            return;
+        }
         setIsWithdrawing(true);
-        const result = await makeWithdrawal(currentUser.id, withdrawalAmount);
+        const result = await makeWithdrawal(currentUser.id, withdrawalAmount, fundPassword);
         if(result.success) {
             setAmount('');
+            setFundPassword('');
         } else if (result.message) {
             addNotification(result.message, 'error');
         }
@@ -29,7 +35,7 @@ const WithdrawScreen: React.FC = () => {
 
     const isConfirmDisabled = () => {
         const numAmount = parseFloat(amount);
-        return isWithdrawing || !currentUser.bankAccount || isNaN(numAmount) || numAmount <= 0 || numAmount > currentUser.balance;
+        return isWithdrawing || !currentUser.bankAccount || isNaN(numAmount) || numAmount <= 0 || numAmount > currentUser.balance || fundPassword.length === 0;
     }
 
     return (
@@ -71,7 +77,7 @@ const WithdrawScreen: React.FC = () => {
                         </div>
                         
                         <div className="bg-white p-4 rounded-lg shadow">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Quick amount</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Withdraw amount</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl font-semibold text-gray-400">₹</span>
                                 <input 
@@ -95,21 +101,42 @@ const WithdrawScreen: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white p-4 rounded-lg shadow">
-                             <label className="block text-sm font-medium text-gray-700 mb-2">Withdraw method</label>
-                            {currentUser.bankAccount ? (
-                                <div className="border border-gray-200 rounded-lg p-3 flex items-center gap-3">
-                                    <Landmark className="text-green-500" size={24} />
-                                    <div>
-                                        <p className="font-semibold">{currentUser.bankAccount.accountHolder}</p>
-                                        <p className="text-xs text-gray-500">**** **** **** {currentUser.bankAccount.accountNumber.slice(-4)}</p>
+                        <div className="bg-white p-4 rounded-lg shadow space-y-4">
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Withdraw method</label>
+                                {currentUser.bankAccount ? (
+                                    <div className="border border-gray-200 rounded-lg p-3 flex items-center gap-3">
+                                        <Landmark className="text-green-500" size={24} />
+                                        <div>
+                                            <p className="font-semibold">{currentUser.bankAccount.accountHolder}</p>
+                                            <p className="text-xs text-gray-500">**** **** **** {currentUser.bankAccount.accountNumber.slice(-4)}</p>
+                                        </div>
                                     </div>
+                                ) : (
+                                    <button onClick={() => setCurrentView('bank-account')} className="w-full text-center py-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:bg-gray-100">
+                                        + Add Bank Account
+                                    </button>
+                                )}
+                             </div>
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Fund Password</label>
+                                 <div className="relative">
+                                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        type="password"
+                                        value={fundPassword}
+                                        onChange={(e) => setFundPassword(e.target.value)}
+                                        placeholder="Enter your 6-digit fund password"
+                                        maxLength={6}
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                    />
                                 </div>
-                            ) : (
-                                <button onClick={() => setCurrentView('bank-account')} className="w-full text-center py-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:bg-gray-100">
-                                    + Add Bank Account
-                                </button>
-                            )}
+                                {!currentUser.fundPassword && (
+                                    <button onClick={() => setCurrentView('fund-password')} className="text-xs text-blue-600 hover:underline mt-1">
+                                        No fund password? Set one up.
+                                    </button>
+                                )}
+                             </div>
                         </div>
                         
                         <button 

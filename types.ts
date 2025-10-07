@@ -35,7 +35,7 @@ export interface BankAccount {
 export interface User {
   id: string;
   phone: string;
-  password: string;
+  password?: string; // Should not be sent to client after login
   name: string;
   email: string;
   avatar?: string | null;
@@ -50,7 +50,7 @@ export interface User {
   loginActivity: LoginActivity[];
   bankAccount: BankAccount | null;
   luckyDrawChances: number;
-  fundPassword?: string | null;
+  fundPassword?: string | null; // Should not be sent to client
   language?: string;
   dailyCheckIns?: string[];
 }
@@ -66,7 +66,7 @@ export interface InvestmentPlan {
 
 export interface Admin {
   username: string;
-  password: string;
+  password?: string;
   isLoggedIn: boolean;
 }
 
@@ -171,9 +171,10 @@ export interface AppContextType {
   mockSms: MockSms[];
   luckyDrawPrizes: Prize[];
   paymentSettings: PaymentSettings;
-  pendingDeposit: { amount: number; userId: string } | null;
+  pendingDeposit: { upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null;
   setCurrentView: (view: string) => void;
-  register: (userData: Pick<User, 'phone' | 'password' | 'name'> & { otp: string }) => Promise<{ success: boolean; userId?: string }>;
+  // FIX: Make password required for registration, as it's optional in the User type but necessary for creation.
+  register: (userData: Pick<User, 'phone' | 'name'> & { password: string; otp: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -189,7 +190,7 @@ export interface AppContextType {
   dismissSms: (id: number) => void;
   initiateDeposit: (amount: number) => void;
   processDeposit: (userId: string, amount: number) => Promise<{ success: boolean }>;
-  makeWithdrawal: (userId: string, amount: number) => Promise<{ success: boolean; message?: string }>;
+  makeWithdrawal: (userId: string, amount: number, fundPassword: string) => Promise<{ success: boolean; message?: string }>;
   changeUserPassword: (userId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
   addInvestmentPlan: (planData: Omit<InvestmentPlan, 'id'>) => Promise<{ success: boolean; message?: string }>;
   updateInvestmentPlan: (planId: string, updates: Partial<Omit<InvestmentPlan, 'id'>>) => Promise<{ success: boolean; message?: string }>;

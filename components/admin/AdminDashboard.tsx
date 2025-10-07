@@ -3,6 +3,8 @@ import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2,
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
+import * as api from '../../context/api';
+
 
 // --- STYLING & THEME ---
 const themeOptions: { name: ThemeColor; bgClass: string }[] = [
@@ -344,23 +346,24 @@ const ChatMessageBubble: FC<{ message: ChatMessage; isSender: boolean; onImageCl
 };
 
 // --- VIEW COMPONENTS ---
-const DashboardView: FC<AppContextType> = (props) => {
-    const { users, activityLog } = props;
-    const totalInvestments = users.reduce((sum, user) => sum + user.investments.reduce((s, inv) => s + inv.investedAmount, 0), 0);
-    const totalBalance = users.reduce((sum, user) => sum + user.balance, 0);
-    const activeUsers = users.filter(u => u.isActive).length;
+const DashboardView: FC<{ activityLog: ActivityLogEntry[] }> = ({ activityLog }) => {
+    const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, totalInvestments: 0, platformBalance: 0 });
+    
+    useEffect(() => {
+        api.fetchAdminDashboard().then(setStats).catch(console.error);
+    }, []);
 
-    const stats = [
-        { title: 'Total Users', value: users.length, icon: Users, color: 'blue' },
-        { title: 'Active Users', value: activeUsers, icon: Activity, color: 'green' },
-        { title: 'Total Investments', value: `₹${totalInvestments.toLocaleString('en-IN', {maximumFractionDigits: 2})}`, icon: TrendingUp, color: 'purple' },
-        { title: 'Platform Balance', value: `₹${totalBalance.toLocaleString('en-IN', {maximumFractionDigits: 2})}`, icon: Wallet, color: 'orange' },
+    const statCards = [
+        { title: 'Total Users', value: stats.totalUsers, icon: Users, color: 'blue' },
+        { title: 'Active Users', value: stats.activeUsers, icon: Activity, color: 'green' },
+        { title: 'Total Investments', value: `₹${stats.totalInvestments.toLocaleString('en-IN', {maximumFractionDigits: 2})}`, icon: TrendingUp, color: 'purple' },
+        { title: 'Platform Balance', value: `₹${stats.platformBalance.toLocaleString('en-IN', {maximumFractionDigits: 2})}`, icon: Wallet, color: 'orange' },
     ];
 
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map(stat => (
+                {statCards.map(stat => (
                     <div key={stat.title} className="bg-white rounded-lg shadow p-6 flex items-center gap-6">
                         <div className={`p-4 rounded-full bg-${stat.color}-100`}>
                             <stat.icon className={`text-${stat.color}-500`} size={28} />
@@ -387,7 +390,7 @@ const DashboardView: FC<AppContextType> = (props) => {
                                         <p className="font-medium text-gray-900">{log.action}</p>
                                         <p className="text-sm text-gray-500">User: {log.userName} ({log.userId})</p>
                                     </div>
-                                    <p className="text-sm text-gray-500 shrink-0">{log.timestamp.toLocaleString()}</p>
+                                    <p className="text-sm text-gray-500 shrink-0">{new Date(log.timestamp).toLocaleString()}</p>
                                 </li>
                             ))}
                         </ul>
@@ -400,7 +403,7 @@ const DashboardView: FC<AppContextType> = (props) => {
     );
 };
 
-const UserManagementView: FC<AppContextType & { onUserSelect: (user: User, action: 'view' | 'edit' | 'delete' | 'login' | 'toggle') => Promise<void>, searchTerm: string, setSearchTerm: (term: string) => void }> = (props) => {
+const UserManagementView: FC<{ users: User[], onUserSelect: (user: User, action: 'view' | 'edit' | 'delete' | 'login' | 'toggle') => Promise<void>, searchTerm: string, setSearchTerm: (term: string) => void }> = (props) => {
     const { users, onUserSelect, searchTerm, setSearchTerm } = props;
 
     const filteredUsers = users.filter(user =>
@@ -473,7 +476,7 @@ const UserManagementView: FC<AppContextType & { onUserSelect: (user: User, actio
 };
 
 const PaymentSettingsView: FC = () => {
-    const { paymentSettings, updatePaymentSettings, addNotification, showConfirmation } = useApp();
+    const { paymentSettings, updatePaymentSettings, addNotification, showConfirmation } = useApp() as any; // Cast to access full context
 
     const [newMethod, setNewMethod] = useState({ name: '', upiId: '' });
     const [qrFile, setQrFile] = useState<File | null>(null);
@@ -642,7 +645,7 @@ const PaymentSettingsView: FC = () => {
     );
 };
 
-const AdminChatView: FC<AppContextType & { setViewingImage: (url: string | null) => void }> = (props) => {
+const AdminChatView: FC<{ chatSessions: ChatSession[], users: User[], sendChatMessage: (userId: string, message: { text?: string; imageUrl?: string; }) => Promise<void>, markChatAsRead: (userId: string) => Promise<void>, setViewingImage: (url: string | null) => void }> = (props) => {
     const { users, chatSessions, sendChatMessage, markChatAsRead, setViewingImage } = props;
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [newMessage, setNewMessage] = useState('');
@@ -813,8 +816,20 @@ const AdminChatView: FC<AppContextType & { setViewingImage: (url: string | null)
 
 // --- MAIN DASHBOARD COMPONENT ---
 const AdminDashboard: React.FC = () => {
-  const context = useApp();
-  const { adminLogout, appName, appLogo, updateAppName, updateAppLogo, themeColor, updateThemeColor, changeAdminPassword, socialLinks, updateSocialLinks, addNotification, showConfirmation, luckyDrawPrizes, paymentSettings } = context;
+  const { 
+    users, adminLogout, appName, appLogo, updateAppName, updateAppLogo, 
+    themeColor, updateThemeColor, changeAdminPassword, socialLinks, 
+    updateSocialLinks, addNotification, showConfirmation, luckyDrawPrizes, 
+    paymentSettings, activityLog, investmentPlans, chatSessions,
+    deleteUser, loginAsUserFunc, updateUser: updateUserFromContext, 
+    addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, 
+    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, 
+    updatePaymentSettings: updatePaymentSettingsFromContext,
+    sendChatMessage, markChatAsRead
+  } = useApp() as any; // Cast to access setters not on public type
+
+  const contextSetters = useApp() as any;
+
 
   const [activeView, setActiveView] = useState('dashboard');
   
@@ -845,6 +860,34 @@ const AdminDashboard: React.FC = () => {
 
   // Admin security state
   const [adminPassData, setAdminPassData] = useState({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+  
+  useEffect(() => {
+    // Fetch data based on the active view
+    const fetchData = async () => {
+        try {
+            if (activeView === 'dashboard' || activeView === 'activity_log') {
+                const log = await api.fetchActivityLog();
+                contextSetters.setActivityLog(log);
+            }
+            if (activeView === 'users' || activeView === 'chat') {
+                const usersData = await api.fetchAdminUsers();
+                contextSetters.setUsers(usersData);
+            }
+            if (activeView === 'plans') {
+                const plans = await api.fetchInvestmentPlans();
+                contextSetters.setInvestmentPlans(plans);
+            }
+            if (activeView === 'chat') {
+                const sessions = await api.fetchChatSessions();
+                contextSetters.setChatSessions(sessions);
+            }
+        } catch (error) {
+            console.error(`Failed to fetch data for ${activeView}:`, error);
+            addNotification(`Could not load data for ${activeView}.`, 'error');
+        }
+    };
+    fetchData();
+  }, [activeView]);
 
   useEffect(() => { setSocialLinksData(socialLinks); }, [socialLinks]);
   useEffect(() => { if (prizeData.type === 'physical' || prizeData.type === 'nothing') { setPrizeData(prev => ({ ...prev, amount: 0 })); } }, [prizeData.type]);
@@ -859,13 +902,13 @@ const AdminDashboard: React.FC = () => {
               setShowUserEditModal(true);
               break;
           case 'delete':
-              showConfirmation( 'Delete User', <>Are you sure you want to delete <strong>{user.name}</strong> ({user.id})?</>, async () => await context.deleteUser(user.id));
+              showConfirmation( 'Delete User', <>Are you sure you want to delete <strong>{user.name}</strong> ({user.id})?</>, async () => await deleteUser(user.id));
               break;
           case 'login': 
-              await context.loginAsUserFunc(user.id);
+              await loginAsUserFunc(user.id);
               break;
           case 'toggle':
-              await context.updateUser(user.id, { isActive: !user.isActive });
+              await updateUserFromContext(user.id, { isActive: !user.isActive });
               setDetailedUser(prev => prev ? {...prev, isActive: !user.isActive} : null);
               addNotification(`User ${user.name} has been ${!user.isActive ? 'activated' : 'blocked'}.`, 'info');
               break;
@@ -874,7 +917,7 @@ const AdminDashboard: React.FC = () => {
   
   const saveUserEdit = async () => {
     if (selectedUser) {
-      await context.updateUser(selectedUser.id, editUserData);
+      await updateUserFromContext(selectedUser.id, editUserData);
       addNotification(`User ${selectedUser.name} updated successfully.`, 'success');
       setShowUserEditModal(false);
       setSelectedUser(null);
@@ -893,14 +936,14 @@ const AdminDashboard: React.FC = () => {
     if (Object.values(parsedData).some(v => !v || (typeof v === 'number' && isNaN(v)))) {
       addNotification('Please fill all fields correctly.', 'error'); return;
     }
-    const result = editingPlan ? await context.updateInvestmentPlan(editingPlan.id, parsedData) : await context.addInvestmentPlan(parsedData);
+    const result = editingPlan ? await updateInvestmentPlan(editingPlan.id, parsedData) : await addInvestmentPlan(parsedData);
     if (result.success) setShowPlanModal(false);
   };
   
   const handleSavePrize = async () => {
       if (!prizeData.name) { addNotification('Prize name is required.', 'error'); return; }
       const dataToSave = { ...prizeData, amount: parseFloat(String(prizeData.amount)) || 0 };
-      const result = editingPrize ? await context.updateLuckyDrawPrize(editingPrize.id, dataToSave) : await context.addLuckyDrawPrize(dataToSave);
+      const result = editingPrize ? await updateLuckyDrawPrize(editingPrize.id, dataToSave) : await addLuckyDrawPrize(dataToSave);
       if (result.success) setShowPrizeModal(false);
       else if (result.message) addNotification(result.message, 'error');
   };
@@ -934,8 +977,8 @@ const AdminDashboard: React.FC = () => {
   
   const renderView = () => {
     switch (activeView) {
-        case 'dashboard': return <DashboardView {...context} />;
-        case 'users': return <UserManagementView {...context} onUserSelect={handleUserSelection} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />;
+        case 'dashboard': return <DashboardView activityLog={activityLog} />;
+        case 'users': return <UserManagementView users={users} onUserSelect={handleUserSelection} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />;
         case 'plans': return (
             <div className="bg-white rounded-lg shadow">
                 <div className="p-6 border-b flex justify-between items-center">
@@ -960,7 +1003,7 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {context.investmentPlans.map(plan => (
+                            {investmentPlans.map((plan: InvestmentPlan) => (
                                 <tr key={plan.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{plan.name}</td>
                                     <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">{plan.category}</span></td>
@@ -970,7 +1013,7 @@ const AdminDashboard: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex gap-1">
                                             <button onClick={() => { setEditingPlan(plan); setPlanData({ name: plan.name, minInvestment: String(plan.minInvestment), dailyReturn: String(plan.dailyReturn), duration: String(plan.duration), category: plan.category }); setShowPlanModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Plan"><Edit size={18} /></button>
-                                            <button onClick={() => showConfirmation('Delete Plan', <>Are you sure you want to delete <strong>{plan.name}</strong>?</>, async () => await context.deleteInvestmentPlan(plan.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Plan"><Trash2 size={18} /></button>
+                                            <button onClick={() => showConfirmation('Delete Plan', <>Are you sure you want to delete <strong>{plan.name}</strong>?</>, async () => await deleteInvestmentPlan(plan.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Plan"><Trash2 size={18} /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1005,7 +1048,7 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {luckyDrawPrizes.map(prize => (
+                            {luckyDrawPrizes.map((prize: Prize) => (
                                 <tr key={prize.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{prize.name}</td>
                                     <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium capitalize">{prize.type}</span></td>
@@ -1013,7 +1056,7 @@ const AdminDashboard: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex gap-1">
                                             <button onClick={() => { setEditingPrize(prize); setPrizeData({ name: prize.name, type: prize.type, amount: prize.amount }); setShowPrizeModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Prize"><Edit size={18} /></button>
-                                            <button onClick={() => showConfirmation('Delete Prize', <>Are you sure you want to delete <strong>{prize.name}</strong>?</>, async () => await context.deleteLuckyDrawPrize(prize.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Prize"><Trash2 size={18} /></button>
+                                            <button onClick={() => showConfirmation('Delete Prize', <>Are you sure you want to delete <strong>{prize.name}</strong>?</>, async () => await deleteLuckyDrawPrize(prize.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Prize"><Trash2 size={18} /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1024,18 +1067,18 @@ const AdminDashboard: React.FC = () => {
             </div>
         );
         case 'payment_settings': return <PaymentSettingsView />;
-        case 'chat': return <AdminChatView {...context} setViewingImage={setViewingImage} />;
+        case 'chat': return <AdminChatView chatSessions={chatSessions} users={users} sendChatMessage={sendChatMessage} markChatAsRead={markChatAsRead} setViewingImage={setViewingImage} />;
         case 'activity_log': return (
              <div className="bg-white rounded-lg shadow">
                  <div className="p-6 border-b"><h2 className="text-xl font-semibold text-gray-800">Full Activity Log</h2></div>
                  <ul className="divide-y divide-gray-200 max-h-[70vh] overflow-y-auto">
-                  {context.activityLog.map(log => (
+                  {activityLog.map((log: ActivityLogEntry) => (
                     <li key={log.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                         <div>
                             <p className="font-medium text-gray-900">{log.action}</p>
                             <p className="text-sm text-gray-500">User: {log.userName} ({log.userId})</p>
                         </div>
-                        <p className="text-sm text-gray-500 shrink-0">{log.timestamp.toLocaleString()}</p>
+                        <p className="text-sm text-gray-500 shrink-0">{new Date(log.timestamp).toLocaleString()}</p>
                     </li>
                   ))}
                 </ul>
@@ -1098,7 +1141,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
              </div>
         );
-        default: return <DashboardView {...context} />;
+        default: return <DashboardView activityLog={activityLog} />;
     }
   }
 

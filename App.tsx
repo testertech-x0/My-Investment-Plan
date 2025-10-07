@@ -29,59 +29,6 @@ import PaymentGatewayScreen from './components/user/PaymentGatewayScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
-function MockSmsInbox() {
-    const { mockSms, dismissSms } = useApp() as any;
-
-    if (!mockSms || mockSms.length === 0) {
-        return null;
-    }
-
-    return (
-        <div className="fixed bottom-4 right-4 w-full max-w-sm space-y-3 z-[101]">
-            {mockSms.map((sms) => (
-                <div
-                    key={sms.id}
-                    className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-up"
-                >
-                    <div className="p-4">
-                        <div className="flex items-start">
-                            <div className="flex-shrink-0 pt-0.5">
-                                <div className="bg-blue-100 p-2 rounded-full">
-                                    <MessageSquare className="text-blue-500" size={24} />
-                                </div>
-                            </div>
-                            <div className="ml-4 w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-900">
-                                    New SMS to {sms.to}
-                                </p>
-                                <p className="mt-1 text-sm text-gray-700">
-                                    {sms.body}
-                                </p>
-                            </div>
-                            <div className="ml-4 flex-shrink-0 flex">
-                                <button
-                                    onClick={() => dismissSms(sms.id)}
-                                    className="inline-flex text-gray-400 hover:text-gray-500"
-                                >
-                                    <span className="sr-only">Close</span>
-                                    <X size={20} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-            <style>{`
-            @keyframes fade-in-up {
-                0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-                100% { opacity: 1; transform: translateY(0) scale(1); }
-            }
-            .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
-            `}</style>
-        </div>
-    );
-}
-
 const themeHexMap: Record<ThemeColor, Record<number, string>> = {
   green: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
   blue: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
@@ -232,7 +179,6 @@ function AppContent() {
     <>
       <Notifications />
       <ConfirmationModal />
-      <MockSmsInbox />
       {viewComponent}
     </>
   );
