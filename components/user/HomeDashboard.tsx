@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send } from 'lucide-react';
+import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 import { TransactionIcon } from './BillDetailsScreen'; // Assuming TransactionIcon is exported
@@ -172,6 +172,15 @@ const HomeDashboard: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Send className="text-gray-600" size={24} />
                   <span className="font-medium text-gray-700">{t('join_telegram')}</span>
+                </div>
+                <ChevronRight size={20} className="text-gray-400" />
+              </button>
+            )}
+            {socialLinks?.whatsapp && (
+              <button onClick={() => window.open(socialLinks.whatsapp, '_blank')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="text-green-600" size={24} />
+                  <span className="font-medium text-gray-700">{t('join_whatsapp')}</span>
                 </div>
                 <ChevronRight size={20} className="text-gray-400" />
               </button>

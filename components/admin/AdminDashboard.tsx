@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo, FC } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType, Comment } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
@@ -904,6 +904,7 @@ const AdminDashboard: React.FC = () => {
 
 
   const [activeView, setActiveView] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State for mobile sidebar
   
   // User management state
   const [searchTerm, setSearchTerm] = useState('');
@@ -1271,19 +1272,31 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex bg-gray-100 font-sans">
+    <div className="h-[100dvh] flex bg-gray-100 font-sans overflow-hidden">
       {imageToCrop && <ImageCropperModal imageSrc={imageToCrop} onCropComplete={handleCropComplete} onCancel={() => setImageToCrop(null)} />}
       {detailedUser && <UserDetailModal user={detailedUser} onClose={() => setDetailedUser(null)} onEdit={(user) => handleUserSelection(user, 'edit')} onToggleStatus={(user) => handleUserSelection(user, 'toggle')} />}
       {viewingImage && <ImagePreviewModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />}
       
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-800 text-slate-300 flex flex-col shrink-0">
+      <aside className={`
+        fixed md:relative z-50 w-64 h-full bg-slate-800 text-slate-300 flex flex-col shrink-0 
+        transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+      `}>
           <div className="h-16 flex items-center justify-center text-white text-xl font-bold border-b border-slate-700">
               {appName}
           </div>
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
               {navigationItems.map(item => (
-                  <button key={item.id} onClick={() => setActiveView(item.id)}
+                  <button key={item.id} onClick={() => { setActiveView(item.id); setIsSidebarOpen(false); }}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeView === item.id ? `bg-slate-700 text-white font-semibold border-l-4 border-${primaryColor}-500` : 'hover:bg-slate-700'}`}
                   >
                       <item.icon size={20} />
@@ -1299,11 +1312,16 @@ const AdminDashboard: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-16 bg-white border-b border-gray-200 flex items-center px-8 justify-between shrink-0">
-              <h1 className="text-xl font-semibold text-gray-800">{activeLabel}</h1>
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
+          <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 md:px-8 justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                  <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                      <Menu size={24} />
+                  </button>
+                  <h1 className="text-xl font-semibold text-gray-800 truncate">{activeLabel}</h1>
+              </div>
           </header>
-          <main className="flex-1 overflow-y-auto p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
               {renderView()}
           </main>
       </div>

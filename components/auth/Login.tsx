@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -17,7 +18,7 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 md:p-8 mx-4">
         <div className="text-center mb-8">
           {appLogo ? (
             <img src={appLogo} alt="App Logo" className="w-16 h-16 rounded-full mx-auto mb-4 object-cover" />
