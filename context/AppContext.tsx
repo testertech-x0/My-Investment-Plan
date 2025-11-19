@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
 import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms, PaymentSettings } from '../types';
 import * as api from './api';
@@ -43,6 +44,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setLuckyDrawPrizes(settings.luckyDrawPrizes);
             setPaymentSettings(prev => ({ ...prev, quickAmounts: settings.paymentQuickAmounts }));
             setSocialLinks(settings.socialLinks);
+            
+            // Also fetch comments initially so they are available
+            const initialComments = await api.fetchComments();
+            setComments(initialComments);
             
             const token = localStorage.getItem('authToken');
             const userType = localStorage.getItem('userType');
@@ -267,7 +272,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   
   const makeWithdrawal = async (userId: string, amount: number, fundPassword: string) => {
       try {
-        const updatedUser = await api.makeWithdrawal(amount, fundPassword);
+        const { user: updatedUser } = await api.makeWithdrawal(amount, fundPassword);
         setCurrentUser(updatedUser);
         const tax = amount * 0.08;
         addNotification(`Withdrawal of ₹${amount.toFixed(2)} successful. Tax of ₹${tax.toFixed(2)} applied.`, 'success');
@@ -436,6 +441,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const deleteComment = async (commentId: string) => {
+     try {
+        await api.deleteComment(commentId);
+        setComments(prev => prev.filter(c => c.id !== commentId));
+        addNotification('Comment deleted successfully.', 'success');
+    } catch(error: any) {
+        addNotification(error.message, 'error');
+    }
+  };
+
+  const updateComment = async (commentId: string, text: string) => {
+    try {
+        const updatedComment = await api.updateComment(commentId, text);
+        setComments(prev => prev.map(c => c.id === commentId ? updatedComment : c));
+        addNotification('Comment updated successfully.', 'success');
+    } catch(error: any) {
+        addNotification(error.message, 'error');
+    }
+  };
+
   const sendChatMessage = async (userId: string, message: { text?: string; imageUrl?: string }) => {
     try {
         // User sends a message
@@ -582,7 +607,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     changeUserPassword,
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, sendChatMessage, markChatAsRead, updateSocialLinks, updatePaymentSettings,
+    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, deleteComment, updateComment, sendChatMessage, markChatAsRead, updateSocialLinks, updatePaymentSettings,
     requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp,
     addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize,
     initiateDeposit,

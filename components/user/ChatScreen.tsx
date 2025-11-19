@@ -9,9 +9,9 @@ const ChatMessageBubble = ({ message, isSender, onImageClick }: { message: ChatM
         : 'bg-white text-gray-800 self-start rounded-r-lg rounded-tl-lg shadow-sm';
 
     return (
-        <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} max-w-xs md:max-w-md`}>
+        <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} max-w-[80%] md:max-w-md`}>
             <div className={`p-3 ${bubbleClass}`}>
-                {message.text && <p className="text-sm break-words">{message.text}</p>}
+                {message.text && <p className="text-sm break-words whitespace-pre-wrap">{message.text}</p>}
                 {message.imageUrl && (
                     <button onClick={() => onImageClick(message.imageUrl!)} className="mt-2 rounded-lg max-w-full h-auto block overflow-hidden">
                         <img src={message.imageUrl} alt="chat attachment" className="w-full h-auto object-cover" />
@@ -88,19 +88,19 @@ const ChatScreen: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col">
+        <div className="h-[100dvh] w-full bg-gray-100 flex flex-col overflow-hidden">
             {viewingImage && <ImagePreviewModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />}
             
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
 
-            <header className="flex items-center p-4 border-b bg-white sticky top-0 z-10 shrink-0">
+            <header className="flex items-center p-4 border-b bg-white shrink-0">
                 <button onClick={() => setCurrentView('profile')} className="p-2 -ml-2">
                     <ArrowLeft size={24} className="text-gray-800" />
                 </button>
                 <h1 className="flex-1 text-center text-lg font-semibold text-gray-800 pr-6">Customer Service</h1>
             </header>
             
-            <main className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
+            <main className="flex-1 p-4 overflow-y-auto flex flex-col gap-4 scroll-smooth">
                 {messages.map((msg, index) => {
                     const unreadMarkerIndex = messages.length - initialUnreadCount.current;
                     const showUnreadMarker = initialUnreadCount.current > 0 && index === unreadMarkerIndex;
@@ -131,7 +131,7 @@ const ChatScreen: React.FC = () => {
                 )}
             </main>
 
-            <footer className="p-4 bg-white border-t sticky bottom-0 shrink-0">
+            <footer className="p-4 bg-white border-t shrink-0">
                 {image && (
                     <div className="relative w-24 h-24 mb-2 p-2 bg-gray-100 rounded-lg">
                         <img src={image} alt="preview" className="w-full h-full object-cover rounded-md" />

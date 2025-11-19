@@ -1,3 +1,4 @@
+
 import type { User, InvestmentPlan, Admin, ActivityLogEntry, ThemeColor, BankAccount, Prize, Comment, ChatSession, SocialLinks, PaymentSettings, ChatMessage, Transaction, Investment, LoginActivity } from '../types';
 
 // --- MOCK DATABASE ---
@@ -417,6 +418,20 @@ export const addComment = async (commentData: { text: string; images: string[] }
     saveDb();
     return newComment;
 };
+export const deleteComment = async (commentId: string) => {
+    await mockApiDelay();
+    MOCK_DB.comments = MOCK_DB.comments.filter(c => c.id !== commentId);
+    saveDb();
+};
+export const updateComment = async (commentId: string, text: string) => {
+    await mockApiDelay();
+    const comment = MOCK_DB.comments.find(c => c.id === commentId);
+    if (!comment) throw new Error('Comment not found.');
+    comment.text = text;
+    saveDb();
+    return comment;
+};
+
 export const fetchChat = async () => {
     await mockApiDelay();
     const { user } = getAuthenticatedUser();

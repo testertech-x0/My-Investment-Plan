@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { User, Award, CreditCard, FileText, Lock, Globe, Settings, ChevronRight, HelpCircle, MessageSquare } from 'lucide-react';
+import { User, Award, CreditCard, FileText, Lock, Globe, Settings, ChevronRight, HelpCircle, MessageSquare, LogOut } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 
@@ -21,6 +22,7 @@ const ProfileScreen: React.FC = () => {
     { icon: MessageSquare, label: 'Customer Service', section: 'settings', action: 'chat', hasBadge: hasUnreadMessages },
     { icon: Globe, label: 'Language', section: 'settings', action: 'language' },
     { icon: HelpCircle, label: 'Help Center', section: 'settings', action: 'help' },
+    { icon: LogOut, label: 'Logout', section: 'settings', action: 'logout' },
   ];
 
   return (
@@ -71,11 +73,18 @@ const ProfileScreen: React.FC = () => {
           <div key={section} className="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">{section}</h3>
             {menuItems.filter(item => item.section === section).map((item, idx) => (
-              <button key={idx} onClick={() => item.action && setCurrentView(item.action)}
+              <button key={idx} 
+                onClick={() => {
+                    if (item.action === 'logout') {
+                        logout();
+                    } else if (item.action) {
+                        setCurrentView(item.action);
+                    }
+                }}
                 className="w-full flex items-center justify-between py-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition -mx-6 px-6">
                 <div className="flex items-center gap-3">
-                  <item.icon size={20} className="text-gray-600" />
-                  <span className="text-gray-700">{item.label}</span>
+                  <item.icon size={20} className={item.action === 'logout' ? "text-red-500" : "text-gray-600"} />
+                  <span className={item.action === 'logout' ? "text-red-600 font-medium" : "text-gray-700"}>{item.label}</span>
                   {(item as any).hasBadge && (
                     <span className="ml-2 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
                   )}
@@ -85,10 +94,6 @@ const ProfileScreen: React.FC = () => {
             ))}
           </div>
         ))}
-
-        <button onClick={logout} className="w-full bg-red-500 text-white py-4 rounded-xl font-semibold hover:bg-red-600 transition mb-6">
-          Logout
-        </button>
       </div>
 
       <BottomNav active="profile" />

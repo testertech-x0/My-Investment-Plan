@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, User, Mail, Camera } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Mail, Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import type { User } from '../../types';
 
 const MyInformationScreen: React.FC = () => {
     const { currentUser, setCurrentView, updateUser, addNotification } = useApp();
@@ -70,7 +72,7 @@ const MyInformationScreen: React.FC = () => {
                                 {avatarPreview ? (
                                     <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
                                 ) : (
-                                    <User size={48} className="text-green-500" />
+                                    <UserIcon size={48} className="text-green-500" />
                                 )}
                             </button>
                             <div className="absolute bottom-0 right-0 bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white pointer-events-none">
@@ -83,7 +85,7 @@ const MyInformationScreen: React.FC = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">User Name</label>
                             <div className="relative">
-                                <User size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <UserIcon size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
                                     value={name}

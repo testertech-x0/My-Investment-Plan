@@ -1,3 +1,4 @@
+
 import type { ReactNode } from 'react';
 
 export interface Investment {
@@ -207,6 +208,8 @@ export interface AppContextType {
   changeAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
   performDailyCheckIn: () => Promise<{ success: boolean; message: string; reward: number }>;
   addComment: (commentData: { text: string; images: string[] }) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
+  updateComment: (commentId: string, text: string) => Promise<void>;
   sendChatMessage: (userId: string, message: { text?: string; imageUrl?: string }) => Promise<void>;
   markChatAsRead: (userId: string) => Promise<void>;
   updateSocialLinks: (links: Partial<SocialLinks>) => Promise<void>;

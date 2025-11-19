@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect, useMemo, FC } from 'react';
 import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType, Comment } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 import * as api from '../../context/api';
 
@@ -346,6 +347,76 @@ const ChatMessageBubble: FC<{ message: ChatMessage; isSender: boolean; onImageCl
 };
 
 // --- VIEW COMPONENTS ---
+
+const CommentsManagementView: FC<{ comments: Comment[], onDelete: (id: string) => void, onEdit: (comment: Comment) => void, setViewingImage: (url: string) => void }> = ({ comments, onDelete, onEdit, setViewingImage }) => {
+    return (
+        <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b">
+                <h2 className="text-xl font-semibold text-gray-800">User Comments</h2>
+                <p className="text-sm text-gray-500">Review and manage user comments.</p>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comment</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Images</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {comments.length > 0 ? comments.map(comment => (
+                            <tr key={comment.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <img src={comment.userAvatar} alt="" className="w-10 h-10 rounded-full object-cover bg-gray-200" />
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">{comment.userName}</p>
+                                            <p className="text-xs text-gray-500">{comment.maskedPhone}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate" title={comment.text}>
+                                    {comment.text}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex gap-2">
+                                        {comment.images.map((img, idx) => (
+                                            <button key={idx} onClick={() => setViewingImage(img)} className="w-10 h-10 rounded overflow-hidden border hover:opacity-80 transition">
+                                                <img src={img} alt="attachment" className="w-full h-full object-cover" />
+                                            </button>
+                                        ))}
+                                        {comment.images.length === 0 && <span className="text-xs text-gray-400">No images</span>}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500">
+                                    {new Date(comment.timestamp).toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => onEdit(comment)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition text-sm font-medium" title="Edit Comment">
+                                            <Edit size={16} /> Edit
+                                        </button>
+                                        <button onClick={() => onDelete(comment.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition text-sm font-medium" title="Delete Comment">
+                                            <Trash2 size={16} /> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No comments found.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 const DashboardView: FC<{ activityLog: ActivityLogEntry[] }> = ({ activityLog }) => {
     const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, totalInvestments: 0, platformBalance: 0 });
     
@@ -820,12 +891,12 @@ const AdminDashboard: React.FC = () => {
     users, adminLogout, appName, appLogo, updateAppName, updateAppLogo, 
     themeColor, updateThemeColor, changeAdminPassword, socialLinks, 
     updateSocialLinks, addNotification, showConfirmation, luckyDrawPrizes, 
-    paymentSettings, activityLog, investmentPlans, chatSessions,
+    paymentSettings, activityLog, investmentPlans, chatSessions, comments,
     deleteUser, loginAsUserFunc, updateUser: updateUserFromContext, 
     addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, 
     addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, 
     updatePaymentSettings: updatePaymentSettingsFromContext,
-    sendChatMessage, markChatAsRead
+    sendChatMessage, markChatAsRead, deleteComment, updateComment
   } = useApp() as any; // Cast to access setters not on public type
 
   const contextSetters = useApp() as any;
@@ -857,6 +928,11 @@ const AdminDashboard: React.FC = () => {
   const [socialLinksData, setSocialLinksData] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
+  // Comment management state
+  const [editingComment, setEditingComment] = useState<Comment | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [showCommentModal, setShowCommentModal] = useState(false);
+
 
   // Admin security state
   const [adminPassData, setAdminPassData] = useState({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
@@ -880,6 +956,10 @@ const AdminDashboard: React.FC = () => {
             if (activeView === 'chat') {
                 const sessions = await api.fetchChatSessions();
                 contextSetters.setChatSessions(sessions);
+            }
+            if (activeView === 'comments') {
+                const commentsData = await api.fetchComments();
+                contextSetters.setComments(commentsData);
             }
         } catch (error) {
             console.error(`Failed to fetch data for ${activeView}:`, error);
@@ -947,6 +1027,13 @@ const AdminDashboard: React.FC = () => {
       if (result.success) setShowPrizeModal(false);
       else if (result.message) addNotification(result.message, 'error');
   };
+  
+  const handleSaveComment = async () => {
+      if (!editingComment) return;
+      await updateComment(editingComment.id, commentText);
+      setShowCommentModal(false);
+      setEditingComment(null);
+  }
 
   const handleCropComplete = async (croppedImage: string) => {
     setLogoPreview(croppedImage);
@@ -961,6 +1048,10 @@ const AdminDashboard: React.FC = () => {
     const result = await changeAdminPassword(adminPassData.oldPassword, adminPassData.newPassword);
     if (result.success) setAdminPassData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
   };
+
+  const handleDeleteComment = (commentId: string) => {
+      showConfirmation('Delete Comment', 'Are you sure you want to delete this comment? This action cannot be undone.', async () => await deleteComment(commentId));
+  }
   
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -969,6 +1060,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'lucky_draw', label: 'Lucky Draw', icon: Gift },
     { id: 'payment_settings', label: 'Payment Settings', icon: CreditCard },
     { id: 'chat', label: 'Chat Support', icon: MessageSquare },
+    { id: 'comments', label: 'User Comments', icon: MessageSquare },
     { id: 'activity_log', label: 'Activity Log', icon: Activity },
     { id: 'settings', label: 'Platform Settings', icon: Settings },
   ];
@@ -1068,6 +1160,7 @@ const AdminDashboard: React.FC = () => {
         );
         case 'payment_settings': return <PaymentSettingsView />;
         case 'chat': return <AdminChatView chatSessions={chatSessions} users={users} sendChatMessage={sendChatMessage} markChatAsRead={markChatAsRead} setViewingImage={setViewingImage} />;
+        case 'comments': return <CommentsManagementView comments={comments} onDelete={handleDeleteComment} onEdit={(c) => { setEditingComment(c); setCommentText(c.text); setShowCommentModal(true); }} setViewingImage={setViewingImage} />;
         case 'activity_log': return (
              <div className="bg-white rounded-lg shadow">
                  <div className="p-6 border-b"><h2 className="text-xl font-semibold text-gray-800">Full Activity Log</h2></div>
@@ -1233,6 +1326,26 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex gap-3 mt-6">
                         <button onClick={() => setShowPrizeModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button>
                         <button onClick={handleSavePrize} className={`flex-1 py-2 bg-${primaryColor}-600 text-white rounded-lg`}>Save Prize</button>
+                    </div>
+                </div>
+            </div>
+        )}
+        {showCommentModal && editingComment && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg max-w-md w-full p-6">
+                    <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Edit Comment</h3><button onClick={() => setShowCommentModal(false)}><X/></button></div>
+                    <div className="space-y-4">
+                        <div className="text-sm text-gray-500 mb-2">User: {editingComment.userName} ({editingComment.maskedPhone})</div>
+                        <textarea 
+                            value={commentText} 
+                            onChange={(e) => setCommentText(e.target.value)} 
+                            className="w-full p-3 border rounded-lg h-32 resize-none focus:ring-2 focus:ring-indigo-500" 
+                            placeholder="Edit comment text..."
+                        />
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                        <button onClick={() => setShowCommentModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button>
+                        <button onClick={handleSaveComment} className={`flex-1 py-2 bg-${primaryColor}-600 text-white rounded-lg`}>Save Changes</button>
                     </div>
                 </div>
             </div>
