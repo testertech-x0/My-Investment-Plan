@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send, MessageCircle } from 'lucide-react';
+import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send, MessageCircle, Globe } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 import { TransactionIcon } from './BillDetailsScreen'; // Assuming TransactionIcon is exported
@@ -185,6 +185,16 @@ const HomeDashboard: React.FC = () => {
                 <ChevronRight size={20} className="text-gray-400" />
               </button>
             )}
+            {/* Render Custom Social Links */}
+            {socialLinks?.others && socialLinks.others.map((link) => (
+               <button key={link.id} onClick={() => window.open(link.url, '_blank')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                <div className="flex items-center gap-3">
+                  <Globe className="text-blue-500" size={24} />
+                  <span className="font-medium text-gray-700">{link.platform}</span>
+                </div>
+                <ChevronRight size={20} className="text-gray-400" />
+              </button>
+            ))}
           </div>
         </div>
       </div>

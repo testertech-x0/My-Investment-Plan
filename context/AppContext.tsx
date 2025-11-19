@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
 import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms, PaymentSettings } from '../types';
 import * as api from './api';
@@ -170,7 +169,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [themeColor, setThemeColor] = useState<ThemeColor>('green');
   const [comments, setComments] = useState<Comment[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '', others: [] });
   const [luckyDrawPrizes, setLuckyDrawPrizes] = useState<Prize[]>([]);
   const [luckyDrawWinningPrizeIds, setLuckyDrawWinningPrizeIds] = useState<string[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ paymentMethods: [], quickAmounts: [] });
@@ -663,8 +662,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateSocialLinks = async (links: Partial<SocialLinks>) => {
       try {
-        await api.updateAdminPlatformSettings({ socialLinks: links });
-        setSocialLinks(prev => ({ ...prev, ...links }));
+        const updatedLinks = { ...socialLinks, ...links };
+        await api.updateAdminPlatformSettings({ socialLinks: updatedLinks });
+        setSocialLinks(updatedLinks);
         addNotification('Social links updated successfully!', 'success');
     } catch (error: any) {
         addNotification(error.message, 'error');

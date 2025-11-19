@@ -49,7 +49,7 @@ const getInitialDBState = () => ({
     appName: 'Wealth Fund',
     appLogo: DEFAULT_LOGO_SVG_BASE64,
     themeColor: 'green' as ThemeColor,
-    socialLinks: { telegram: 'https://t.me/example', whatsapp: 'https://wa.me/1234567890' },
+    socialLinks: { telegram: 'https://t.me/example', whatsapp: 'https://wa.me/1234567890', others: [] } as SocialLinks,
     luckyDrawPrizes: [
         { id: 'prize-1', name: '₹50', type: 'money', amount: 50 },
         { id: 'prize-2', name: 'Thank You', type: 'nothing', amount: 0 },
@@ -76,7 +76,13 @@ let MOCK_DB = getInitialDBState();
 const loadDb = () => {
     try {
         const dbJson = localStorage.getItem('MOCK_DB');
-        if (dbJson) MOCK_DB = JSON.parse(dbJson);
+        if (dbJson) {
+            MOCK_DB = JSON.parse(dbJson);
+            // Migrate old socialLinks
+            if (!MOCK_DB.settings.socialLinks.others) {
+                MOCK_DB.settings.socialLinks.others = [];
+            }
+        }
         // Migration for existing DBs
         if (!MOCK_DB.settings.luckyDrawWinningPrizeIds) {
             MOCK_DB.settings.luckyDrawWinningPrizeIds = [];
@@ -555,7 +561,11 @@ export const deleteInvestmentPlan = async (planId: string) => {
 };
 export const updateAdminPlatformSettings = async (settings: Partial<{ appName: string, appLogo: string, socialLinks: SocialLinks, themeColor: ThemeColor, luckyDrawWinningPrizeIds: string[] }>) => {
     await mockApiDelay();
-    Object.assign(MOCK_DB.settings, settings);
+    if (settings.socialLinks) {
+         Object.assign(MOCK_DB.settings.socialLinks, settings.socialLinks);
+    }
+    const { socialLinks, ...otherSettings } = settings;
+    Object.assign(MOCK_DB.settings, otherSettings);
     saveDb();
     return { success: true };
 };

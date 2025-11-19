@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect, useMemo, FC } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu, Link, Globe } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType, Comment } from '../../types';
+import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType, Comment, SocialLinkItem } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
 import * as api from '../../context/api';
 
@@ -927,7 +927,9 @@ const AdminDashboard: React.FC = () => {
   const [newAppName, setNewAppName] = useState(appName);
   const [logoPreview, setLogoPreview] = useState<string | null>(appLogo);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
-  const [socialLinksData, setSocialLinksData] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
+  const [socialLinksData, setSocialLinksData] = useState<SocialLinks>({ telegram: '', whatsapp: '', others: [] });
+  const [newSocialLink, setNewSocialLink] = useState({ platform: '', url: '' });
+
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   // Comment management state
@@ -1055,6 +1057,27 @@ const AdminDashboard: React.FC = () => {
   const handleDeleteComment = (commentId: string) => {
       showConfirmation('Delete Comment', 'Are you sure you want to delete this comment? This action cannot be undone.', async () => await deleteComment(commentId));
   }
+
+  const handleAddSocialLink = async () => {
+      if (!newSocialLink.platform || !newSocialLink.url) {
+          addNotification('Please enter both platform name and URL.', 'error');
+          return;
+      }
+      const newItem: SocialLinkItem = {
+          id: Date.now().toString(),
+          platform: newSocialLink.platform,
+          url: newSocialLink.url
+      };
+      const updatedOthers = [...(socialLinksData.others || []), newItem];
+      setSocialLinksData(prev => ({ ...prev, others: updatedOthers }));
+      setNewSocialLink({ platform: '', url: '' });
+      // Don't auto-save here, let user click "Save Social Links"
+  };
+
+  const handleRemoveSocialLink = (id: string) => {
+      const updatedOthers = (socialLinksData.others || []).filter(item => item.id !== id);
+      setSocialLinksData(prev => ({ ...prev, others: updatedOthers }));
+  };
   
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -1244,16 +1267,53 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="bg-white rounded-lg shadow">
                     <div className="p-6 border-b flex items-center gap-3"><Share2 /><h3 className="text-lg font-semibold">Social Links</h3></div>
-                     <div className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Link</label>
-                            <input type="text" name="telegram" value={socialLinksData.telegram || ''} onChange={(e) => setSocialLinksData(p => ({...p, telegram: e.target.value}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="https://t.me/yourchannel"/>
+                     <div className="p-6 space-y-6">
+                        {/* Primary Links */}
+                        <div className="space-y-4">
+                            <h4 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Primary Links</h4>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Link</label>
+                                <input type="text" name="telegram" value={socialLinksData.telegram || ''} onChange={(e) => setSocialLinksData(p => ({...p, telegram: e.target.value}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="https://t.me/yourchannel"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Link</label>
+                                <input type="text" name="whatsapp" value={socialLinksData.whatsapp || ''} onChange={(e) => setSocialLinksData(p => ({...p, whatsapp: e.target.value}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="https://wa.me/yournumber" />
+                            </div>
                         </div>
-                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Link</label>
-                            <input type="text" name="whatsapp" value={socialLinksData.whatsapp || ''} onChange={(e) => setSocialLinksData(p => ({...p, whatsapp: e.target.value}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="https://wa.me/yournumber" />
+
+                        {/* Custom Links */}
+                         <div className="space-y-4 pt-4 border-t">
+                            <h4 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Custom Links</h4>
+                            {socialLinksData.others && socialLinksData.others.length > 0 ? (
+                                <div className="space-y-2">
+                                    {socialLinksData.others.map((link) => (
+                                        <div key={link.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border">
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-sm text-gray-800">{link.platform}</p>
+                                                <p className="text-xs text-gray-500 truncate">{link.url}</p>
+                                            </div>
+                                            <button onClick={() => handleRemoveSocialLink(link.id)} className="p-1 text-red-500 hover:bg-red-100 rounded-full"><Trash2 size={16}/></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 italic">No custom links added.</p>
+                            )}
+                            
+                            <div className="flex gap-2 items-end bg-gray-50 p-3 rounded-lg border">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Platform Name</label>
+                                    <input type="text" value={newSocialLink.platform} onChange={(e) => setNewSocialLink(p => ({...p, platform: e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="e.g. YouTube" />
+                                </div>
+                                <div className="flex-[2]">
+                                     <label className="block text-xs font-medium text-gray-500 mb-1">URL</label>
+                                    <input type="text" value={newSocialLink.url} onChange={(e) => setNewSocialLink(p => ({...p, url: e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="https://..." />
+                                </div>
+                                <button onClick={handleAddSocialLink} className={`bg-${primaryColor}-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-${primaryColor}-700`}>Add</button>
+                            </div>
                         </div>
-                        <button onClick={async () => await updateSocialLinks(socialLinksData)} className={`w-full bg-${primaryColor}-600 text-white py-2.5 rounded-lg font-semibold`}>Save Social Links</button>
+
+                        <button onClick={async () => await updateSocialLinks(socialLinksData)} className={`w-full bg-${primaryColor}-600 text-white py-2.5 rounded-lg font-semibold mt-4`}>Save All Social Links</button>
                     </div>
                 </div>
                 <div className="bg-white rounded-lg shadow">

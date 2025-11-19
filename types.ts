@@ -131,9 +131,16 @@ export interface ChatSession {
   adminUnreadCount: number;
 }
 
+export interface SocialLinkItem {
+  id: string;
+  platform: string;
+  url: string;
+}
+
 export interface SocialLinks {
   telegram?: string;
   whatsapp?: string;
+  others: SocialLinkItem[];
 }
 
 export interface PaymentMethod {
