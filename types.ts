@@ -63,6 +63,7 @@ export interface InvestmentPlan {
   dailyReturn: number;
   duration: number;
   category: string;
+  expirationDate?: string; // ISO string for when the plan offer ends
 }
 
 export interface Admin {

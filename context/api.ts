@@ -41,6 +41,7 @@ const getInitialDBState = () => ({
     { id: 'P002', name: 'Eco-Friendly Tech', minInvestment: 5000, dailyReturn: 30, duration: 180, category: 'STABLE' },
     { id: 'P003', name: 'Solar Power Startup', minInvestment: 25000, dailyReturn: 150, duration: 365, category: 'HIGH-YIELD' },
     { id: 'P004', name: 'Wind Farm Project', minInvestment: 50000, dailyReturn: 300, duration: 365, category: 'HIGH-YIELD' },
+    { id: 'P005', name: 'Limited Offer Flash', minInvestment: 2000, dailyReturn: 200, duration: 5, category: 'LIMITED', expirationDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
   ] as InvestmentPlan[],
   admin: { username: 'admin', password: 'password' } as Admin,
   activityLog: [] as ActivityLogEntry[],
@@ -375,6 +376,10 @@ export const investInPlan = async (planId: string, quantity: number) => {
     
     const totalCost = plan.minInvestment * quantity;
     if (user.balance < totalCost) throw new Error('Insufficient balance.');
+    
+    if (plan.expirationDate && new Date(plan.expirationDate) < new Date()) {
+        throw new Error('This investment plan has expired.');
+    }
     
     user.balance -= totalCost;
     

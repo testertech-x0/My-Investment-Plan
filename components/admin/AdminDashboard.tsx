@@ -914,7 +914,7 @@ const AdminDashboard: React.FC = () => {
   // Plan management state
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<InvestmentPlan | null>(null);
-  const [planData, setPlanData] = useState({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '' });
+  const [planData, setPlanData] = useState({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '', expirationDate: '' });
 
   // Prize management state
   const [showPrizeModal, setShowPrizeModal] = useState(false);
@@ -1012,9 +1012,10 @@ const AdminDashboard: React.FC = () => {
         dailyReturn: parseFloat(planData.dailyReturn),
         duration: parseInt(planData.duration, 10),
         category: planData.category.toUpperCase(),
+        expirationDate: planData.expirationDate || undefined,
     };
-    if (Object.values(parsedData).some(v => !v || (typeof v === 'number' && isNaN(v)))) {
-      addNotification('Please fill all fields correctly.', 'error'); return;
+    if (Object.values(parsedData).some(v => !v && v !== undefined || (typeof v === 'number' && isNaN(v)))) {
+      addNotification('Please fill all required fields correctly.', 'error'); return;
     }
     const result = editingPlan ? await updateInvestmentPlan(editingPlan.id, parsedData) : await addInvestmentPlan(parsedData);
     if (result.success) setShowPlanModal(false);
@@ -1078,7 +1079,7 @@ const AdminDashboard: React.FC = () => {
                         <h2 className="text-xl font-semibold text-gray-800">Investment Plan Management</h2>
                         <p className="text-sm text-gray-500">Add, edit, or remove investment plans.</p>
                     </div>
-                    <button onClick={() => { setEditingPlan(null); setPlanData({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '' }); setShowPlanModal(true); }} className={`flex items-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition`}>
+                    <button onClick={() => { setEditingPlan(null); setPlanData({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '', expirationDate: '' }); setShowPlanModal(true); }} className={`flex items-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition`}>
                         <Plus size={20} /> Add New Plan
                     </button>
                 </div>
@@ -1091,6 +1092,7 @@ const AdminDashboard: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Min Invest</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daily Return</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expires</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
                         </thead>
@@ -1102,9 +1104,10 @@ const AdminDashboard: React.FC = () => {
                                     <td className="px-6 py-4 text-sm font-semibold text-gray-800">₹{plan.minInvestment}</td>
                                     <td className="px-6 py-4 text-sm font-semibold text-green-600">₹{plan.dailyReturn}</td>
                                     <td className="px-6 py-4 text-sm font-semibold text-blue-600">{plan.duration} days</td>
+                                    <td className="px-6 py-4 text-xs text-gray-500">{plan.expirationDate ? new Date(plan.expirationDate).toLocaleDateString() : 'N/A'}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex gap-1">
-                                            <button onClick={() => { setEditingPlan(plan); setPlanData({ name: plan.name, minInvestment: String(plan.minInvestment), dailyReturn: String(plan.dailyReturn), duration: String(plan.duration), category: plan.category }); setShowPlanModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Plan"><Edit size={18} /></button>
+                                            <button onClick={() => { setEditingPlan(plan); setPlanData({ name: plan.name, minInvestment: String(plan.minInvestment), dailyReturn: String(plan.dailyReturn), duration: String(plan.duration), category: plan.category, expirationDate: plan.expirationDate ? new Date(plan.expirationDate).toISOString().slice(0, 16) : '' }); setShowPlanModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Plan"><Edit size={18} /></button>
                                             <button onClick={() => showConfirmation('Delete Plan', <>Are you sure you want to delete <strong>{plan.name}</strong>?</>, async () => await deleteInvestmentPlan(plan.id))} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete Plan"><Trash2 size={18} /></button>
                                         </div>
                                     </td>
@@ -1298,12 +1301,34 @@ const AdminDashboard: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-lg max-w-md w-full p-6">
                     <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">{editingPlan ? 'Edit Plan' : 'Add New Plan'}</h3><button onClick={() => setShowPlanModal(false)}><X /></button></div>
-                    <div className="space-y-4">
-                        <input type="text" name="name" value={planData.name} onChange={(e) => setPlanData(p => ({...p, name: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Plan Name"/>
-                        <input type="text" name="category" value={planData.category} onChange={(e) => setPlanData(p => ({...p, category: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Category" />
-                        <input type="number" name="minInvestment" value={planData.minInvestment} onChange={(e) => setPlanData(p => ({...p, minInvestment: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Min Investment"/>
-                        <input type="number" name="dailyReturn" value={planData.dailyReturn} onChange={(e) => setPlanData(p => ({...p, dailyReturn: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Daily Return"/>
-                        <input type="number" name="duration" value={planData.duration} onChange={(e) => setPlanData(p => ({...p, duration: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Duration"/>
+                    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                                <input type="text" name="name" value={planData.name} onChange={(e) => setPlanData(p => ({...p, name: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="e.g. Green Energy Fund"/>
+                            </div>
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <input type="text" name="category" value={planData.category} onChange={(e) => setPlanData(p => ({...p, category: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="e.g. STABLE, LIMITED"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Min Invest</label>
+                                <input type="number" name="minInvestment" value={planData.minInvestment} onChange={(e) => setPlanData(p => ({...p, minInvestment: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Amount"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Daily Return</label>
+                                <input type="number" name="dailyReturn" value={planData.dailyReturn} onChange={(e) => setPlanData(p => ({...p, dailyReturn: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Amount"/>
+                            </div>
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Days)</label>
+                                <input type="number" name="duration" value={planData.duration} onChange={(e) => setPlanData(p => ({...p, duration: e.target.value}))} className="w-full p-2 border rounded-lg" placeholder="Days"/>
+                            </div>
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Offer Ends At (Optional)</label>
+                                <input type="datetime-local" value={planData.expirationDate} onChange={(e) => setPlanData(p => ({...p, expirationDate: e.target.value}))} className="w-full p-2 border rounded-lg" />
+                                <p className="text-xs text-gray-500 mt-1">Leave empty if the plan has no time limit.</p>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex gap-3 mt-6">
                         <button onClick={() => setShowPlanModal(false)} className="flex-1 py-2 border rounded-lg">Cancel</button>

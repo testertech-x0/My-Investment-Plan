@@ -1,8 +1,115 @@
-import React, { useState, useMemo } from 'react';
-import { X } from 'lucide-react';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { InvestmentPlan } from '../../types';
+import type { InvestmentPlan, Investment } from '../../types';
 import BottomNav from './BottomNav';
+
+// Helper to calculate remaining time
+const useCountdown = (targetDate: string | undefined) => {
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    if (!targetDate) {
+      setTimeLeft(null);
+      setIsExpired(false);
+      return;
+    }
+
+    const calculate = () => {
+      const now = new Date().getTime();
+      const target = new Date(targetDate).getTime();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        setIsExpired(true);
+        setTimeLeft('Expired');
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      let formatted = '';
+      if (days > 0) formatted += `${days}d `;
+      if (hours > 0 || days > 0) formatted += `${hours}h `;
+      if (minutes > 0 || hours > 0 || days > 0) formatted += `${minutes}m `;
+      formatted += `${seconds}s`;
+      
+      setTimeLeft(formatted);
+      setIsExpired(false);
+    };
+
+    calculate();
+    const timer = setInterval(calculate, 1000); // Update every second
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  return { timeLeft, isExpired };
+};
+
+const PlanCard: React.FC<{ plan: InvestmentPlan; onInvest: (plan: InvestmentPlan) => void; userInv: Investment | undefined }> = ({ plan, onInvest, userInv }) => {
+    const { timeLeft, isExpired } = useCountdown(plan.expirationDate);
+
+    return (
+        <div className={`bg-white rounded-xl shadow-lg p-6 relative ${isExpired ? 'opacity-75 grayscale' : ''}`}>
+            {plan.expirationDate && !isExpired && (
+                <div className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1">
+                    <Clock size={12} /> Ends in: {timeLeft}
+                </div>
+            )}
+            {isExpired && (
+                <div className="absolute top-0 right-0 bg-gray-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">
+                    Expired
+                </div>
+            )}
+
+            <div className="flex justify-between items-start mb-4 mt-2">
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800">{plan.name}</h3>
+                    <p className="text-sm text-gray-500">{plan.category}</p>
+                </div>
+                {userInv && (
+                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                        Qty: {userInv.quantity}
+                    </span>
+                )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4 text-center border-t border-b py-4">
+                <div>
+                    <p className="text-xs text-gray-500">Investment</p>
+                    <p className="text-lg font-bold text-gray-800">₹{userInv?.investedAmount || plan.minInvestment}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-gray-500">Total Revenue</p>
+                    <p className="text-lg font-bold text-green-600">₹{userInv?.totalRevenue || (plan.dailyReturn * plan.duration)}</p>
+
+                </div>
+                <div>
+                    <p className="text-xs text-gray-500">Daily Earnings</p>
+                    <p className="text-lg font-bold text-blue-600">₹{userInv?.dailyEarnings || plan.dailyReturn}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-gray-500">Revenue Days</p>
+                    <p className="text-lg font-bold text-purple-600">{plan.duration} Days</p>
+                </div>
+            </div>
+
+            <button 
+                onClick={() => onInvest(plan)}
+                disabled={isExpired}
+                className={`w-full py-3 rounded-lg font-semibold transition ${isExpired ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}
+            >
+                {isExpired ? 'Plan Expired' : 'Invest Now'}
+            </button>
+        </div>
+    );
+};
 
 const InvestmentScreen: React.FC = () => {
   const { currentUser, investmentPlans, investInPlan, loginAsUser, returnToAdmin, appName } = useApp();
@@ -17,6 +124,14 @@ const InvestmentScreen: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isInvesting, setIsInvesting] = useState(false);
+
+  // Update selectedTab if availableCategories changes (e.g. after adding/removing plans)
+  useEffect(() => {
+      if (!availableCategories.includes(selectedTab) && availableCategories.length > 0) {
+          setSelectedTab(availableCategories[0]);
+      }
+  }, [availableCategories, selectedTab]);
+
 
   if (!currentUser) return null;
 
@@ -69,49 +184,14 @@ const InvestmentScreen: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          {filteredPlans.length > 0 ? filteredPlans.map(plan => {
-            const userInv = getUserInvestment(plan.id);
-            return (
-              <div key={plan.id} className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800">{plan.name}</h3>
-                    <p className="text-sm text-gray-500">{plan.category}</p>
-                  </div>
-                  {userInv && (
-                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
-                      Qty: {userInv.quantity}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4 text-center border-t border-b py-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Investment</p>
-                    <p className="text-lg font-bold text-gray-800">₹{userInv?.investedAmount || plan.minInvestment}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Total Revenue</p>
-                    <p className="text-lg font-bold text-green-600">₹{userInv?.totalRevenue || (plan.dailyReturn * plan.duration)}</p>
-
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Daily Earnings</p>
-                    <p className="text-lg font-bold text-blue-600">₹{userInv?.dailyEarnings || plan.dailyReturn}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Revenue Days</p>
-                    <p className="text-lg font-bold text-purple-600">{plan.duration} Days</p>
-                  </div>
-                </div>
-
-                <button onClick={() => handleInvest(plan)}
-                  className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
-                  Invest Now
-                </button>
-              </div>
-            );
-          }) : (
+          {filteredPlans.length > 0 ? filteredPlans.map(plan => (
+              <PlanCard 
+                key={plan.id} 
+                plan={plan} 
+                onInvest={handleInvest} 
+                userInv={getUserInvestment(plan.id)} 
+              />
+          )) : (
             <div className="text-center text-gray-500 py-16">
                 <p>No investment plans available in this category.</p>
             </div>
