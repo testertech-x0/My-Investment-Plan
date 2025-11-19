@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ShieldCheck, TrendingUp, CheckCircle, ClipboardCopy } from 'lucide-react';
-import type { PaymentMethod } from '../../types';
+import { ShieldCheck, TrendingUp, CheckCircle, ClipboardCopy, Upload, Camera } from 'lucide-react';
 
 const PaymentGatewayScreen: React.FC = () => {
-  const { pendingDeposit, processDeposit, setCurrentView, appName, appLogo, addNotification } = useApp();
-  const [status, setStatus] = useState<'pending' | 'processing' | 'success'>('pending');
+  const { pendingDeposit, submitDepositRequest, setCurrentView, appName, appLogo, addNotification } = useApp();
+  const [status, setStatus] = useState<'pending' | 'processing' | 'submitted'>('pending');
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!pendingDeposit) {
@@ -14,29 +16,40 @@ const PaymentGatewayScreen: React.FC = () => {
   }, [pendingDeposit, setCurrentView]);
 
   if (!pendingDeposit) {
-    return null; // or a loading/redirecting indicator
+    return null; 
   }
 
-  const handlePay = async () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              setProofImage(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+      }
+  };
+
+  const handleSubmitProof = async () => {
+    if (!proofImage) {
+        addNotification('Please upload a screenshot of the payment.', 'error');
+        return;
+    }
+
     setStatus('processing');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // In a real app, a webhook would handle this. Here we simulate user confirmation.
-    const result = await processDeposit(pendingDeposit.transactionId, pendingDeposit.amount);
+    const result = await submitDepositRequest(pendingDeposit.transactionId, proofImage);
     
     if (result.success) {
-      setStatus('success');
+      setStatus('submitted');
       setTimeout(() => {
         setCurrentView('home');
-      }, 2500);
+      }, 3000);
     } else {
-      addNotification("Payment confirmation failed. Please contact support if you have already paid.", "error");
-      setStatus('pending'); 
+      setStatus('pending');
     }
   };
 
   const handleCancel = () => {
-    // Optional: could notify the backend that the transaction was cancelled.
     setCurrentView('deposit');
   };
 
@@ -56,17 +69,17 @@ const PaymentGatewayScreen: React.FC = () => {
         return (
           <div className="text-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
-            <p className="text-xl font-semibold text-gray-700 mt-6">Confirming Payment...</p>
-            <p className="text-gray-500">Please do not close or refresh the page.</p>
+            <p className="text-xl font-semibold text-gray-700 mt-6">Submitting Proof...</p>
+            <p className="text-gray-500">Uploading your screenshot securely.</p>
           </div>
         );
-      case 'success':
+      case 'submitted':
         return (
           <div className="text-center py-20">
-            <CheckCircle className="w-20 h-20 text-green-500 mx-auto animate-pulse" />
-            <p className="text-2xl font-bold text-gray-800 mt-6">Payment Confirmed!</p>
-            <p className="text-gray-600 mt-2">Amount of ₹{pendingDeposit.amount.toFixed(2)} has been added to your account.</p>
-            <p className="text-sm text-gray-500 mt-4">Redirecting you to the dashboard...</p>
+            <CheckCircle className="w-20 h-20 text-green-500 mx-auto animate-bounce" />
+            <p className="text-2xl font-bold text-gray-800 mt-6">Submitted for Review!</p>
+            <p className="text-gray-600 mt-2">The admin will verify your payment shortly.</p>
+            <p className="text-sm text-gray-500 mt-4">Redirecting you to dashboard...</p>
           </div>
         );
       case 'pending':
@@ -83,45 +96,57 @@ const PaymentGatewayScreen: React.FC = () => {
                     No payment methods are currently available. Please contact support.
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {qrCode && (
                         <div className="text-center">
-                            <h3 className="font-semibold text-gray-800 mb-2">Pay via QR Code</h3>
+                            <h3 className="font-semibold text-gray-800 mb-2">Step 1: Pay via QR Code</h3>
                             <div className="flex justify-center">
-                                <img src={qrCode} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white"/>
+                                <img src={qrCode} alt="Payment QR Code" className="w-48 h-48 object-contain border rounded-lg p-1 bg-white shadow-sm"/>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">Scan the QR code with your payment app.</p>
                         </div>
                     )}
                     
-                    {qrCode && upiId && (
-                        <div className="relative flex items-center">
-                            <div className="flex-grow border-t border-gray-200"></div>
-                            <span className="flex-shrink mx-4 text-gray-400 font-semibold text-sm">OR</span>
-                            <div className="flex-grow border-t border-gray-200"></div>
-                        </div>
-                    )}
-
                     {upiId && (
                          <div className="text-center">
-                            <h3 className="font-semibold text-gray-800 mb-2">Pay via UPI ID</h3>
+                            <h3 className="font-semibold text-gray-800 mb-2">Step 1: Pay via UPI ID</h3>
                             <div className="bg-green-50 p-3 rounded-lg flex items-center justify-center gap-2">
                                 <p className="font-mono text-lg text-green-800 break-all">{upiId}</p>
                                 <button onClick={() => copyToClipboard(upiId)} className="p-1 text-gray-500 hover:text-green-700 flex-shrink-0"><ClipboardCopy size={18}/></button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">Copy the UPI ID and pay using your app.</p>
                          </div>
                     )}
+
+                    <div className="border-t pt-4">
+                        <h3 className="text-center font-semibold text-gray-800 mb-4">Step 2: Upload Payment Screenshot</h3>
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                        
+                        <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition">
+                            {proofImage ? (
+                                <img src={proofImage} alt="Proof" className="max-h-48 object-contain rounded-lg" />
+                            ) : (
+                                <>
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2 text-gray-500">
+                                        <Upload size={24} />
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-600">Click to upload screenshot</p>
+                                    <p className="text-xs text-gray-400 mt-1">JPG, PNG accepted</p>
+                                </>
+                            )}
+                        </div>
+                        {proofImage && (
+                             <p className="text-center text-xs text-green-600 mt-2 font-semibold">Screenshot selected!</p>
+                        )}
+                    </div>
                 </div>
             )}
 
             <div className="space-y-3 mt-8">
                 <button
-                    onClick={handlePay}
-                    disabled={!qrCode && !upiId}
-                    className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-gray-300"
+                    onClick={handleSubmitProof}
+                    disabled={(!qrCode && !upiId) || !proofImage}
+                    className="w-full bg-green-500 text-white py-3.5 rounded-lg font-semibold hover:bg-green-600 transition shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                    I Have Paid
+                    Submit for Review
                 </button>
                 <button
                     onClick={handleCancel}

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send, MessageCircle, Globe } from 'lucide-react';
+import { User, ArrowDownCircle, ArrowUpCircle, FileText, Gift, Activity, ChevronRight, Bell, ArrowRight, MessageSquare, Send, MessageCircle, Globe, Users, X, Volume2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 import { TransactionIcon } from './BillDetailsScreen'; // Assuming TransactionIcon is exported
@@ -20,8 +20,9 @@ const formatDate = (dateString: string) => {
 };
 
 const HomeDashboard: React.FC = () => {
-  const { currentUser, maskPhone, loginAsUser, returnToAdmin, setCurrentView, markNotificationsAsRead, socialLinks, chatSessions, t } = useApp();
+  const { currentUser, maskPhone, loginAsUser, returnToAdmin, setCurrentView, markNotificationsAsRead, socialLinks, chatSessions, systemNotice, t } = useApp();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +34,14 @@ const HomeDashboard: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
+  useEffect(() => {
+      if (systemNotice) {
+          // Check if we already showed it this session to avoid annoyance, OR just show it every time home loads. 
+          // For announcements, usually every session start is good. Here we just use local state, so it shows on refresh/login.
+          setShowNoticeModal(true);
+      }
+  }, [systemNotice]);
   
   if (!currentUser) return null;
 
@@ -57,6 +66,22 @@ const HomeDashboard: React.FC = () => {
           Admin Mode: Viewing as {currentUser.id}
           <button onClick={returnToAdmin} className="ml-4 underline">Return to Admin</button>
         </div>
+      )}
+      
+      {/* System Notice Modal */}
+      {showNoticeModal && systemNotice && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] animate-fade-in">
+              <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl animate-scale-up overflow-hidden">
+                  <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 flex items-center justify-between text-white">
+                      <h3 className="font-bold flex items-center gap-2"><Volume2 size={20} /> Announcement</h3>
+                      <button onClick={() => setShowNoticeModal(false)} className="hover:bg-white/20 p-1 rounded-full"><X size={20}/></button>
+                  </div>
+                  <div className="p-6">
+                      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{systemNotice}</p>
+                      <button onClick={() => setShowNoticeModal(false)} className="w-full mt-6 bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600">Close</button>
+                  </div>
+              </div>
+          </div>
       )}
       
       <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-b-3xl">
@@ -110,6 +135,8 @@ const HomeDashboard: React.FC = () => {
                       100% { opacity: 1; transform: translateY(0) scale(1); }
                   }
                   .animate-fade-in-down { animation: fade-in-down 0.2s ease-out; }
+                  @keyframes scale-up { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+                  .animate-scale-up { animation: scale-up 0.3s ease-out; }
                 `}</style>
               </div>
             )}
@@ -148,6 +175,15 @@ const HomeDashboard: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h3 className="text-gray-700 font-semibold mb-4">{t('find_more')}</h3>
           <div className="space-y-3">
+             {/* Team Button Added Here */}
+            <button onClick={() => setCurrentView('team')} className="w-full flex items-center justify-between p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition">
+              <div className="flex items-center gap-3">
+                <Users className="text-indigo-600" size={24} />
+                <span className="font-medium text-gray-700">{t('my_team')}</span>
+              </div>
+              <ChevronRight size={20} className="text-gray-400" />
+            </button>
+
             <button onClick={() => setCurrentView('login-activity')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
               <div className="flex items-center gap-3">
                 <Activity className="text-gray-600" size={24} />
@@ -185,7 +221,6 @@ const HomeDashboard: React.FC = () => {
                 <ChevronRight size={20} className="text-gray-400" />
               </button>
             )}
-            {/* Render Custom Social Links */}
             {socialLinks?.others && socialLinks.others.map((link) => (
                <button key={link.id} onClick={() => window.open(link.url, '_blank')} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
                 <div className="flex items-center gap-3">

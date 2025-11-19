@@ -1,6 +1,8 @@
+
 import React, { useState, createContext, useContext, ReactNode, useEffect } from 'react';
-import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms, PaymentSettings } from '../types';
+import type { AppContextType, User, InvestmentPlan, Admin, Investment, Transaction, LoginActivity, Notification, NotificationType, ConfirmationState, ActivityLogEntry, BankAccount, ThemeColor, Prize, Comment, ChatSession, ChatMessage, SocialLinks, MockSms, PaymentSettings, TeamStats } from '../types';
 import * as api from './api';
+import { supabase } from '../supabase';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -45,6 +47,8 @@ const translations: Record<string, Record<string, string>> = {
         notifications: 'Notifications',
         view_all: 'View All',
         available_balance: 'Available Balance',
+        my_team: 'My Team',
+        invite_friends: 'Invite Friends',
     },
     hi: {
         home: 'होम',
@@ -80,6 +84,8 @@ const translations: Record<string, Record<string, string>> = {
         notifications: 'सूचनाएं',
         view_all: 'सभी देखें',
         available_balance: 'उपलब्ध शेष',
+        my_team: 'मेरी टीम',
+        invite_friends: 'दोस्तों को आमंत्रित करें',
     },
     ta: {
         home: 'முகப்பு',
@@ -95,18 +101,18 @@ const translations: Record<string, Record<string, string>> = {
         customer_service: 'வாடிக்கையாளர் சேவை',
         language: 'மொழி',
         help_center: 'உதவி மையம்',
-        deposit: 'வைப்பு',
+        deposit: 'டெபாசிட்',
         withdraw: 'திரும்பப் பெறு',
         recharge: 'ரீசார்ஜ்',
         order: 'ஆர்டர்',
-        lucky_draw: 'லக்கி டிரா',
+        lucky_draw: 'லக்கி டிராவ்',
         login_activity: 'உள்நுழைவு செயல்பாடு',
         join_telegram: 'டெலிகிராமில் இணையுங்கள்',
         join_whatsapp: 'வாட்ஸ்அப் குழுவில் இணையுங்கள்',
         financial_services: 'நிதி சேவைகள்',
-        find_more: 'மேலும் கண்டறிக',
+        find_more: 'மேலும் தேட',
         total_balance: 'மொத்த இருப்பு',
-        available: 'கிடைக்கக்கூடியது',
+        available: 'கிடைக்கும்',
         total_returns: 'மொத்த வருமானம்',
         account: 'கணக்கு',
         security: 'பாதுகாப்பு',
@@ -114,7 +120,9 @@ const translations: Record<string, Record<string, string>> = {
         user_id: 'பயனர் ஐடி',
         notifications: 'அறிவிப்புகள்',
         view_all: 'அனைத்தையும் காண்க',
-        available_balance: 'கிடைக்கக்கூடிய இருப்பு',
+        available_balance: 'கிடைக்கும் இருப்பு',
+        my_team: 'என் குழு',
+        invite_friends: 'நண்பர்களை அழைக்கவும்',
     },
     te: {
         home: 'హోమ్',
@@ -131,8 +139,8 @@ const translations: Record<string, Record<string, string>> = {
         language: 'భాష',
         help_center: 'సహాయ కేంద్రం',
         deposit: 'డిపాజిట్',
-        withdraw: 'విత్ డ్రా',
-        recharge: 'రీఛార్జ్',
+        withdraw: 'విత్‌డ్రా',
+        recharge: 'రీచార్జ్',
         order: 'ఆర్డర్',
         lucky_draw: 'లక్కీ డ్రా',
         login_activity: 'లాగిన్ యాక్టివిటీ',
@@ -141,21 +149,23 @@ const translations: Record<string, Record<string, string>> = {
         financial_services: 'ఆర్థిక సేవలు',
         find_more: 'మరిన్ని కనుగొనండి',
         total_balance: 'మొత్తం బ్యాలెన్స్',
-        available: 'అందుబాటులో ఉంది',
+        available: 'అందుబాటులో',
         total_returns: 'మొత్తం రాబడి',
         account: 'ఖాతా',
         security: 'భద్రత',
         settings: 'సెట్టింగ్‌లు',
         user_id: 'యూజర్ ఐడి',
-        notifications: 'నోటిఫికేషన్లు',
+        notifications: 'నోటిఫికేషన్‌లు',
         view_all: 'అన్నీ చూడండి',
         available_balance: 'అందుబాటులో ఉన్న బ్యాలెన్స్',
+        my_team: 'నా టీమ్',
+        invite_friends: 'స్నేహితులను ఆహ్వానించండి',
     }
 };
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]); // For admin panel
+  const [users, setUsers] = useState<User[]>([]); 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [admin, setAdmin] = useState<Admin>({ username: 'admin', password: '', isLoggedIn: false });
   const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
@@ -174,7 +184,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [luckyDrawWinningPrizeIds, setLuckyDrawWinningPrizeIds] = useState<string[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ paymentMethods: [], quickAmounts: [] });
   const [pendingPaymentDetails, setPendingPaymentDetails] = useState<{ upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null>(null);
-
+  const [financialRequests, setFinancialRequests] = useState<Transaction[]>([]); // Admin view
+  const [systemNotice, setSystemNotice] = useState<string>('');
 
  useEffect(() => {
     const initializeApp = async () => {
@@ -188,19 +199,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setLuckyDrawWinningPrizeIds(settings.luckyDrawWinningPrizeIds || []);
             setPaymentSettings(prev => ({ ...prev, quickAmounts: settings.paymentQuickAmounts }));
             setSocialLinks(settings.socialLinks);
-            
-            // Also fetch comments initially so they are available
+            setSystemNotice(settings.systemNotice);
             const initialComments = await api.fetchComments();
             setComments(initialComments);
             
             const token = localStorage.getItem('authToken');
             const userType = localStorage.getItem('userType');
-
             if (token) {
                  if (userType === 'admin') {
-                    // In a real app, you might fetch admin details here
                     setAdmin({ username: 'admin', password: '', isLoggedIn: true });
-                    // Check for loginAsUser from previous session
                     const storedLoginAsUser = localStorage.getItem('loginAsUser');
                     if (storedLoginAsUser) {
                         const user = JSON.parse(storedLoginAsUser);
@@ -220,7 +227,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }
         } catch (error) {
             console.error("Initialization failed:", error);
-            // If token is invalid (401), apiFetch handles logout. Otherwise, show login.
             setCurrentView('login');
             localStorage.removeItem('authToken');
             localStorage.removeItem('userType');
@@ -231,566 +237,157 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     initializeApp();
  }, []);
 
-  // --- Notification System ---
+ useEffect(() => {
+    if (!currentUser && !admin.isLoggedIn) return;
+    const globalChannel = supabase.channel('global-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => { setComments(await api.fetchComments()); }).subscribe();
+    let userChannel: any;
+    let adminChannel: any;
+    if (currentUser && !loginAsUser) {
+         userChannel = supabase.channel(`user-${currentUser.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `user_id=eq.${currentUser.id}` }, async (payload) => {
+                const newTx = payload.new as Transaction;
+                setCurrentUser(await api.fetchUserProfile());
+                if (newTx.type === 'deposit' && newTx.status === 'success') {
+                    setPendingPaymentDetails(null);
+                    addNotification(`Deposit of ₹${newTx.amount} approved!`, 'success');
+                } else if (newTx.type === 'commission') {
+                    addNotification(`You earned a referral commission of ₹${newTx.amount}!`, 'success');
+                }
+            })
+             // Listen for updates to transactions (e.g., approval/rejection)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'transactions', filter: `user_id=eq.${currentUser.id}` }, async (payload) => {
+                const updatedTx = payload.new as Transaction;
+                setCurrentUser(await api.fetchUserProfile());
+                if (updatedTx.status === 'success' && updatedTx.type === 'deposit') {
+                     addNotification(`Deposit of ₹${updatedTx.amount} Approved!`, 'success');
+                } else if (updatedTx.status === 'failed') {
+                     addNotification(`Transaction of ₹${Math.abs(updatedTx.amount)} Rejected`, 'error');
+                }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `user_id=eq.${currentUser.id}` }, async (payload) => {
+                 const newMsg = payload.new;
+                 if (newMsg.sender === 'admin') {
+                     setChatSessions(prev => {
+                         const updatedSessions = [...prev];
+                         const mySessionIdx = updatedSessions.findIndex(s => s.userId === currentUser.id);
+                         const msgObj: ChatMessage = { id: newMsg.id, senderId: 'admin', text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.created_at };
+                         if (mySessionIdx > -1) { updatedSessions[mySessionIdx].messages.push(msgObj); updatedSessions[mySessionIdx].userUnreadCount += 1; } 
+                         else { updatedSessions.push({ userId: currentUser.id, messages: [msgObj], lastMessageTimestamp: newMsg.created_at, userUnreadCount: 1, adminUnreadCount: 0 }); }
+                         return updatedSessions;
+                     });
+                     addNotification('New message from support', 'info');
+                 }
+            })
+            .subscribe();
+    }
+    if (admin.isLoggedIn) {
+         adminChannel = supabase.channel('admin-dashboard')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'sender=eq.user' }, async (payload) => {
+                const newMsg = payload.new;
+                const msgObj: ChatMessage = { id: newMsg.id, senderId: newMsg.user_id, text: newMsg.text, imageUrl: newMsg.image_url, timestamp: newMsg.created_at };
+                setChatSessions(prev => {
+                    const updatedSessions = [...prev];
+                    const sessionIdx = updatedSessions.findIndex(s => s.userId === newMsg.user_id);
+                    if (sessionIdx > -1) { updatedSessions[sessionIdx].messages.push(msgObj); updatedSessions[sessionIdx].lastMessageTimestamp = newMsg.created_at; updatedSessions[sessionIdx].adminUnreadCount += 1; } 
+                    else { updatedSessions.push({ userId: newMsg.user_id, messages: [msgObj], lastMessageTimestamp: newMsg.created_at, userUnreadCount: 0, adminUnreadCount: 1 }); }
+                    return updatedSessions;
+                });
+                addNotification(`New message from User ${newMsg.user_id.substring(0,6)}...`, 'info');
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, async () => {
+                // Refresh financial requests on any transaction change
+                setFinancialRequests(await api.fetchFinancialRequests() as any);
+            })
+            .subscribe();
+    }
+    return () => { supabase.removeChannel(globalChannel); if (userChannel) supabase.removeChannel(userChannel); if (adminChannel) supabase.removeChannel(adminChannel); };
+ }, [currentUser?.id, admin.isLoggedIn, loginAsUser?.id]);
+
   const addNotification = (message: string, type: NotificationType = 'info') => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 3000);
+    setTimeout(() => { setNotifications(prev => prev.filter(n => n.id !== id)); }, 3000);
   };
-
-  // --- Confirmation Modal System ---
-  const showConfirmation = (title: string, message: string | ReactNode, onConfirm: () => void) => {
-    setConfirmation({ isOpen: true, title, message, onConfirm });
-  };
+  const showConfirmation = (title: string, message: string | ReactNode, onConfirm: () => void) => { setConfirmation({ isOpen: true, title, message, onConfirm }); };
+  const hideConfirmation = () => { setConfirmation({ isOpen: false, title: '', message: '', onConfirm: () => {} }); };
+  const handleConfirm = () => { confirmation.onConfirm(); hideConfirmation(); };
+  const maskPhone = (phone: string): string => { if (phone.length < 10) return phone; return phone.substring(0, 2) + '****' + phone.substring(phone.length - 4); };
   
-  const hideConfirmation = () => {
-    setConfirmation({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  // UPDATED OTP HANDLERS TO SHOW SIMULATED OTP
+  const requestRegisterOtp = async (phone: string) => { 
+      try { 
+          const res = await api.requestRegisterOtp(phone); 
+          addNotification(`OTP Sent: ${res.otp}`, 'success'); // Display OTP
+          return { success: true }; 
+      } catch (error: any) { 
+          addNotification(error.message, 'error'); 
+          return { success: false, message: error.message }; 
+      } 
   };
+
+  const register = async (userData: any) => { try { const { user } = await api.register(userData); addNotification(`Account created!`, 'success'); return { success: true, userId: user.id }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false }; } };
+  const login = async (identifier: string, password: string) => { try { const { token, user } = await api.login(identifier, password); localStorage.setItem('authToken', token); localStorage.setItem('userType', 'user'); setCurrentUser(user); setCurrentView('home'); addNotification(`Welcome back, ${user.name}!`, 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
+  const adminLogin = async (username: string, password: string) => { try { const { token } = await api.adminLogin(username, password); localStorage.setItem('authToken', token); localStorage.setItem('userType', 'admin'); setAdmin({ username, password: '', isLoggedIn: true }); setCurrentView('admin-dashboard'); addNotification('Admin login successful.', 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
+  const handleLogout = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userType'); localStorage.removeItem('loginAsUser'); setCurrentUser(null); setLoginAsUser(null); setAdmin(prev => ({ ...prev, isLoggedIn: false })); };
+  const logout = () => { addNotification("You have been logged out.", 'info'); if (loginAsUser) { returnToAdmin(); } else { handleLogout(); setCurrentView('login'); } };
+  const adminLogout = async () => { handleLogout(); setCurrentView('login'); addNotification("Admin logged out.", 'info'); };
+  const loginAsUserFunc = async (userId: string) => { const user = users.find(u => u.id === userId); if (user) { setLoginAsUser(user); setCurrentUser(user); localStorage.setItem('loginAsUser', JSON.stringify(user)); setCurrentView('home'); addNotification(`Now viewing as ${user.name} (${user.id}).`, 'info'); } };
+  const returnToAdmin = async () => { addNotification('Returned to Admin Dashboard.', 'info'); setLoginAsUser(null); setCurrentUser(null); localStorage.removeItem('loginAsUser'); setCurrentView('admin-dashboard'); };
+  const updateUser = async (userId: string, updates: Partial<User>) => { try { if (currentUser && currentUser.id === userId && !admin.isLoggedIn) { const updatedUser = await api.updateUserProfile(updates); setCurrentUser(updatedUser); } else { const updatedUser = await api.updateAdminUser(userId, updates); setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u)); if (currentUser?.id === userId) setCurrentUser(updatedUser); if (loginAsUser?.id === userId) setLoginAsUser(updatedUser); } } catch (error: any) { addNotification(error.message, 'error'); } };
+  const deleteUser = async (userId: string) => { try { await api.deleteAdminUser(userId); setUsers(prev => prev.filter(u => u.id !== userId)); addNotification(`User ${userId} deleted.`, 'success'); } catch (error: any) { addNotification(error.message, 'error'); } };
+  const investInPlan = async (planId: string, quantity: number) => { if (!currentUser) return { success: false, message: 'Not logged in' }; try { const { user: updatedUser } = await api.investInPlan(planId, quantity); setCurrentUser(updatedUser); addNotification('Investment successful!', 'success'); return { success: true, message: 'Investment successful!' }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
   
-  const handleConfirm = () => {
-    confirmation.onConfirm();
-    hideConfirmation();
-  };
-
-  const maskPhone = (phone: string): string => {
-    if (phone.length < 10) return phone;
-    return phone.substring(0, 2) + '****' + phone.substring(phone.length - 4);
-  };
-
-  const requestRegisterOtp = async (phone: string) => {
-    try {
-        await api.requestRegisterOtp(phone);
-        addNotification('OTP sent successfully.', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  // FIX: Make password required for registration, as it's optional in the User type but necessary for creation.
-  const register = async (userData: Pick<User, 'phone' | 'name'> & { password: string; otp: string }) => {
-    try {
-        const { user } = await api.register(userData);
-        addNotification(`Account created! User ID: ${user.id}`, 'success');
-        return { success: true, userId: user.id };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false };
-    }
-  };
-
-  const login = async (identifier: string, password: string) => {
-    try {
-        const { token, user } = await api.login(identifier, password);
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userType', 'user');
-        setCurrentUser(user);
-        setCurrentView('home');
-        addNotification(`Welcome back, ${user.name}!`, 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const adminLogin = async (username: string, password: string) => {
-    try {
-        const { token } = await api.adminLogin(username, password);
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userType', 'admin');
-        setAdmin({ username, password: '', isLoggedIn: true });
-        setCurrentView('admin-dashboard');
-        addNotification('Admin login successful.', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
+  const initiateDeposit = async (amount: number) => { try { const { paymentDetails } = await api.initiateDeposit(amount); setPendingPaymentDetails(paymentDetails); } catch (error: any) { addNotification(error.message, 'error'); } };
+  const submitDepositRequest = async (transactionId: string, proofImg: string) => { try { await api.submitDepositRequest(transactionId, proofImg); setPendingPaymentDetails(null); addNotification('Deposit submitted for review', 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false }; } };
   
-  const handleLogout = () => {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userType');
-      localStorage.removeItem('loginAsUser');
-      setCurrentUser(null);
-      setLoginAsUser(null);
-      setAdmin(prev => ({ ...prev, isLoggedIn: false }));
-  };
-
-  const logout = () => {
-    addNotification("You have been logged out.", 'info');
-    if (loginAsUser) {
-        returnToAdmin();
-    } else {
-        handleLogout();
-        setCurrentView('login');
-    }
-  };
-
-  const adminLogout = async () => {
-    handleLogout();
-    setCurrentView('login');
-    addNotification("Admin logged out.", 'info');
-  };
-
-  const loginAsUserFunc = async (userId: string) => {
-    // This is now a client-side simulation based on fetched user list.
-    // A real implementation might have a dedicated API endpoint for this.
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      setLoginAsUser(user);
-      setCurrentUser(user);
-      localStorage.setItem('loginAsUser', JSON.stringify(user));
-      setCurrentView('home');
-      addNotification(`Now viewing as ${user.name} (${user.id}).`, 'info');
-    }
-  };
-
-  const returnToAdmin = async () => {
-    addNotification('Returned to Admin Dashboard.', 'info');
-    setLoginAsUser(null);
-    setCurrentUser(null);
-    localStorage.removeItem('loginAsUser');
-    setCurrentView('admin-dashboard');
-  };
-
-  const updateUser = async (userId: string, updates: Partial<User>) => {
-    try {
-        const updatedUser = await api.updateAdminUser(userId, updates);
-        setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
-        if (currentUser?.id === userId) setCurrentUser(updatedUser);
-        if (loginAsUser?.id === userId) setLoginAsUser(updatedUser);
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const deleteUser = async (userId: string) => {
-    try {
-        await api.deleteAdminUser(userId);
-        setUsers(prev => prev.filter(u => u.id !== userId));
-        addNotification(`User ${userId} has been deleted.`, 'success');
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const investInPlan = async (planId: string, quantity: number) => {
-    if (!currentUser) return { success: false, message: 'Not logged in' };
-    try {
-        const { user: updatedUser } = await api.investInPlan(planId, quantity);
-        setCurrentUser(updatedUser);
-        addNotification('Investment successful!', 'success');
-        return { success: true, message: 'Investment successful!' };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const initiateDeposit = async (amount: number) => {
-    try {
-        const { paymentDetails } = await api.initiateDeposit(amount);
-        setPendingPaymentDetails(paymentDetails);
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const confirmDeposit = async (transactionId: string) => {
-     try {
-        const { user: updatedUser } = await api.confirmDeposit(transactionId);
-        setCurrentUser(updatedUser);
-        setPendingPaymentDetails(null);
-        addNotification(`Successfully deposited ₹${pendingPaymentDetails?.amount.toFixed(2)}.`, 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false };
-    }
-  };
+  const makeWithdrawal = async (userId: string, amount: number, fundPassword: string) => { try { const { user: updatedUser } = await api.makeWithdrawal(amount, fundPassword); setCurrentUser(updatedUser); addNotification(`Withdrawal request submitted.`, 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
   
-  const makeWithdrawal = async (userId: string, amount: number, fundPassword: string) => {
-      try {
-        const { user: updatedUser } = await api.makeWithdrawal(amount, fundPassword);
-        setCurrentUser(updatedUser);
-        const tax = amount * 0.08;
-        addNotification(`Withdrawal of ₹${amount.toFixed(2)} successful. Tax of ₹${tax.toFixed(2)} applied.`, 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
+  // Admin Financials
+  const fetchFinancialRequests = async () => { try { const txs = await api.fetchFinancialRequests(); setFinancialRequests(txs as any); } catch(e) { console.error(e); } };
+  const approveFinancialRequest = async (tx: Transaction) => { try { await api.approveFinancialRequest(tx); setFinancialRequests(prev => prev.filter(t => t.id !== tx.id)); addNotification('Request approved', 'success'); return { success: true }; } catch(e: any) { addNotification(e.message, 'error'); return { success: false }; } };
+  const rejectFinancialRequest = async (tx: Transaction) => { try { await api.rejectFinancialRequest(tx); setFinancialRequests(prev => prev.filter(t => t.id !== tx.id)); addNotification('Request rejected', 'success'); return { success: true }; } catch(e: any) { addNotification(e.message, 'error'); return { success: false }; } };
+  const distributeDailyEarnings = async () => { try { const r = await api.distributeDailyEarnings(); addNotification(r.message, 'success'); return r; } catch(e: any) { addNotification(e.message, 'error'); return { success: false, message: e.message }; } };
 
-  const changeUserPassword = async (userId: string, oldPass: string, newPass: string) => {
-      try {
-        await api.changeUserPassword(oldPass, newPass);
-        addNotification('Password changed successfully!', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-  
-  const addInvestmentPlan = async (planData: Omit<InvestmentPlan, 'id'>) => {
-      try {
-        const newPlan = await api.addInvestmentPlan(planData);
-        setInvestmentPlans(prev => [...prev, newPlan]);
-        addNotification(`New plan "${planData.name}" added.`, 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
+  const fetchTeamStats = async () => { return await api.fetchTeamStats(); };
+  const updateSystemNotice = async (notice: string) => { await api.updateAdminPlatformSettings({ systemNotice: notice }); setSystemNotice(notice); addNotification('System Notice Updated', 'success'); };
+  const t = (key: string) => { const lang = currentUser?.language || 'en'; const dict = translations[lang] || translations['en']; return dict[key] || translations['en'][key] || key; };
 
-  const updateInvestmentPlan = async (planId: string, updates: Partial<Omit<InvestmentPlan, 'id'>>) => {
-      try {
-        const updatedPlan = await api.updateInvestmentPlan(planId, updates);
-        setInvestmentPlans(prev => prev.map(p => p.id === planId ? updatedPlan : p));
-        addNotification(`Plan ${planId} updated successfully.`, 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const deleteInvestmentPlan = async (planId: string) => {
-      try {
-        await api.deleteInvestmentPlan(planId);
-        setInvestmentPlans(prev => prev.filter(p => p.id !== planId));
-        addNotification(`Plan ${planId} has been deleted.`, 'success');
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-  
-  const requestBankAccountOtp = async (userId: string) => {
-      try {
-        await api.requestBankAccountOtp();
-        addNotification('OTP sent successfully.', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const updateBankAccount = async (userId: string, accountDetails: Omit<BankAccount, 'bankName'>, otp: string) => {
-     try {
-        const { user: updatedUser } = await api.updateBankAccount(accountDetails, otp);
-        setCurrentUser(updatedUser);
-        addNotification("Bank account updated successfully!", 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const playLuckyDraw = async () => {
-    try {
-        const { prize, user: updatedUser } = await api.playLuckyDraw();
-        setCurrentUser(updatedUser);
-        return { success: true, prize };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false };
-    }
-  };
-
-  const requestFundPasswordOtp = async (userId: string) => {
-      try {
-        await api.requestFundPasswordOtp();
-        addNotification('OTP sent successfully.', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const updateFundPassword = async (userId: string, newFundPassword: string, otp: string) => {
-      try {
-        const { user: updatedUser } = await api.updateFundPassword(newFundPassword, otp);
-        setCurrentUser(updatedUser);
-        addNotification("Fund password updated successfully!", 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const markNotificationsAsRead = async () => {
-    if (!currentUser || !currentUser.transactions.some(t => !t.read)) return;
-    try {
-        const { user: updatedUser } = await api.markNotificationsAsRead();
-        setCurrentUser(updatedUser);
-    } catch(error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-  
-  const updateAppLogo = async (newLogo: string) => {
-      setAppLogo(newLogo);
-      await api.updateAdminPlatformSettings({ appLogo: newLogo });
-  };
-  const updateAppName = async (newName: string) => {
-      setAppName(newName);
-      await api.updateAdminPlatformSettings({ appName: newName });
-  };
-  const updateThemeColor = async (color: ThemeColor) => {
-      setThemeColor(color);
-      await api.updateAdminPlatformSettings({ themeColor: color });
-  };
-
-  const changeAdminPassword = async (oldPass: string, newPass: string) => {
-      try {
-        await api.changeAdminPassword(oldPass, newPass);
-        addNotification('Admin password changed successfully!', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const performDailyCheckIn = async () => {
-    try {
-        const { message, reward, user: updatedUser } = await api.performDailyCheckIn();
-        setCurrentUser(updatedUser);
-        addNotification(message, 'success');
-        return { success: true, message, reward };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message, reward: 0 };
-    }
-  };
-  
-  const addComment = async (commentData: { text: string; images: string[] }) => {
-    try {
-        const newComment = await api.addComment(commentData);
-        setComments(prev => [newComment, ...prev]);
-        addNotification('Comment posted successfully!', 'success');
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const deleteComment = async (commentId: string) => {
-     try {
-        await api.deleteComment(commentId);
-        setComments(prev => prev.filter(c => c.id !== commentId));
-        addNotification('Comment deleted successfully.', 'success');
-    } catch(error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const updateComment = async (commentId: string, text: string) => {
-    try {
-        const updatedComment = await api.updateComment(commentId, text);
-        setComments(prev => prev.map(c => c.id === commentId ? updatedComment : c));
-        addNotification('Comment updated successfully.', 'success');
-    } catch(error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const sendChatMessage = async (userId: string, message: { text?: string; imageUrl?: string }) => {
-    try {
-        // User sends a message
-        const isUser = currentUser && !loginAsUser;
-        let newMessage: ChatMessage;
-
-        if (isUser) {
-            newMessage = await api.sendChatMessage(message);
-        } else {
-            // Admin sends a message
-            newMessage = await api.sendAdminChatMessage(userId, message);
-        }
-        
-        let session = chatSessions.find(s => s.userId === userId);
-        let newSessions = [...chatSessions];
-
-        if (session) {
-            session.messages.push(newMessage);
-            session.lastMessageTimestamp = newMessage.timestamp;
-            newSessions = newSessions.map(s => s.userId === userId ? session! : s);
-        } else {
-            const userForNewSession = users.find(u => u.id === userId) || currentUser;
-            if (userForNewSession) {
-                session = { userId, messages: [newMessage], lastMessageTimestamp: newMessage.timestamp, userUnreadCount: 0, adminUnreadCount: 0 };
-                newSessions.push(session);
-            }
-        }
-        setChatSessions(newSessions);
-
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-  
-  const markChatAsRead = async (userId: string) => {
-    try {
-        const isUser = !!currentUser && !loginAsUser;
-        if(isUser) {
-            await api.markChatAsRead();
-        } else {
-            await api.markAdminChatAsRead(userId);
-        }
-        
-        // Optimistically update UI
-        setChatSessions(prev => prev.map(s => {
-            if (s.userId === userId) {
-                return { ...s, userUnreadCount: isUser ? 0 : s.userUnreadCount, adminUnreadCount: !isUser ? 0 : s.adminUnreadCount };
-            }
-            return s;
-        }));
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const updateSocialLinks = async (links: Partial<SocialLinks>) => {
-      try {
-        const updatedLinks = { ...socialLinks, ...links };
-        await api.updateAdminPlatformSettings({ socialLinks: updatedLinks });
-        setSocialLinks(updatedLinks);
-        addNotification('Social links updated successfully!', 'success');
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-  
-  const updatePaymentSettings = async (settings: Partial<PaymentSettings>) => {
-      try {
-        const newSettings = await api.updateAdminPaymentSettings(settings);
-        setPaymentSettings(newSettings);
-        addNotification('Payment settings updated!', 'success');
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const requestPasswordResetOtp = async (phone: string) => {
-      try {
-        await api.requestPasswordResetOtp(phone);
-        addNotification('OTP sent successfully.', 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-  
-  const resetPasswordWithOtp = async (phone: string, otp: string, newPassword: string) => {
-       try {
-        await api.resetPasswordWithOtp(phone, otp, newPassword);
-        addNotification("Password reset successfully!", 'success');
-        return { success: true };
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const addLuckyDrawPrize = async (prizeData: Omit<Prize, 'id'>) => {
-      try {
-        const newPrize = await api.addLuckyDrawPrize(prizeData);
-        setLuckyDrawPrizes(prev => [...prev, newPrize]);
-        addNotification(`New prize "${prizeData.name}" added.`, 'success');
-        return { success: true };
-    } catch(error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const updateLuckyDrawPrize = async (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => {
-     try {
-        const updatedPrize = await api.updateLuckyDrawPrize(prizeId, updates);
-        setLuckyDrawPrizes(prev => prev.map(p => p.id === prizeId ? updatedPrize : p));
-        addNotification(`Prize updated successfully.`, 'success');
-        return { success: true };
-    } catch(error: any) {
-        addNotification(error.message, 'error');
-        return { success: false, message: error.message };
-    }
-  };
-
-  const deleteLuckyDrawPrize = async (prizeId: string) => {
-     try {
-        await api.deleteLuckyDrawPrize(prizeId);
-        setLuckyDrawPrizes(prev => prev.filter(p => p.id !== prizeId));
-        addNotification(`Prize has been deleted.`, 'success');
-    } catch(error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  const setLuckyDrawWinningPrizes = async (prizeIds: string[]) => {
-    try {
-        await api.updateAdminPlatformSettings({ luckyDrawWinningPrizeIds: prizeIds });
-        setLuckyDrawWinningPrizeIds(prizeIds);
-        if (prizeIds.length > 0) {
-             addNotification(`Force Win updated: ${prizeIds.length} prize(s) selected.`, 'success');
-        } else {
-             addNotification('Force Win disabled. Prizes are now random.', 'success');
-        }
-    } catch (error: any) {
-        addNotification(error.message, 'error');
-    }
-  };
-
-  // --- Translation Function ---
-  const t = (key: string) => {
-      const lang = currentUser?.language || 'en';
-      const dict = translations[lang] || translations['en'];
-      return dict[key] || translations['en'][key] || key;
-  };
-
-
-  // --- Functions to be exposed via context ---
   const value: AppContextType = {
-    // State
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, luckyDrawPrizes, luckyDrawWinningPrizeIds, paymentSettings, activityLog, 
-    pendingDeposit: pendingPaymentDetails, // Mapped to new state
-    
-    // Setters / Actions
-    setCurrentView, register, login, adminLogin, logout, adminLogout,
-    loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone,
-    addNotification, showConfirmation, 
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, luckyDrawPrizes, luckyDrawWinningPrizeIds, paymentSettings, activityLog, pendingDeposit: pendingPaymentDetails, financialRequests, systemNotice,
+    setCurrentView, register, login, adminLogin, logout, adminLogout, loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone, addNotification, showConfirmation, 
     makeWithdrawal: (userId, amount, fundPassword) => makeWithdrawal(userId, amount, fundPassword),
-    changeUserPassword,
-    addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, requestBankAccountOtp, updateBankAccount,
-    playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
-    updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, deleteComment, updateComment, sendChatMessage, markChatAsRead, updateSocialLinks, updatePaymentSettings,
-    requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp,
-    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, setLuckyDrawWinningPrizes,
-    initiateDeposit,
-    processDeposit: (userId, amount) => {
-      // confirmDeposit is now the correct function
-      if (pendingPaymentDetails) {
-        return confirmDeposit(pendingPaymentDetails.transactionId);
-      }
-      return Promise.resolve({ success: false });
-    },
-    dismissSms: () => {}, // mock sms is removed
-    mockSms: [], // mock sms is removed
-    t, // Expose translation function
+    changeUserPassword: (id, o, n) => api.changeUserPassword(o, n).then(r => { addNotification('Password changed', 'success'); return r; }).catch(e => { addNotification(e.message, 'error'); return { success: false, message: e.message }; }),
+    addInvestmentPlan: (p) => api.addInvestmentPlan(p).then(r => { setInvestmentPlans(prev => [...prev, r]); addNotification('Plan added', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    updateInvestmentPlan: (id, u) => api.updateInvestmentPlan(id, u).then(r => { setInvestmentPlans(prev => prev.map(p => p.id === id ? r : p)); addNotification('Plan updated', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    deleteInvestmentPlan: (id) => api.deleteInvestmentPlan(id).then(() => { setInvestmentPlans(prev => prev.filter(p => p.id !== id)); addNotification('Plan deleted', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    requestBankAccountOtp: (id) => api.requestBankAccountOtp(id).then(r => { addNotification(`OTP Sent: ${r.otp}`, 'success'); return r; }),
+    updateBankAccount: (id, d, o) => api.updateBankAccount(d, o).then(r => { setCurrentUser(r.user); addNotification('Bank info updated', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    playLuckyDraw: () => api.playLuckyDraw().then(r => { setCurrentUser(r.user); return { success: true, prize: r.prize }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    requestFundPasswordOtp: (id) => api.requestFundPasswordOtp(id).then(r => { addNotification(`OTP Sent: ${r.otp}`, 'success'); return r; }),
+    updateFundPassword: (id, n, o) => api.updateFundPassword(n, o).then(r => { setCurrentUser(r.user); addNotification('Fund pwd updated', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    markNotificationsAsRead: () => api.markNotificationsAsRead().then(r => { setCurrentUser(r.user); }),
+    updateAppName: async (n) => { setAppName(n); await api.updateAdminPlatformSettings({ appName: n }); },
+    updateAppLogo: async (l) => { setAppLogo(l); await api.updateAdminPlatformSettings({ appLogo: l }); },
+    updateThemeColor: async (c) => { setThemeColor(c); await api.updateAdminPlatformSettings({ themeColor: c }); },
+    changeAdminPassword: (o, n) => api.changeAdminPassword(o, n).then(r => { addNotification('Admin Pwd Changed', 'success'); return r; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    performDailyCheckIn: () => api.performDailyCheckIn().then(r => { setCurrentUser(r.user); addNotification(r.message, 'success'); return r; }).catch(e => { addNotification(e.message, 'error'); return { success: false, message: e.message, reward: 0 }; }),
+    addComment: (d) => api.addComment(d).then(r => { setComments(prev => [r, ...prev]); addNotification('Comment posted', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    deleteComment: (id) => api.deleteComment(id).then(() => { setComments(prev => prev.filter(c => c.id !== id)); addNotification('Comment deleted', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    updateComment: (id, t) => api.updateComment(id, t).then(r => { setComments(prev => prev.map(c => c.id === id ? r : c)); addNotification('Comment updated', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    sendChatMessage: (uid, m) => api.sendChatMessage(m).then(r => { setChatSessions(prev => { const s = [...prev]; const idx = s.findIndex(x => x.userId === uid); if(idx > -1) { s[idx].messages.push(r); s[idx].lastMessageTimestamp = r.timestamp; } else { s.push({ userId: uid, messages: [r], lastMessageTimestamp: r.timestamp, userUnreadCount: 0, adminUnreadCount: 0 }); } return s; }); }).catch(e => addNotification(e.message, 'error')),
+    markChatAsRead: (uid) => api.markChatAsRead().then(() => { setChatSessions(prev => prev.map(s => s.userId === uid ? { ...s, userUnreadCount: 0 } : s)); }),
+    updateSocialLinks: (l) => api.updateAdminPlatformSettings({ socialLinks: l }).then(() => { setSocialLinks(prev => ({ ...prev, ...l })); addNotification('Links updated', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    updatePaymentSettings: (s) => api.updateAdminPaymentSettings(s).then(r => { setPaymentSettings(r); addNotification('Payment settings updated', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    requestPasswordResetOtp: (p) => api.requestPasswordResetOtp(p).then(r => { addNotification(`OTP Sent: ${r.otp}`, 'success'); return r; }),
+    resetPasswordWithOtp: (p, o, n) => api.resetPasswordWithOtp(p, o, n).then(r => { addNotification('Pwd Reset', 'success'); return r; }),
+    requestRegisterOtp,
+    addLuckyDrawPrize: (p) => api.addLuckyDrawPrize(p).then(r => { setLuckyDrawPrizes(prev => [...prev, r]); addNotification('Prize added', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    updateLuckyDrawPrize: (id, u) => api.updateLuckyDrawPrize(id, u).then(r => { setLuckyDrawPrizes(prev => prev.map(p => p.id === id ? r : p)); addNotification('Prize updated', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
+    deleteLuckyDrawPrize: (id) => api.deleteLuckyDrawPrize(id).then(() => { setLuckyDrawPrizes(prev => prev.filter(p => p.id !== id)); addNotification('Prize deleted', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    setLuckyDrawWinningPrizes: (ids) => api.setLuckyDrawWinningPrizes(ids).then(() => { setLuckyDrawWinningPrizeIds(ids); addNotification('Force Win updated', 'success'); }).catch(e => addNotification(e.message, 'error')),
+    initiateDeposit, submitDepositRequest, fetchFinancialRequests, approveFinancialRequest, rejectFinancialRequest, distributeDailyEarnings, dismissSms: () => {}, mockSms: [], t, fetchTeamStats, updateSystemNotice,
+    notifications, confirmation, hideConfirmation, handleConfirm, setUsers, setActivityLog, setInvestmentPlans, setComments, setChatSessions
   };
 
-  // Add confirmation modal handlers to the value object, but not to the AppContextType to avoid clutter
-  const contextValue = { ...value, notifications, confirmation, hideConfirmation, handleConfirm, setUsers, setActivityLog, setInvestmentPlans, setComments, setChatSessions };
-
-  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

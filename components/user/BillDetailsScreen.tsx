@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Eye, ChevronDown, Gift as RewardIcon, ArrowDownCircle, ArrowUpCircle, TrendingUp, Bell, X, Clock, Hash, CheckCircle, Info } from 'lucide-react';
+import { ArrowLeft, Eye, ChevronDown, Gift as RewardIcon, ArrowDownCircle, ArrowUpCircle, TrendingUp, Bell, X, Clock, Hash, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { Transaction } from '../../types';
 
@@ -16,6 +17,10 @@ export const TransactionIcon = ({ type }: { type: string }) => {
 }
 
 const TransactionDetailModal: React.FC<{ transaction: Transaction; onClose: () => void }> = ({ transaction, onClose }) => {
+    const statusColor = transaction.status === 'success' ? 'text-green-600 bg-green-50' 
+                      : transaction.status === 'failed' ? 'text-red-600 bg-red-50' 
+                      : 'text-yellow-600 bg-yellow-50';
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 animate-fade-in" onClick={onClose}>
             <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl animate-scale-up" onClick={e => e.stopPropagation()}>
@@ -31,7 +36,7 @@ const TransactionDetailModal: React.FC<{ transaction: Transaction; onClose: () =
                             <TransactionIcon type={transaction.type} />
                         </div>
                         <p className={`text-3xl font-bold ${transaction.amount >= 0 ? 'text-green-600' : 'text-gray-800'}`}>
-                           {transaction.type === 'system' ? '' : `₹${transaction.amount.toFixed(2)}`}
+                           {transaction.type === 'system' ? '' : `₹${Math.abs(transaction.amount).toFixed(2)}`}
                         </p>
                         <p className="text-gray-600 font-medium">{transaction.description}</p>
                     </div>
@@ -39,7 +44,9 @@ const TransactionDetailModal: React.FC<{ transaction: Transaction; onClose: () =
                     <div className="space-y-3 text-sm border-t pt-4">
                         <div className="flex justify-between items-center">
                             <span className="text-gray-500 flex items-center gap-2"><CheckCircle size={16} /> Status</span>
-                            <span className="font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-md">Completed</span>
+                            <span className={`font-semibold px-2 py-1 rounded-md capitalize ${statusColor}`}>
+                                {transaction.status || 'Success'}
+                            </span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-gray-500 flex items-center gap-2"><Clock size={16} /> Time</span>
@@ -51,7 +58,7 @@ const TransactionDetailModal: React.FC<{ transaction: Transaction; onClose: () =
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-gray-500 flex items-center gap-2"><Hash size={16} /> Transaction ID</span>
-                            <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{transaction.id || 'N/A'}</span>
+                            <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{transaction.id ? transaction.id.substring(0, 12) : 'N/A'}</span>
                         </div>
                     </div>
                 </div>
@@ -102,7 +109,7 @@ const BillDetailsScreen: React.FC = () => {
 
     const todayProfit = 0; // Mocked for now
     const totalProfit = currentUser.transactions
-        .filter(t => t.type !== 'investment' && t.type !== 'deposit')
+        .filter(t => t.type !== 'investment' && t.type !== 'deposit' && t.type !== 'withdrawal')
         .reduce((sum, tx) => sum + tx.amount, 0);
 
     return (
@@ -154,17 +161,32 @@ const BillDetailsScreen: React.FC = () => {
                                 className={`flex items-center justify-between p-4 border-b last:border-0 transition-colors cursor-pointer hover:bg-gray-50 ${!tx.read ? 'bg-green-50' : ''}`}
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-gray-100 p-3 rounded-full">
+                                    <div className="bg-gray-100 p-3 rounded-full relative">
                                         <TransactionIcon type={tx.type} />
+                                        {tx.status === 'pending' && (
+                                            <div className="absolute -top-1 -right-1">
+                                                <Clock size={12} className="text-yellow-600 bg-yellow-100 rounded-full" />
+                                            </div>
+                                        )}
+                                         {tx.status === 'failed' && (
+                                            <div className="absolute -top-1 -right-1">
+                                                <AlertCircle size={12} className="text-red-600 bg-red-100 rounded-full" />
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="font-semibold text-gray-800">{tx.description}</p>
                                         <p className="text-xs text-gray-500">{formatDate(tx.date)}</p>
                                     </div>
                                 </div>
-                                <p className={`font-bold text-lg ${tx.amount >= 0 ? 'text-green-500' : 'text-gray-800'}`}>
-                                    {tx.type === 'system' ? '' : (tx.description === 'Sign in reward' && tx.amount === 0 ? '-₹0' : `₹${tx.amount.toFixed(0)}`)}
-                                </p>
+                                <div className="text-right">
+                                    <p className={`font-bold text-lg ${tx.amount >= 0 ? 'text-green-500' : 'text-gray-800'}`}>
+                                        {tx.type === 'system' ? '' : (tx.description === 'Sign in reward' && tx.amount === 0 ? '-₹0' : `₹${Math.abs(tx.amount).toFixed(0)}`)}
+                                    </p>
+                                    <p className={`text-[10px] uppercase font-bold ${tx.status === 'success' ? 'text-green-600' : tx.status === 'failed' ? 'text-red-500' : 'text-yellow-600'}`}>
+                                        {tx.status || 'success'}
+                                    </p>
+                                </div>
                             </div>
                         ))
                     ) : (

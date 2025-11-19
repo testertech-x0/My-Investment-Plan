@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Award, CreditCard, FileText, Lock, Globe, Settings, ChevronRight, HelpCircle, MessageSquare, LogOut } from 'lucide-react';
+import { User, Award, CreditCard, FileText, Lock, Globe, Settings, ChevronRight, HelpCircle, MessageSquare, LogOut, Download } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import BottomNav from './BottomNav';
 
@@ -21,6 +21,7 @@ const ProfileScreen: React.FC = () => {
     { icon: Lock, label: t('fund_password'), section: 'security', action: 'fund-password' },
     { icon: MessageSquare, label: t('customer_service'), section: 'settings', action: 'chat', hasBadge: hasUnreadMessages },
     { icon: Globe, label: t('language'), section: 'settings', action: 'language' },
+    { icon: Download, label: 'Download App', section: 'settings', action: 'download-app' },
     { icon: HelpCircle, label: t('help_center'), section: 'settings', action: 'help' },
     { icon: LogOut, label: t('logout'), section: 'settings', action: 'logout' },
   ];

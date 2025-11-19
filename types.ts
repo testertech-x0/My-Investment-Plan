@@ -1,5 +1,5 @@
 
-import type { ReactNode } from 'react';
+import type { ReactNode, Dispatch, SetStateAction } from 'react';
 
 export interface Investment {
   planId: string;
@@ -15,11 +15,13 @@ export interface Investment {
 
 export interface Transaction {
   id?: string;
-  type: 'investment' | 'deposit' | 'withdrawal' | 'reward' | 'prize' | 'system';
+  type: 'investment' | 'deposit' | 'withdrawal' | 'reward' | 'prize' | 'system' | 'commission';
   amount: number;
   description: string;
   date: string;
   read?: boolean;
+  status: 'pending' | 'success' | 'failed'; // Added status
+  proofImg?: string; // Added proof image
 }
 
 export interface LoginActivity {
@@ -36,7 +38,7 @@ export interface BankAccount {
 export interface User {
   id: string;
   phone: string;
-  password?: string; // Should not be sent to client after login
+  password?: string; 
   name: string;
   email: string;
   avatar?: string | null;
@@ -51,9 +53,12 @@ export interface User {
   loginActivity: LoginActivity[];
   bankAccount: BankAccount | null;
   luckyDrawChances: number;
-  fundPassword?: string | null; // Should not be sent to client
+  fundPassword?: string | null;
   language?: string;
   dailyCheckIns?: string[];
+  referralCode?: string;
+  referrerId?: string;
+  teamIncome?: number;
 }
 
 export interface InvestmentPlan {
@@ -63,7 +68,7 @@ export interface InvestmentPlan {
   dailyReturn: number;
   duration: number;
   category: string;
-  expirationDate?: string; // ISO string for when the plan offer ends
+  expirationDate?: string;
 }
 
 export interface Admin {
@@ -112,15 +117,15 @@ export interface Comment {
   maskedPhone: string;
   text: string;
   images: string[];
-  timestamp: string; // ISO string
+  timestamp: string;
 }
 
 export interface ChatMessage {
   id: string;
-  senderId: 'admin' | string; // 'admin' or userId
+  senderId: 'admin' | string;
   text?: string;
   imageUrl?: string;
-  timestamp: string; // ISO string
+  timestamp: string;
 }
 
 export interface ChatSession {
@@ -145,9 +150,9 @@ export interface SocialLinks {
 
 export interface PaymentMethod {
   id: string;
-  name: string; // Name tag for admin identification
-  upiId: string; // UPI ID string, can be empty
-  qrCode: string; // QR Base64 string, can be empty
+  name: string;
+  upiId: string;
+  qrCode: string;
   isActive: boolean;
 }
 
@@ -160,6 +165,12 @@ export interface MockSms {
   id: number;
   to: string;
   body: string;
+}
+
+export interface TeamStats {
+    totalMembers: number;
+    totalIncome: number;
+    members: { name: string; phone: string; joinDate: string }[];
 }
 
 export interface AppContextType {
@@ -177,14 +188,16 @@ export interface AppContextType {
   comments: Comment[];
   chatSessions: ChatSession[];
   socialLinks: SocialLinks;
+  systemNotice: string; // Added system notice
   mockSms: MockSms[];
   luckyDrawPrizes: Prize[];
-  luckyDrawWinningPrizeIds: string[]; // Array of IDs of the prizes set to win
+  luckyDrawWinningPrizeIds: string[];
   paymentSettings: PaymentSettings;
   pendingDeposit: { upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null;
+  financialRequests: Transaction[]; // For Admin View
   setCurrentView: (view: string) => void;
-  // FIX: Make password required for registration, as it's optional in the User type but necessary for creation.
-  register: (userData: Pick<User, 'phone' | 'name'> & { password: string; otp: string }) => Promise<{ success: boolean; userId?: string }>;
+  
+  register: (userData: Pick<User, 'phone' | 'name'> & { password: string; otp: string; inviteCode?: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -198,9 +211,17 @@ export interface AppContextType {
   addNotification: (message: string, type?: NotificationType) => void;
   showConfirmation: (title: string, message: string | ReactNode, onConfirm: () => void) => void;
   dismissSms: (id: number) => void;
+  
   initiateDeposit: (amount: number) => void;
-  processDeposit: (userId: string, amount: number) => Promise<{ success: boolean }>;
+  submitDepositRequest: (transactionId: string, proofImgBase64: string) => Promise<{ success: boolean }>;
   makeWithdrawal: (userId: string, amount: number, fundPassword: string) => Promise<{ success: boolean; message?: string }>;
+  
+  // Admin Financial Functions
+  fetchFinancialRequests: () => Promise<void>;
+  approveFinancialRequest: (transaction: Transaction) => Promise<{ success: boolean }>;
+  rejectFinancialRequest: (transaction: Transaction) => Promise<{ success: boolean }>;
+  distributeDailyEarnings: () => Promise<{ success: boolean; message: string; }>;
+
   changeUserPassword: (userId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message?: string }>;
   addInvestmentPlan: (planData: Omit<InvestmentPlan, 'id'>) => Promise<{ success: boolean; message?: string }>;
   updateInvestmentPlan: (planId: string, updates: Partial<Omit<InvestmentPlan, 'id'>>) => Promise<{ success: boolean; message?: string }>;
@@ -230,5 +251,17 @@ export interface AppContextType {
   updateLuckyDrawPrize: (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => Promise<{ success: boolean; message?: string }>;
   deleteLuckyDrawPrize: (prizeId: string) => Promise<void>;
   setLuckyDrawWinningPrizes: (prizeIds: string[]) => Promise<void>;
+  fetchTeamStats: () => Promise<TeamStats>;
+  updateSystemNotice: (notice: string) => Promise<void>;
   t: (key: string) => string;
+  
+  notifications: Notification[];
+  confirmation: ConfirmationState;
+  hideConfirmation: () => void;
+  handleConfirm: () => void;
+  setUsers: Dispatch<SetStateAction<User[]>>;
+  setActivityLog: Dispatch<SetStateAction<ActivityLogEntry[]>>;
+  setInvestmentPlans: Dispatch<SetStateAction<InvestmentPlan[]>>;
+  setComments: Dispatch<SetStateAction<Comment[]>>;
+  setChatSessions: Dispatch<SetStateAction<ChatSession[]>>;
 }

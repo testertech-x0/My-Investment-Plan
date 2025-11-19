@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import type { ThemeColor } from './types';
@@ -26,6 +27,8 @@ import LoginActivityScreen from './components/user/LoginActivityScreen';
 import CommentScreen from './components/user/CommentScreen';
 import ChatScreen from './components/user/ChatScreen';
 import PaymentGatewayScreen from './components/user/PaymentGatewayScreen';
+import TeamScreen from './components/user/TeamScreen';
+import DownloadAppScreen from './components/user/DownloadAppScreen';
 import Notifications from './components/ui/Notifications';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 
@@ -154,6 +157,12 @@ function AppContent() {
         break;
       case 'payment-gateway':
         viewComponent = <PaymentGatewayScreen />;
+        break;
+      case 'team':
+        viewComponent = <TeamScreen />;
+        break;
+      case 'download-app':
+        viewComponent = <DownloadAppScreen />;
         break;
       default:
         viewComponent = <HomeDashboard />;
