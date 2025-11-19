@@ -8,13 +8,13 @@ interface BottomNavProps {
 }
 
 const BottomNav: React.FC<BottomNavProps> = ({ active }) => {
-  const { setCurrentView, logout } = useApp();
+  const { setCurrentView, logout, t } = useApp();
 
   const navItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'invest', icon: TrendingUp, label: 'Invest' },
-    { id: 'comment', icon: MessageSquare, label: 'Comment' },
-    { id: 'logout', icon: LogOut, label: 'Logout' }
+    { id: 'home', icon: Home, label: t('home') },
+    { id: 'invest', icon: TrendingUp, label: t('invest') },
+    { id: 'comment', icon: MessageSquare, label: t('comment') },
+    { id: 'logout', icon: LogOut, label: t('logout') }
   ];
 
   const handleNavClick = (id: string) => {

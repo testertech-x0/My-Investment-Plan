@@ -11,6 +11,145 @@ export const useApp = (): AppContextType => {
   return context;
 };
 
+const translations: Record<string, Record<string, string>> = {
+    en: {
+        home: 'Home',
+        invest: 'Invest',
+        comment: 'Comment',
+        logout: 'Logout',
+        profile: 'Profile',
+        my_card: 'My Card',
+        transaction_history: 'Transaction History',
+        my_orders: 'My Orders',
+        login_password: 'Login Password',
+        fund_password: 'Fund Password',
+        customer_service: 'Customer Service',
+        language: 'Language',
+        help_center: 'Help Center',
+        deposit: 'Deposit',
+        withdraw: 'Withdraw',
+        recharge: 'Recharge',
+        order: 'Order',
+        lucky_draw: 'Lucky Draw',
+        login_activity: 'Login Activity',
+        join_telegram: 'Join Telegram',
+        financial_services: 'Financial Services',
+        find_more: 'Find More',
+        total_balance: 'Total Balance',
+        available: 'Available',
+        total_returns: 'Total Returns',
+        account: 'Account',
+        security: 'Security',
+        settings: 'Settings',
+        user_id: 'User ID',
+        notifications: 'Notifications',
+        view_all: 'View All',
+        available_balance: 'Available Balance',
+    },
+    hi: {
+        home: 'होम',
+        invest: 'निवेश',
+        comment: 'टिप्पणी',
+        logout: 'लॉग आउट',
+        profile: 'प्रोफ़ाइल',
+        my_card: 'मेरा कार्ड',
+        transaction_history: 'लेनदेन इतिहास',
+        my_orders: 'मेरे आदेश',
+        login_password: 'लॉगिन पासवर्ड',
+        fund_password: 'फंड पासवर्ड',
+        customer_service: 'ग्राहक सेवा',
+        language: 'भाषा',
+        help_center: 'सहायता केंद्र',
+        deposit: 'जमा',
+        withdraw: 'निकासी',
+        recharge: 'रिचार्ज',
+        order: 'आदेश',
+        lucky_draw: 'लकी ड्रा',
+        login_activity: 'लॉगिन गतिविधि',
+        join_telegram: 'टेलीग्राम से जुड़ें',
+        financial_services: 'वित्तीय सेवाएं',
+        find_more: 'और खोजें',
+        total_balance: 'कुल शेष',
+        available: 'उपलब्ध',
+        total_returns: 'कुल लाभ',
+        account: 'खाता',
+        security: 'सुरक्षा',
+        settings: 'सेटिंग्स',
+        user_id: 'उपयोगकर्ता आईडी',
+        notifications: 'सूचनाएं',
+        view_all: 'सभी देखें',
+        available_balance: 'उपलब्ध शेष',
+    },
+    ta: {
+        home: 'முகப்பு',
+        invest: 'முதலீடு',
+        comment: 'கருத்து',
+        logout: 'வெளியேறு',
+        profile: 'சுயவிவரம்',
+        my_card: 'என் அட்டை',
+        transaction_history: 'பரிவர்த்தனை வரலாறு',
+        my_orders: 'என் ஆர்டர்கள்',
+        login_password: 'உள்நுழைவு கடவுச்சொல்',
+        fund_password: 'நிதி கடவுச்சொல்',
+        customer_service: 'வாடிக்கையாளர் சேவை',
+        language: 'மொழி',
+        help_center: 'உதவி மையம்',
+        deposit: 'வைப்பு',
+        withdraw: 'திரும்பப் பெறு',
+        recharge: 'ரீசார்ஜ்',
+        order: 'ஆர்டர்',
+        lucky_draw: 'லக்கி டிரா',
+        login_activity: 'உள்நுழைவு செயல்பாடு',
+        join_telegram: 'டெலிகிராமில் இணையுங்கள்',
+        financial_services: 'நிதி சேவைகள்',
+        find_more: 'மேலும் கண்டறிக',
+        total_balance: 'மொத்த இருப்பு',
+        available: 'கிடைக்கக்கூடியது',
+        total_returns: 'மொத்த வருமானம்',
+        account: 'கணக்கு',
+        security: 'பாதுகாப்பு',
+        settings: 'அமைப்புகள்',
+        user_id: 'பயனர் ஐடி',
+        notifications: 'அறிவிப்புகள்',
+        view_all: 'அனைத்தையும் காண்க',
+        available_balance: 'கிடைக்கக்கூடிய இருப்பு',
+    },
+    te: {
+        home: 'హోమ్',
+        invest: 'పెట్టుబడి',
+        comment: 'కామెంట్',
+        logout: 'లాగ్ అవుట్',
+        profile: 'ప్రొఫైల్',
+        my_card: 'నా కార్డ్',
+        transaction_history: 'లావాదేవీ చరిత్ర',
+        my_orders: 'నా ఆర్డర్లు',
+        login_password: 'లాగిన్ పాస్‌వర్డ్',
+        fund_password: 'ఫండ్ పాస్‌వర్డ్',
+        customer_service: 'కస్టమర్ సర్వీస్',
+        language: 'భాష',
+        help_center: 'సహాయ కేంద్రం',
+        deposit: 'డిపాజిట్',
+        withdraw: 'విత్ డ్రా',
+        recharge: 'రీఛార్జ్',
+        order: 'ఆర్డర్',
+        lucky_draw: 'లక్కీ డ్రా',
+        login_activity: 'లాగిన్ యాక్టివిటీ',
+        join_telegram: 'టెలిగ్రామ్‌లో చేరండి',
+        financial_services: 'ఆర్థిక సేవలు',
+        find_more: 'మరిన్ని కనుగొనండి',
+        total_balance: 'మొత్తం బ్యాలెన్స్',
+        available: 'అందుబాటులో ఉంది',
+        total_returns: 'మొత్తం రాబడి',
+        account: 'ఖాతా',
+        security: 'భద్రత',
+        settings: 'సెట్టింగ్‌లు',
+        user_id: 'యూజర్ ఐడి',
+        notifications: 'నోటిఫికేషన్లు',
+        view_all: 'అన్నీ చూడండి',
+        available_balance: 'అందుబాటులో ఉన్న బ్యాలెన్స్',
+    }
+};
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]); // For admin panel
@@ -608,6 +747,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // --- Translation Function ---
+  const t = (key: string) => {
+      const lang = currentUser?.language || 'en';
+      const dict = translations[lang] || translations['en'];
+      return dict[key] || translations['en'][key] || key;
+  };
+
 
   // --- Functions to be exposed via context ---
   const value: AppContextType = {
@@ -636,6 +782,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     },
     dismissSms: () => {}, // mock sms is removed
     mockSms: [], // mock sms is removed
+    t, // Expose translation function
   };
 
   // Add confirmation modal handlers to the value object, but not to the AppContextType to avoid clutter

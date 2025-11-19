@@ -223,4 +223,5 @@ export interface AppContextType {
   updateLuckyDrawPrize: (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => Promise<{ success: boolean; message?: string }>;
   deleteLuckyDrawPrize: (prizeId: string) => Promise<void>;
   setLuckyDrawWinningPrizes: (prizeIds: string[]) => Promise<void>;
+  t: (key: string) => string;
 }
