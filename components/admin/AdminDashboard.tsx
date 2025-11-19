@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo, FC } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ActivityLogEntry, ThemeColor, Transaction, LoginActivity, Investment, ChatSession, ChatMessage, SocialLinks, Prize, PaymentMethod, AppContextType, Comment } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
@@ -891,10 +891,11 @@ const AdminDashboard: React.FC = () => {
     users, adminLogout, appName, appLogo, updateAppName, updateAppLogo, 
     themeColor, updateThemeColor, changeAdminPassword, socialLinks, 
     updateSocialLinks, addNotification, showConfirmation, luckyDrawPrizes, 
-    paymentSettings, activityLog, investmentPlans, chatSessions, comments,
-    deleteUser, loginAsUserFunc, updateUser: updateUserFromContext, 
-    addInvestmentPlan, updateInvestmentPlan, deleteInvestmentPlan, 
-    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, 
+    luckyDrawWinningPrizeIds, paymentSettings, activityLog, investmentPlans, 
+    chatSessions, comments, deleteUser, loginAsUserFunc, 
+    updateUser: updateUserFromContext, addInvestmentPlan, updateInvestmentPlan, 
+    deleteInvestmentPlan, addLuckyDrawPrize, updateLuckyDrawPrize, 
+    deleteLuckyDrawPrize, setLuckyDrawWinningPrizes, 
     updatePaymentSettings: updatePaymentSettingsFromContext,
     sendChatMessage, markChatAsRead, deleteComment, updateComment
   } = useApp() as any; // Cast to access setters not on public type
@@ -1123,7 +1124,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="p-6 border-b flex justify-between items-center">
                      <div>
                         <h2 className="text-xl font-semibold text-gray-800">Lucky Draw Management</h2>
-                        <p className="text-sm text-gray-500">Configure the 8 prizes for the lucky wheel.</p>
+                        <p className="text-sm text-gray-500">Configure the 8 prizes. Set "Force Win" on multiple items to randomize between selected prizes.</p>
                     </div>
                     <button onClick={() => { if (luckyDrawPrizes.length >= 8) { addNotification("Max 8 prizes allowed.", 'error'); return; } setEditingPrize(null); setPrizeData({ name: '', type: 'money', amount: 0 }); setShowPrizeModal(true); }} disabled={luckyDrawPrizes.length >= 8} className={`flex items-center gap-2 bg-${primaryColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${primaryColor}-700 transition disabled:bg-gray-400`}>
                         <Plus size={20} /> Add New Prize
@@ -1139,15 +1140,33 @@ const AdminDashboard: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Force Win</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {luckyDrawPrizes.map((prize: Prize) => (
-                                <tr key={prize.id} className="hover:bg-gray-50">
+                            {luckyDrawPrizes.map((prize: Prize) => {
+                                const isWinner = luckyDrawWinningPrizeIds.includes(prize.id);
+                                return (
+                                <tr key={prize.id} className={`hover:bg-gray-50 ${isWinner ? 'bg-green-50' : ''}`}>
                                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{prize.name}</td>
                                     <td className="px-6 py-4 text-sm"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium capitalize">{prize.type}</span></td>
                                     <td className="px-6 py-4 text-sm font-semibold text-green-600">{prize.type === 'money' || prize.type === 'bonus' ? `₹${prize.amount}`: 'N/A'}</td>
+                                    <td className="px-6 py-4">
+                                        <button 
+                                            onClick={() => {
+                                                const newIds = isWinner 
+                                                    ? luckyDrawWinningPrizeIds.filter((id: string) => id !== prize.id)
+                                                    : [...luckyDrawWinningPrizeIds, prize.id];
+                                                setLuckyDrawWinningPrizes(newIds);
+                                            }}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition ${isWinner ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+                                            title={isWinner ? 'Click to remove from winning pool' : 'Click to add to winning pool'}
+                                        >
+                                            <Target size={14} />
+                                            {isWinner ? 'Active' : 'Select'}
+                                        </button>
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex gap-1">
                                             <button onClick={() => { setEditingPrize(prize); setPrizeData({ name: prize.name, type: prize.type, amount: prize.amount }); setShowPrizeModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit Prize"><Edit size={18} /></button>
@@ -1155,7 +1174,17 @@ const AdminDashboard: React.FC = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
+                            {/* Row to clear selection */}
+                            {luckyDrawWinningPrizeIds.length > 0 && (
+                                <tr className="bg-gray-50">
+                                    <td colSpan={5} className="px-6 py-2 text-center">
+                                        <button onClick={() => setLuckyDrawWinningPrizes([])} className="text-xs text-gray-500 hover:text-gray-700 underline">
+                                            Reset to Random Selection (Clear All)
+                                        </button>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

@@ -29,6 +29,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ telegram: '', whatsapp: '' });
   const [luckyDrawPrizes, setLuckyDrawPrizes] = useState<Prize[]>([]);
+  const [luckyDrawWinningPrizeIds, setLuckyDrawWinningPrizeIds] = useState<string[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ paymentMethods: [], quickAmounts: [] });
   const [pendingPaymentDetails, setPendingPaymentDetails] = useState<{ upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null>(null);
 
@@ -42,6 +43,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setAppLogo(settings.appLogo);
             setThemeColor(settings.themeColor);
             setLuckyDrawPrizes(settings.luckyDrawPrizes);
+            setLuckyDrawWinningPrizeIds(settings.luckyDrawWinningPrizeIds || []);
             setPaymentSettings(prev => ({ ...prev, quickAmounts: settings.paymentQuickAmounts }));
             setSocialLinks(settings.socialLinks);
             
@@ -592,11 +594,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const setLuckyDrawWinningPrizes = async (prizeIds: string[]) => {
+    try {
+        await api.updateAdminPlatformSettings({ luckyDrawWinningPrizeIds: prizeIds });
+        setLuckyDrawWinningPrizeIds(prizeIds);
+        if (prizeIds.length > 0) {
+             addNotification(`Force Win updated: ${prizeIds.length} prize(s) selected.`, 'success');
+        } else {
+             addNotification('Force Win disabled. Prizes are now random.', 'success');
+        }
+    } catch (error: any) {
+        addNotification(error.message, 'error');
+    }
+  };
+
 
   // --- Functions to be exposed via context ---
   const value: AppContextType = {
     // State
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, luckyDrawPrizes, paymentSettings, activityLog, 
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, luckyDrawPrizes, luckyDrawWinningPrizeIds, paymentSettings, activityLog, 
     pendingDeposit: pendingPaymentDetails, // Mapped to new state
     
     // Setters / Actions
@@ -609,7 +625,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     playLuckyDraw, requestFundPasswordOtp, updateFundPassword, markNotificationsAsRead, updateAppName, updateAppLogo,
     updateThemeColor, changeAdminPassword, performDailyCheckIn, addComment, deleteComment, updateComment, sendChatMessage, markChatAsRead, updateSocialLinks, updatePaymentSettings,
     requestPasswordResetOtp, resetPasswordWithOtp, requestRegisterOtp,
-    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize,
+    addLuckyDrawPrize, updateLuckyDrawPrize, deleteLuckyDrawPrize, setLuckyDrawWinningPrizes,
     initiateDeposit,
     processDeposit: (userId, amount) => {
       // confirmDeposit is now the correct function

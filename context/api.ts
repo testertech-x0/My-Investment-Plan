@@ -60,6 +60,7 @@ const getInitialDBState = () => ({
         { id: 'prize-7', name: 'Air Conditioner', type: 'physical', amount: 0 },
         { id: 'prize-8', name: 'Random Bonus', type: 'bonus', amount: 200 },
     ] as Prize[],
+    luckyDrawWinningPrizeIds: [] as string[],
     paymentSettings: {
       paymentMethods: [{ id: 'pm-1', name: 'Default UPI', upiId: 'payment@bank', qrCode: '', isActive: true }],
       quickAmounts: [500, 1000, 2000, 5000]
@@ -76,6 +77,13 @@ const loadDb = () => {
     try {
         const dbJson = localStorage.getItem('MOCK_DB');
         if (dbJson) MOCK_DB = JSON.parse(dbJson);
+        // Migration for existing DBs
+        if (!MOCK_DB.settings.luckyDrawWinningPrizeIds) {
+            MOCK_DB.settings.luckyDrawWinningPrizeIds = [];
+            if ((MOCK_DB.settings as any).luckyDrawWinningPrizeId) {
+                MOCK_DB.settings.luckyDrawWinningPrizeIds.push((MOCK_DB.settings as any).luckyDrawWinningPrizeId);
+            }
+        }
     } catch (e) {
         console.error("Failed to load mock DB from localStorage", e);
         MOCK_DB = getInitialDBState();
@@ -292,7 +300,22 @@ export const playLuckyDraw = async () => {
     if (user.luckyDrawChances <= 0) throw new Error('No lucky draw chances left.');
 
     user.luckyDrawChances -= 1;
-    const prize = MOCK_DB.settings.luckyDrawPrizes[Math.floor(Math.random() * MOCK_DB.settings.luckyDrawPrizes.length)];
+
+    // --- CONTROLLED LUCKY DRAW LOGIC ---
+    let prize: Prize | undefined;
+    
+    // 1. Check if admin has forced winners (support multiple)
+    const forcedIds = MOCK_DB.settings.luckyDrawWinningPrizeIds;
+    if (forcedIds && forcedIds.length > 0) {
+        // Pick one random ID from the forced list
+        const randomForcedId = forcedIds[Math.floor(Math.random() * forcedIds.length)];
+        prize = MOCK_DB.settings.luckyDrawPrizes.find(p => p.id === randomForcedId);
+    }
+
+    // 2. If no forced winner or prize not found, pick random from all prizes
+    if (!prize) {
+         prize = MOCK_DB.settings.luckyDrawPrizes[Math.floor(Math.random() * MOCK_DB.settings.luckyDrawPrizes.length)];
+    }
 
     if (prize.type === 'money' || prize.type === 'bonus') {
         user.balance += prize.amount;
@@ -530,7 +553,7 @@ export const deleteInvestmentPlan = async (planId: string) => {
     MOCK_DB.investmentPlans = MOCK_DB.investmentPlans.filter(p => p.id !== planId);
     saveDb();
 };
-export const updateAdminPlatformSettings = async (settings: Partial<{ appName: string, appLogo: string, socialLinks: SocialLinks, themeColor: ThemeColor }>) => {
+export const updateAdminPlatformSettings = async (settings: Partial<{ appName: string, appLogo: string, socialLinks: SocialLinks, themeColor: ThemeColor, luckyDrawWinningPrizeIds: string[] }>) => {
     await mockApiDelay();
     Object.assign(MOCK_DB.settings, settings);
     saveDb();

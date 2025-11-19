@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { ArrowLeft, Gift, CircleDollarSign, Smile, Smartphone, AirVent, Refrigerator, X, Star } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -121,12 +122,37 @@ const LuckyWheelScreen: React.FC = () => {
                 return;
             }
 
-            const totalSpins = 5;
-            const degreesPerPrize = 360 / wheelPrizes.length;
-            const randomOffset = Math.random() * (degreesPerPrize - 10) - ((degreesPerPrize - 10) / 2);
-            const targetRotation = (360 * totalSpins) - (prizeIndex * degreesPerPrize) - randomOffset;
-            
-            setRotation(prev => prev + targetRotation);
+            setRotation(prev => {
+                // Calculate geometry
+                const degreesPerPrize = 360 / wheelPrizes.length;
+                const prizeAngle = prizeIndex * degreesPerPrize;
+                
+                // Calculate the absolute target alignment (0-360)
+                // We need to rotate the wheel such that the prize at 'prizeAngle' ends up at 0deg (top).
+                // Required Rotation = -prizeAngle (or 360 - prizeAngle)
+                const targetAlignment = (360 - prizeAngle) % 360;
+                
+                // Get current rotation modulo 360 to see where we are now
+                const currentMod = prev % 360;
+                
+                // Calculate distance to travel forward to reach target
+                let distance = targetAlignment - currentMod;
+                if (distance <= 0) {
+                    distance += 360; // Ensure positive forward rotation
+                }
+                
+                // Add 5 full spins (1800 degrees) for the visual effect
+                const extraSpins = 360 * 5;
+                
+                // Add a random offset to land randomly within the segment boundaries
+                // Safe zone is slightly less than full segment width to avoid border ambiguities
+                const randomRange = degreesPerPrize - 10; 
+                const randomOffset = (Math.random() * randomRange) - (randomRange / 2);
+                
+                // Calculate final cumulative rotation
+                return prev + distance + extraSpins + randomOffset;
+            });
+
         } else {
             setIsSpinning(false);
         }

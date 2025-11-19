@@ -172,6 +172,7 @@ export interface AppContextType {
   socialLinks: SocialLinks;
   mockSms: MockSms[];
   luckyDrawPrizes: Prize[];
+  luckyDrawWinningPrizeIds: string[]; // Array of IDs of the prizes set to win
   paymentSettings: PaymentSettings;
   pendingDeposit: { upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null;
   setCurrentView: (view: string) => void;
@@ -221,4 +222,5 @@ export interface AppContextType {
   addLuckyDrawPrize: (prizeData: Omit<Prize, 'id'>) => Promise<{ success: boolean; message?: string }>;
   updateLuckyDrawPrize: (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => Promise<{ success: boolean; message?: string }>;
   deleteLuckyDrawPrize: (prizeId: string) => Promise<void>;
+  setLuckyDrawWinningPrizes: (prizeIds: string[]) => Promise<void>;
 }
