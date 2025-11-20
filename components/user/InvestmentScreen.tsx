@@ -167,20 +167,24 @@ const InvestmentScreen: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 sticky top-0 z-0">
+      {/* Removed sticky from header to fix scrolling overlap issue */}
+      <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 z-0">
         <h1 className="text-2xl font-bold mb-2">Investment Plans</h1>
         <p className="text-3xl font-bold">₹{currentUser.balance.toFixed(2)}</p>
         <p className="text-sm opacity-90">Available Balance</p>
       </div>
 
       <div className="px-6 py-4">
-        <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-xl shadow sticky top-0 z-10 overflow-x-auto">
-          {availableCategories.length > 0 ? availableCategories.map(tab => (
-            <button key={tab} onClick={() => setSelectedTab(tab)}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition whitespace-nowrap ${selectedTab === tab ? 'bg-green-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}>
-              {tab}
-            </button>
-          )) : <p className="text-center text-gray-500 py-2 w-full">No categories available.</p>}
+        {/* Sticky Categories */}
+        <div className="sticky top-2 z-10 mb-6">
+            <div className="flex gap-2 bg-white p-1.5 rounded-xl shadow overflow-x-auto no-scrollbar">
+            {availableCategories.length > 0 ? availableCategories.map(tab => (
+                <button key={tab} onClick={() => setSelectedTab(tab)}
+                className={`flex-1 py-2 px-4 rounded-lg font-medium transition whitespace-nowrap ${selectedTab === tab ? 'bg-green-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}>
+                {tab}
+                </button>
+            )) : <p className="text-center text-gray-500 py-2 w-full">No categories available.</p>}
+            </div>
         </div>
 
         <div className="space-y-4">

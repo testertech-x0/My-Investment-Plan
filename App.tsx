@@ -75,6 +75,10 @@ function AppContent() {
       .text-green-700 { color: ${selected[700]} !important; }
       .bg-green-700 { background-color: ${selected[700]} !important; }
       .hover\\:bg-green-700:hover { background-color: ${selected[700]} !important; }
+      
+      /* Utilities */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     `;
     
     let styleEl = document.getElementById('theme-override-style');
