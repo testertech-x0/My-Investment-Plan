@@ -307,8 +307,15 @@ export const makeWithdrawal = async (userId: string, amount: number, fundPasswor
     const user = users.find(u => u.id === userId);
     if (!user) throw new Error("User not found");
 
+    // Minimum Withdrawal Validation
+    if (amount < 200) throw new Error("Minimum withdrawal amount is ₹200");
+
     if (user.fundPassword && user.fundPassword !== fundPassword) throw new Error("Incorrect Fund Password");
     if (user.balance < amount) throw new Error("Insufficient balance");
+
+    // Fee Calculation (For Description only, amount is fully deducted from user view)
+    const fee = amount * 0.05;
+    const netAmount = amount - fee;
 
     user.balance -= amount;
     
@@ -316,7 +323,7 @@ export const makeWithdrawal = async (userId: string, amount: number, fundPasswor
         id: 'WIT' + Date.now(),
         type: 'withdrawal',
         amount: -amount,
-        description: 'Withdrawal Request',
+        description: `Withdrawal Request (Fee: ₹${fee}, Net: ₹${netAmount})`,
         date: new Date().toISOString(),
         status: 'pending'
     };

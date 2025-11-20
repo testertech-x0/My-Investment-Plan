@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { ArrowLeft, Landmark, Lock } from 'lucide-react';
+import { ArrowLeft, Landmark, Lock, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const WithdrawScreen: React.FC = () => {
@@ -11,11 +12,20 @@ const WithdrawScreen: React.FC = () => {
 
     if (!currentUser) return null;
 
-    const quickAmounts = [10000, 50000, 100000];
+    // Updated Quick Amounts relevant to low balance
+    const quickAmounts = [200, 500, 1000, 5000];
+    const FEE_PERCENT = 0.05; // 5%
+    const MIN_WITHDRAWAL = 200;
+
+    // Calculations
+    const withdrawAmount = parseFloat(amount) || 0;
+    const fee = withdrawAmount * FEE_PERCENT;
+    const finalAmount = withdrawAmount - fee;
 
     const handleWithdraw = async () => {
         const withdrawalAmount = parseFloat(amount);
-        if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
+        if (isNaN(withdrawalAmount) || withdrawalAmount < MIN_WITHDRAWAL) {
+            addNotification(`Minimum withdrawal is ₹${MIN_WITHDRAWAL}`, 'error');
             return;
         }
         if (!fundPassword) {
@@ -35,7 +45,12 @@ const WithdrawScreen: React.FC = () => {
 
     const isConfirmDisabled = () => {
         const numAmount = parseFloat(amount);
-        return isWithdrawing || !currentUser.bankAccount || isNaN(numAmount) || numAmount <= 0 || numAmount > currentUser.balance || fundPassword.length === 0;
+        return isWithdrawing || 
+               !currentUser.bankAccount || 
+               isNaN(numAmount) || 
+               numAmount < MIN_WITHDRAWAL || 
+               numAmount > currentUser.balance || 
+               fundPassword.length === 0;
     }
 
     return (
@@ -69,9 +84,9 @@ const WithdrawScreen: React.FC = () => {
                     <>
                         <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
                             <div>
-                                <p className="text-sm text-green-600">Account balance</p>
+                                <p className="text-sm text-green-600 font-medium">Withdrawable Balance</p>
                                 <p className="text-3xl font-bold text-gray-800">₹{currentUser.balance.toFixed(2)}</p>
-                                <p className="text-xs text-gray-400">≈T{(currentUser.balance / 90).toFixed(2)}</p>
+                                <p className="text-xs text-gray-400 mt-1">Includes Earnings & Deposits</p>
                             </div>
                             <img src="https://img.icons8.com/plasticine/100/stack-of-coins.png" alt="Coins" className="w-16 h-16" />
                         </div>
@@ -84,18 +99,37 @@ const WithdrawScreen: React.FC = () => {
                                   type="number"
                                   value={amount}
                                   onChange={(e) => setAmount(e.target.value)}
-                                  placeholder="Amount"
+                                  placeholder={`${MIN_WITHDRAWAL}+`}
                                   className="w-full pl-12 pr-4 py-4 border-b border-gray-300 text-4xl font-bold focus:outline-none focus:border-green-500"
                                 />
                             </div>
-                            <div className="flex justify-between mt-4">
+                            
+                            {/* Fee Calculation Display */}
+                            {withdrawAmount > 0 && (
+                                <div className="mt-3 bg-gray-50 p-3 rounded-lg space-y-1 text-sm">
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Withdrawal:</span>
+                                        <span>₹{withdrawAmount.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-red-500">
+                                        <span>Processing Fee (5%):</span>
+                                        <span>-₹{fee.toFixed(2)}</span>
+                                    </div>
+                                    <div className="border-t pt-1 mt-1 flex justify-between font-bold text-green-700">
+                                        <span>You Receive:</span>
+                                        <span>₹{finalAmount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between mt-4 gap-2">
                                 {quickAmounts.map(qAmount => (
                                   <button 
                                     key={qAmount}
                                     onClick={() => setAmount(String(qAmount))}
-                                    className="text-gray-600 text-sm font-medium px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+                                    className="flex-1 text-gray-600 text-xs font-medium px-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 hover:text-green-700 transition"
                                   >
-                                    ₹{qAmount.toLocaleString()}
+                                    ₹{qAmount}
                                   </button>
                                 ))}
                             </div>
@@ -105,11 +139,11 @@ const WithdrawScreen: React.FC = () => {
                              <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Withdraw method</label>
                                 {currentUser.bankAccount ? (
-                                    <div className="border border-gray-200 rounded-lg p-3 flex items-center gap-3">
-                                        <Landmark className="text-green-500" size={24} />
+                                    <div className="border border-gray-200 rounded-lg p-3 flex items-center gap-3 bg-green-50 border-green-200">
+                                        <Landmark className="text-green-600" size={24} />
                                         <div>
-                                            <p className="font-semibold">{currentUser.bankAccount.accountHolder}</p>
-                                            <p className="text-xs text-gray-500">**** **** **** {currentUser.bankAccount.accountNumber.slice(-4)}</p>
+                                            <p className="font-semibold text-gray-800">{currentUser.bankAccount.accountHolder}</p>
+                                            <p className="text-xs text-gray-600">**** **** **** {currentUser.bankAccount.accountNumber.slice(-4)}</p>
                                         </div>
                                     </div>
                                 ) : (
@@ -126,7 +160,7 @@ const WithdrawScreen: React.FC = () => {
                                         type="password"
                                         value={fundPassword}
                                         onChange={(e) => setFundPassword(e.target.value)}
-                                        placeholder="Enter your 6-digit fund password"
+                                        placeholder="Enter 6-digit fund password"
                                         maxLength={6}
                                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                                     />
@@ -142,8 +176,8 @@ const WithdrawScreen: React.FC = () => {
                         <button 
                             onClick={handleWithdraw}
                             disabled={isConfirmDisabled()}
-                            className="w-full py-3 rounded-lg font-semibold transition text-white mt-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
-                            {isWithdrawing ? 'Processing...' : 'Confirm'}
+                            className="w-full py-3 rounded-lg font-semibold transition text-white mt-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg shadow-green-200">
+                            {isWithdrawing ? 'Processing...' : 'Confirm Withdrawal'}
                         </button>
                     </>
                 ) : (
@@ -154,10 +188,15 @@ const WithdrawScreen: React.FC = () => {
             </main>
             
             <footer className="p-4 shrink-0">
-                <div className="text-xs text-gray-500 space-y-2">
-                    <p>1. A tax fee of 8% will be deducted from each withdrawal, with a minimum withdrawal application amount of <span className="font-bold text-red-500">₹300.00</span> and a minimum withdrawal amount of USDT being <span className="font-bold text-red-500">₹50.00</span>.</p>
-                    <p>2. Withdrawal application hours are from <span className="font-bold text-green-600">7:00 AM to 5:00 PM</span> daily (excluding public holidays).</p>
-                    <p>3. Your withdrawal amount will typically be credited within 24 hours, though the exact timing is determined by the bank's system, as banks update periodically after business hours. If you have any questions related to withdrawals, please contact official customer service for assistance.</p>
+                <div className="text-xs text-gray-500 space-y-2 bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                    <div className="flex items-center gap-2 text-yellow-700 font-bold mb-1">
+                         <AlertCircle size={14} />
+                         <span>Important Instructions</span>
+                    </div>
+                    <p>1. A processing fee of <span className="font-bold text-red-500">5%</span> will be deducted from each withdrawal amount.</p>
+                    <p>2. Minimum withdrawal amount is <span className="font-bold text-green-600">₹{MIN_WITHDRAWAL}.00</span>.</p>
+                    <p>3. Withdrawal hours: <span className="font-bold text-gray-700">7:00 AM - 5:00 PM</span> daily.</p>
+                    <p>4. Amount is usually credited within 24 hours. If failed, the balance is refunded automatically.</p>
                 </div>
             </footer>
         </div>
