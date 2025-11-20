@@ -28,15 +28,30 @@ const mapProfileToUser = (profile: any): User => ({
   dailyCheckIns: profile.daily_check_ins || []
 });
 
+// Helper to generate consistent fake emails from phone numbers
+// We use @example.com because it is RFC-reserved and guaranteed to pass Supabase email validation.
+const generateEmailFromPhone = (input: string) => {
+    // 1. Remove ALL non-numeric characters (spaces, dashes, plus signs, parentheses)
+    const digits = input.replace(/\D/g, '');
+    // 2. Append @example.com
+    return `u${digits}@example.com`;
+};
+
 // --- AUTHENTICATION ---
 
 export const register = async (data: { name: string; phone: string; password: string; inviteCode?: string }) => {
-    const email = `u${data.phone}@wealthapp.com`;
+    const email = generateEmailFromPhone(data.phone);
 
     // 1. Sign up in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: data.password,
+        options: {
+            data: {
+                phone: data.phone, // Store raw phone in metadata
+                name: data.name
+            }
+        }
     });
 
     if (authError) throw new Error(authError.message);
@@ -63,7 +78,11 @@ export const register = async (data: { name: string; phone: string; password: st
         lucky_draw_chances: 1
     });
 
-    if (profileError) throw new Error(profileError.message);
+    if (profileError) {
+        // If profile creation fails, the auth user exists but profile doesn't. 
+        // In a real app, you might want to clean up the auth user here.
+        throw new Error(profileError.message);
+    }
 
     // 5. Log Initial Transaction
     await supabase.from('transactions').insert({
@@ -81,10 +100,17 @@ export const register = async (data: { name: string; phone: string; password: st
 };
 
 export const login = async (identifier: string, password: string) => {
-    const email = `u${identifier}@wealthapp.com`;
+    let email = identifier;
+    
+    // If input DOES NOT contain '@', assume it is a phone number and format it
+    // This handles the case where a user just types "9876543210"
+    if (!identifier.includes('@')) {
+        email = generateEmailFromPhone(identifier);
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) throw new Error("Invalid Phone or Password");
+    if (error) throw new Error("Invalid Phone Number or Password");
 
     const user = await fetchUserProfile(data.user.id);
     await logActivity(user.id, user.name, 'Logged In');
@@ -93,9 +119,13 @@ export const login = async (identifier: string, password: string) => {
 
 export const adminLogin = async (username: string, password: string) => {
     try {
+        // Admin also logs in via phone number mapping
         const { user } = await login(username, password);
+        
+        // Check Role
         const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
         if (data?.role !== 'admin') throw new Error("Access Denied: Not an Admin");
+        
         return { success: true, token: 'admin_token' };
     } catch (e: any) {
         throw new Error(e.message);
@@ -161,6 +191,7 @@ export const updateAdminUser = async (userId: string, updates: Partial<User>) =>
     if (updates.balance !== undefined) dbUpdates.balance = updates.balance;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.language) dbUpdates.language = updates.language;
+    if (updates.avatar) dbUpdates.avatar_url = updates.avatar;
 
     const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', userId);
     if (error) throw new Error(error.message);
@@ -389,7 +420,9 @@ export const approveFinancialRequest = async (tx: Transaction) => {
 
     if (tx.type === 'deposit') {
         // Add money safely
+        // Need to get current recharge_amount first
         const { data: user } = await supabase.from('profiles').select('balance, recharge_amount').eq('id', (tx as any).userId).single();
+        
         await supabase.from('profiles').update({ 
             balance: user.balance + tx.amount,
             recharge_amount: (user.recharge_amount || 0) + tx.amount
@@ -479,9 +512,7 @@ export const fetchChatSessions = async () => {
         }
         sessionsMap[msg.user_id].messages.push({
             id: msg.id,
-            senderId: msg.sender, // 'user' or 'admin' needs mapping to IDs? 
-            // In this app, sender is just 'user' or 'admin' string in DB, but UI expects ID. 
-            // We fix: if sender=='user', ID is user_id. If 'admin', ID is 'admin'.
+            senderId: msg.sender, 
             text: msg.text,
             imageUrl: msg.image_url,
             timestamp: msg.created_at
@@ -504,7 +535,6 @@ export const fetchChatSessions = async () => {
 
 export const sendChatMessage = async (userId: string, message: { text?: string; imageUrl?: string }) => {
     const currentUser = (await supabase.auth.getUser()).data.user;
-    const isAdmin = currentUser?.email?.includes('admin') || false; // Basic check, better to check role
     
     // Check real role
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', currentUser?.id).single();
@@ -537,10 +567,6 @@ export const sendChatMessage = async (userId: string, message: { text?: string; 
 };
 
 export const markChatAsRead = async (userId: string) => {
-    const { data: user } = await supabase.auth.getUser();
-    // If I am user, mark admin messages as read. If I am admin, mark user messages read.
-    // For simplicity, we just mark all messages in this user's thread as read? No, only ones SENT by other.
-    // Simplified: Mark all messages for this user_id as read.
     await supabase.from('messages').update({ read: true }).eq('user_id', userId);
 };
 
@@ -714,8 +740,6 @@ export const performDailyCheckIn = async () => {
     
     await supabase.from('profiles').update({ daily_check_ins: newCheckIns }).eq('id', user.id);
     
-    // Logic for 7 day streak reward etc can go here
-    
     return { success: true, message: "Checked In!", reward, user: await fetchUserProfile(user.id) };
 };
 
@@ -800,7 +824,6 @@ function base64ToBlob(base64: string) {
 
 // Stubs for password reset (requires SMTP setup in Supabase)
 export const resetPassword = async (phone: string, newPass: string) => {
-    // In a real app, use supabase.auth.resetPasswordForEmail
     return { success: true }; 
 };
 
@@ -816,6 +839,7 @@ export const changeAdminPassword = async (old: string, newP: string) => {
 
 export const markNotificationsAsRead = async () => {
     const uid = (await supabase.auth.getUser()).data.user?.id;
+    if (!uid) return { success: false };
     await supabase.from('transactions').update({ read: true }).eq('user_id', uid);
     return { success: true, user: await fetchUserProfile(uid) };
 };
@@ -824,7 +848,6 @@ export const fetchAdminDashboard = async () => {
     const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact' });
     const { count: activeUsers } = await supabase.from('profiles').select('*', { count: 'exact' }).eq('is_active', true);
     
-    // Sums need RPC or fetching all (fetching all for now as RPC setup is extra step)
     const { data: investments } = await supabase.from('investments').select('invested_amount');
     const totalInvestments = investments?.reduce((sum, i) => sum + i.invested_amount, 0) || 0;
 
