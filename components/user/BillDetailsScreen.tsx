@@ -181,7 +181,7 @@ const BillDetailsScreen: React.FC = () => {
                                 </div>
                                 <div className="text-right">
                                     <p className={`font-bold text-lg ${tx.amount >= 0 ? 'text-green-500' : 'text-gray-800'}`}>
-                                        {tx.type === 'system' ? '' : (tx.description === 'Sign in reward' && tx.amount === 0 ? '-₹0' : `₹${Math.abs(tx.amount).toFixed(0)}`)}
+                                        {tx.type === 'system' ? '' : (tx.description === 'Sign in reward' && tx.amount === 0 ? '-₹0' : `₹${Math.abs(tx.amount).toFixed(2)}`)}
                                     </p>
                                     <p className={`text-[10px] uppercase font-bold ${tx.status === 'success' ? 'text-green-600' : tx.status === 'failed' ? 'text-red-500' : 'text-yellow-600'}`}>
                                         {tx.status || 'success'}

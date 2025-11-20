@@ -313,17 +313,24 @@ export const makeWithdrawal = async (userId: string, amount: number, fundPasswor
     if (user.fundPassword && user.fundPassword !== fundPassword) throw new Error("Incorrect Fund Password");
     if (user.balance < amount) throw new Error("Insufficient balance");
 
-    // Fee Calculation (For Description only, amount is fully deducted from user view)
-    const fee = amount * 0.05;
-    const netAmount = amount - fee;
+    // Precise Calculation
+    // Amount is the GROSS amount to deduct from balance
+    const grossAmount = parseFloat(amount.toFixed(2));
+    
+    // Fee is 5% of GROSS
+    const fee = parseFloat((grossAmount * 0.05).toFixed(2));
+    
+    // Net is what the user receives in bank
+    const netAmount = parseFloat((grossAmount - fee).toFixed(2));
 
-    user.balance -= amount;
+    // Deduct GROSS from balance
+    user.balance = parseFloat((user.balance - grossAmount).toFixed(2));
     
     const tx: Transaction = {
         id: 'WIT' + Date.now(),
         type: 'withdrawal',
-        amount: -amount,
-        description: `Withdrawal Request (Fee: ₹${fee}, Net: ₹${netAmount})`,
+        amount: -grossAmount, // Transaction shows full deduction
+        description: `Withdrawal of ₹${grossAmount} (Fee: ₹${fee}, Net: ₹${netAmount})`,
         date: new Date().toISOString(),
         status: 'pending'
     };
@@ -336,7 +343,7 @@ export const makeWithdrawal = async (userId: string, amount: number, fundPasswor
     setStorage(STORAGE_KEYS.TRANSACTIONS, allTx);
     
     setStorage(STORAGE_KEYS.USERS, users);
-    await logActivity(user.id, user.name, `Requested Withdrawal ${amount}`);
+    await logActivity(user.id, user.name, `Requested Withdrawal ₹${grossAmount}`);
     return { success: true, user };
 };
 
@@ -618,8 +625,8 @@ export const updateBankAccount = async (userId: string, d: any, o: string) => {
     }
     throw new Error("User not found");
 };
-export const requestFundPasswordOtp = async (userId: string) => ({ success: true, otp: '123456' });
-export const updateFundPassword = async (userId: string, newPass: string, otp: string) => {
+// Removed requestFundPasswordOtp
+export const updateFundPassword = async (userId: string, newPass: string) => {
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
     const idx = users.findIndex(u => u.id === userId);
     if(idx !== -1) {

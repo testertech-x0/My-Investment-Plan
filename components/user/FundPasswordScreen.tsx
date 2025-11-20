@@ -1,26 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const FundPasswordScreen: React.FC = () => {
-    const { currentUser, setCurrentView, requestFundPasswordOtp, updateFundPassword, addNotification } = useApp();
+    const { currentUser, setCurrentView, updateFundPassword, addNotification } = useApp();
     const [fundPassword, setFundPassword] = useState('');
-    const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const [isOtpSent, setIsOtpSent] = useState(false);
-    const [otpCountdown, setOtpCountdown] = useState(60);
-
-    useEffect(() => {
-        let timer: ReturnType<typeof setTimeout>;
-        if (isOtpSent && otpCountdown > 0) {
-            timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
-        } else if (otpCountdown === 0) {
-            setIsOtpSent(false);
-        }
-        return () => clearTimeout(timer);
-    }, [isOtpSent, otpCountdown]);
 
     if (!currentUser) return null;
 
@@ -42,14 +29,6 @@ const FundPasswordScreen: React.FC = () => {
         }
     };
     
-    const handleSendOtp = async () => {
-        const result = await requestFundPasswordOtp(currentUser.id);
-        if (result.success) {
-            setIsOtpSent(true);
-            setOtpCountdown(60);
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (fundPassword.length !== 6) {
@@ -57,13 +36,9 @@ const FundPasswordScreen: React.FC = () => {
             addNotification('Please enter a valid 6-digit fund password.', 'error');
             return;
         }
-        if (!otp) {
-            addNotification('Please enter the verification code.', 'error');
-            return;
-        }
 
         setIsSubmitting(true);
-        const result = await updateFundPassword(currentUser.id, fundPassword, otp);
+        const result = await updateFundPassword(currentUser.id, fundPassword);
         if (result.success) {
             setTimeout(() => setCurrentView('profile'), 1500);
         }
@@ -102,27 +77,6 @@ const FundPasswordScreen: React.FC = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
                             />
                             {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Verification code(OTP)</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="please enter verification code..."
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleSendOtp}
-                                    disabled={isOtpSent}
-                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                >
-                                    {isOtpSent ? `Resend in ${otpCountdown}s` : 'Send'}
-                                </button>
-                            </div>
                         </div>
 
                         <div className="pt-4">

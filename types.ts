@@ -232,8 +232,8 @@ export interface AppContextType {
   requestBankAccountOtp: (userId: string) => Promise<{ success: boolean; message?: string }>;
   updateBankAccount: (userId: string, accountDetails: Omit<BankAccount, 'bankName'>, otp: string) => Promise<{ success: boolean; message?: string }>;
   playLuckyDraw: () => Promise<{ success: boolean; prize?: Prize }>;
-  requestFundPasswordOtp: (userId: string) => Promise<{ success: boolean; message?: string }>;
-  updateFundPassword: (userId: string, newFundPassword: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  // requestFundPasswordOtp removed
+  updateFundPassword: (userId: string, newFundPassword: string) => Promise<{ success: boolean; message?: string }>;
   markNotificationsAsRead: () => Promise<void>;
   updateAppName: (newName: string) => Promise<void>;
   updateAppLogo: (newLogo: string) => Promise<void>;
