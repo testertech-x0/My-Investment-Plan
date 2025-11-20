@@ -8,6 +8,7 @@ const Login: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [secretCount, setSecretCount] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,19 +17,28 @@ const Login: React.FC = () => {
     setIsLoggingIn(false);
   };
 
+  const handleSecretAdminAccess = () => {
+    const newCount = secretCount + 1;
+    setSecretCount(newCount);
+    if (newCount >= 5) {
+        setCurrentView('admin-login');
+        setSecretCount(0);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 md:p-8 mx-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8" onClick={handleSecretAdminAccess}>
           {appLogo ? (
-            <img src={appLogo} alt="App Logo" className="w-16 h-16 rounded-full mx-auto mb-4 object-cover" />
+            <img src={appLogo} alt="App Logo" className="w-16 h-16 rounded-full mx-auto mb-4 object-cover cursor-pointer" />
           ) : (
-            <div className="bg-green-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-green-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer">
               <TrendingUp className="text-white" size={32} />
             </div>
           )}
-          <h1 className="text-3xl font-bold text-gray-800">{appName}</h1>
-          <p className="text-gray-500 mt-2">Investment Platform</p>
+          <h1 className="text-3xl font-bold text-gray-800 select-none">{appName}</h1>
+          <p className="text-gray-500 mt-2 select-none">Investment Platform</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -57,9 +67,6 @@ const Login: React.FC = () => {
           </button>
           <div className="text-gray-600 text-sm">
             Don't have an account? <button onClick={() => setCurrentView('register')} className="text-green-600 font-semibold hover:underline">Register</button>
-          </div>
-          <div className="pt-4">
-            <button onClick={() => setCurrentView('admin-login')} className="text-gray-500 text-xs hover:text-gray-700">Admin Login</button>
           </div>
         </div>
       </div>

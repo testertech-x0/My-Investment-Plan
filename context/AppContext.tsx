@@ -62,6 +62,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             
             const token = localStorage.getItem('authToken');
             const userType = localStorage.getItem('userType');
+            
+            // Check for Admin Query Param
+            const params = new URLSearchParams(window.location.search);
+            const isAdminUrl = params.get('admin') === 'true';
+
             if (token) {
                  if (userType === 'admin') {
                     setAdmin({ username: 'admin', password: '', isLoggedIn: true });
@@ -75,11 +80,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     } else {
                         // Token invalid
                          localStorage.removeItem('authToken');
-                         setCurrentView('login');
+                         setCurrentView(isAdminUrl ? 'admin-login' : 'login');
                     }
                 }
             } else {
-                setCurrentView('login');
+                setCurrentView(isAdminUrl ? 'admin-login' : 'login');
             }
         } catch (error) {
             console.error("Initialization failed:", error);
