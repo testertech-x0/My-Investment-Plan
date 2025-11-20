@@ -11,6 +11,7 @@ export interface Investment {
   quantity: number;
   startDate: string;
   category: string;
+  lastDistributedDate?: string; // Added to track daily distribution
 }
 
 export interface Transaction {
@@ -20,8 +21,8 @@ export interface Transaction {
   description: string;
   date: string;
   read?: boolean;
-  status: 'pending' | 'success' | 'failed'; // Added status
-  proofImg?: string; // Added proof image
+  status: 'pending' | 'success' | 'failed'; 
+  proofImg?: string; 
 }
 
 export interface LoginActivity {
@@ -188,16 +189,16 @@ export interface AppContextType {
   comments: Comment[];
   chatSessions: ChatSession[];
   socialLinks: SocialLinks;
-  systemNotice: string; // Added system notice
+  systemNotice: string; 
   mockSms: MockSms[];
   luckyDrawPrizes: Prize[];
   luckyDrawWinningPrizeIds: string[];
   paymentSettings: PaymentSettings;
   pendingDeposit: { upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null;
-  financialRequests: Transaction[]; // For Admin View
+  financialRequests: Transaction[]; 
   setCurrentView: (view: string) => void;
   
-  register: (userData: Pick<User, 'phone' | 'name'> & { password: string; otp: string; inviteCode?: string }) => Promise<{ success: boolean; userId?: string }>;
+  register: (userData: Pick<User, 'phone' | 'name'> & { password: string; inviteCode?: string }) => Promise<{ success: boolean; userId?: string }>;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -216,7 +217,6 @@ export interface AppContextType {
   submitDepositRequest: (transactionId: string, proofImgBase64: string) => Promise<{ success: boolean }>;
   makeWithdrawal: (userId: string, amount: number, fundPassword: string) => Promise<{ success: boolean; message?: string }>;
   
-  // Admin Financial Functions
   fetchFinancialRequests: () => Promise<void>;
   approveFinancialRequest: (transaction: Transaction) => Promise<{ success: boolean }>;
   rejectFinancialRequest: (transaction: Transaction) => Promise<{ success: boolean }>;
@@ -246,7 +246,6 @@ export interface AppContextType {
   updatePaymentSettings: (settings: Partial<PaymentSettings>) => Promise<void>;
   requestPasswordResetOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
   resetPasswordWithOtp: (phone: string, otp: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
-  requestRegisterOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
   addLuckyDrawPrize: (prizeData: Omit<Prize, 'id'>) => Promise<{ success: boolean; message?: string }>;
   updateLuckyDrawPrize: (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => Promise<{ success: boolean; message?: string }>;
   deleteLuckyDrawPrize: (prizeId: string) => Promise<void>;

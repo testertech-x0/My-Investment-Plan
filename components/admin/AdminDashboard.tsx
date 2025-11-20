@@ -27,7 +27,18 @@ const ImagePreviewModal: FC<{ imageUrl: string; onClose: () => void }> = ({ imag
 
 const DashboardView: FC = () => {
     const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, totalInvestments: 0, platformBalance: 0 });
-    useEffect(() => { api.fetchAdminDashboard().then(setStats).catch(console.error); }, []);
+    
+    useEffect(() => {
+        const loadStats = async () => {
+             try {
+                 const data = await api.fetchAdminDashboard();
+                 setStats(data);
+             } catch (e) {
+                 console.error("Failed to load stats", e);
+             }
+        };
+        loadStats();
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -46,7 +57,7 @@ const DashboardView: FC = () => {
                     <div className="bg-purple-50 p-3 rounded-lg"><Briefcase className="text-purple-600" size={24} /></div>
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div><p className="text-sm text-gray-500 font-medium">Platform Balance</p><p className="text-3xl font-bold text-orange-600 mt-1">₹{stats.platformBalance.toLocaleString()}</p></div>
+                    <div><p className="text-sm text-gray-500 font-medium">User Liabilities</p><p className="text-3xl font-bold text-orange-600 mt-1">₹{stats.platformBalance.toLocaleString()}</p></div>
                     <div className="bg-orange-50 p-3 rounded-lg"><Wallet className="text-orange-600" size={24} /></div>
                 </div>
             </div>
@@ -73,7 +84,10 @@ const FinancialManagementView: FC<{ requests: Transaction[], onApprove: (tx: Tra
                             <td className="px-6 py-4 font-bold text-gray-800">₹{Math.abs(req.amount).toFixed(2)}</td>
                             <td className="px-6 py-4">{req.proofImg ? <button onClick={() => onViewProof(req.proofImg!)} className="text-blue-600 text-xs hover:underline flex items-center gap-1"><Eye size={14} /> View</button> : <span className="text-gray-400 text-xs">N/A</span>}</td>
                             <td className="px-6 py-4 text-sm text-gray-500">{new Date(req.date).toLocaleString()}</td>
-                            <td className="px-6 py-4"><div className="flex gap-2"><button onClick={() => onApprove(req)} className="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Approve"><Check size={18} /></button><button onClick={() => onReject(req)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Reject"><X size={18} /></button></div></td>
+                            <td className="px-6 py-4"><div className="flex gap-2">
+                                <button onClick={() => onApprove(req)} className="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Approve"><Check size={18} /></button>
+                                <button onClick={() => onReject(req)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Reject / Delete"><X size={18} /></button>
+                            </div></td>
                         </tr>
                     )) : <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No pending requests.</td></tr>}
                 </tbody>
@@ -282,7 +296,6 @@ const AdminDashboard: React.FC = () => {
     const [commentText, setCommentText] = useState('');
 
     const [activeChatUser, setActiveChatUser] = useState<string | null>(null);
-    const [logoFile, setLogoFile] = useState<string | null>(null);
     const [noticeText, setNoticeText] = useState(systemNotice || '');
 
     // Data Fetching
@@ -331,7 +344,12 @@ const AdminDashboard: React.FC = () => {
         await updateSocialLinks(newLinks);
     };
     const handleDistribute = () => {
-        showConfirmation('Distribute Daily Earnings?', 'This will credit returns to all active investments. This action checks for payments made today to prevent double-paying.', () => distributeDailyEarnings());
+        showConfirmation('Distribute Daily Earnings?', 'This will credit returns to all active investments. This action checks for payments made today to prevent double-paying.', async () => {
+             const result = await distributeDailyEarnings();
+             if(result.success) {
+                 // addNotification already handled in context
+             }
+        });
     };
 
     const navItems = [
@@ -349,7 +367,7 @@ const AdminDashboard: React.FC = () => {
     const renderContent = () => {
         switch (activeView) {
             case 'dashboard': return <DashboardView />;
-            case 'financial': return <FinancialManagementView requests={financialRequests} onApprove={tx => showConfirmation('Approve?', 'Confirm transaction?', () => approveFinancialRequest(tx))} onReject={tx => showConfirmation('Reject?', 'Reject transaction?', () => rejectFinancialRequest(tx))} onViewProof={setViewingImage} onDistribute={handleDistribute} />;
+            case 'financial': return <FinancialManagementView requests={financialRequests} onApprove={tx => showConfirmation('Approve Transaction?', 'This will credit/debit the user balance.', async () => { await approveFinancialRequest(tx); fetchFinancialRequests(); })} onReject={tx => showConfirmation('Reject/Delete Request?', 'This will reject the transaction and refund if withdrawal. It will then remove the request.', async () => { await rejectFinancialRequest(tx); fetchFinancialRequests(); })} onViewProof={setViewingImage} onDistribute={handleDistribute} />;
             case 'users': return <UserManagementView users={users} onEdit={u => { setEditingUser(u); setUserForm({ name: u.name, phone: u.phone, email: u.email, balance: u.balance }); setShowUserModal(true); }} onToggle={u => updateUser(u.id, { isActive: !u.isActive })} onDelete={id => showConfirmation('Delete?', 'Irreversible action.', () => deleteUser(id))} onLoginAs={loginAsUserFunc} />;
             case 'plans': return <PlanManagementView plans={investmentPlans} onAdd={() => { setEditingPlan(null); setPlanForm({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '', expirationDate: '' }); setShowPlanModal(true); }} onEdit={p => { setEditingPlan(p); setPlanForm({ name: p.name, minInvestment: String(p.minInvestment), dailyReturn: String(p.dailyReturn), duration: String(p.duration), category: p.category, expirationDate: p.expirationDate || '' }); setShowPlanModal(true); }} onDelete={id => showConfirmation('Delete Plan?', 'Are you sure?', () => deleteInvestmentPlan(id))} />;
             case 'lucky_draw': return <LuckyDrawView prizes={luckyDrawPrizes} winningIds={luckyDrawWinningPrizeIds} onAdd={() => { setEditingPrize(null); setPrizeForm({ name: '', type: 'money', amount: 0 }); setShowPrizeModal(true); }} onEdit={p => { setEditingPrize(p); setPrizeForm({ name: p.name, type: p.type, amount: p.amount }); setShowPrizeModal(true); }} onDelete={id => deleteLuckyDrawPrize(id)} onToggleWin={handleWinToggle} />;

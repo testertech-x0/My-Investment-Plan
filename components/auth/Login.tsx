@@ -34,7 +34,7 @@ const Login: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number or User ID</label>
-            <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)}
+            <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value.trim())}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               placeholder="Enter phone or ID" required />
           </div>
