@@ -15,7 +15,7 @@ const STORAGE_KEYS = {
 
 // Initial Data
 const INITIAL_PLANS: InvestmentPlan[] = [
-    { id: '1', name: 'Starter Plan', minInvestment: 500, dailyReturn: 20, duration: 30, category: 'VIP 1' },
+    { id: '1', name: 'Starter Plan', minInvestment: 500, dailyReturn: 35, duration: 20, category: 'VIP 1' }, // Updated example plan
     { id: '2', name: 'Growth Plan', minInvestment: 2000, dailyReturn: 100, duration: 45, category: 'VIP 2' },
     { id: '3', name: 'Premium Plan', minInvestment: 5000, dailyReturn: 300, duration: 60, category: 'VIP 3' },
     { id: '4', name: 'Short Term', minInvestment: 1000, dailyReturn: 40, duration: 7, category: 'Welfare', expirationDate: new Date(Date.now() + 86400000 * 7).toISOString() }
@@ -423,32 +423,45 @@ export const distributeDailyEarnings = async () => {
     
     users.forEach(user => {
         user.investments.forEach(inv => {
-            // Check if already paid today
+            // CRITICAL LOGIC:
+            // Check if already paid today to prevent double payment
             if (inv.lastDistributedDate === todayStr) return;
 
-            // Check if expired (mock logic: if creation + duration < now)
-            // Simpler: just count iterations in real app, here assume valid if active
+            // Calculate Revenue Days check (if needed, can check creation date + duration)
+            const startDate = new Date(inv.startDate);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + inv.revenueDays);
             
-            const daily = inv.dailyEarnings;
-            user.balance += daily;
-            user.totalReturns += daily;
-            inv.totalRevenue += daily;
+            // Stop paying if plan expired
+            if (new Date() > endDate) return;
+
+            // Payout Logic
+            const dailyPayout = inv.dailyEarnings; // This is already Unit Daily Return * Quantity
+            
+            // Update User Wallet
+            user.balance += dailyPayout;
+            user.totalReturns += dailyPayout;
+            
+            // Update Investment Record
+            inv.totalRevenue += dailyPayout;
             inv.lastDistributedDate = todayStr;
             
+            // Log Transaction for User
             user.transactions.unshift({
                  id: 'REV' + Date.now() + Math.random().toString().slice(2,6),
                  type: 'reward',
-                 amount: daily,
+                 amount: dailyPayout,
                  description: `Daily Return: ${inv.planName}`,
                  date: new Date().toISOString(),
-                 status: 'success'
+                 status: 'success',
+                 read: false
             });
             count++;
         });
     });
     
     setStorage(STORAGE_KEYS.USERS, users);
-    return { success: true, message: `Distributed to ${count} investments` };
+    return { success: true, message: `Distributed earnings to ${count} investments successfully.` };
 };
 
 // --- SETTINGS & OTHERS ---
