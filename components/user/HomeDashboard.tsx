@@ -36,10 +36,13 @@ const HomeDashboard: React.FC = () => {
   }, []);
   
   useEffect(() => {
-      if (systemNotice) {
-          // Check if we already showed it this session to avoid annoyance, OR just show it every time home loads. 
-          // For announcements, usually every session start is good. Here we just use local state, so it shows on refresh/login.
+      // Check if user has already seen the notice in this session
+      const hasSeenNotice = sessionStorage.getItem('has_seen_notice');
+      
+      if (systemNotice && !hasSeenNotice) {
           setShowNoticeModal(true);
+          // Mark as seen for this session
+          sessionStorage.setItem('has_seen_notice', 'true');
       }
   }, [systemNotice]);
   

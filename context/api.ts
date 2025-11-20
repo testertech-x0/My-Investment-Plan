@@ -74,7 +74,7 @@ export const register = async (data: { name: string; phone: string; password: st
         }],
         loginActivity: [],
         bankAccount: null,
-        luckyDrawChances: 1,
+        luckyDrawChances: 1, // NEW REGISTER USERS GET 1 COIN
         language: 'en',
         dailyCheckIns: [],
         referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
@@ -190,6 +190,9 @@ export const investInPlan = async (planId: string, quantity: number) => {
     if (user.balance < totalCost) throw new Error("Insufficient balance");
 
     user.balance -= totalCost;
+    // ADD COINS FOR SPINNING WHEEL
+    // Grant 1 coin per quantity purchased
+    user.luckyDrawChances = (user.luckyDrawChances || 0) + quantity;
     
     const newInvestment: Investment = {
         planId: plan.id,
@@ -210,6 +213,17 @@ export const investInPlan = async (planId: string, quantity: number) => {
         type: 'investment',
         amount: -totalCost,
         description: `Invested in ${plan.name}`,
+        date: new Date().toISOString(),
+        read: false,
+        status: 'success'
+    });
+    
+    // Log the bonus coin transaction
+    user.transactions.unshift({
+        id: 'BONUS' + Date.now(),
+        type: 'system',
+        amount: 0,
+        description: `Received ${quantity} Lucky Spin Coin(s) for investment`,
         date: new Date().toISOString(),
         read: false,
         status: 'success'
@@ -254,7 +268,7 @@ export const initiateDeposit = async (amount: number) => {
     };
 };
 
-export const submitDepositRequest = async (transactionId: string, proofImgBase64: string) => {
+export const submitDepositRequest = async (transactionId: string, proofImgBase64: string, amount: number) => {
     await delay();
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
     const activeUserId = localStorage.getItem('mock_active_user_id'); 
@@ -265,10 +279,6 @@ export const submitDepositRequest = async (transactionId: string, proofImgBase64
 
     const allTx = getStorage<Transaction[]>(STORAGE_KEYS.TRANSACTIONS, []);
     
-    // We need to guess amount since it's stateless in mock, but usually passed in context. 
-    // Let's grab it from the ID if encoded or just use 500 default for mock.
-    const amount = 500; // Simplified for mock
-
     const newTx: Transaction = {
         id: transactionId,
         type: 'deposit',
@@ -326,6 +336,11 @@ export const makeWithdrawal = async (userId: string, amount: number, fundPasswor
 export const fetchFinancialRequests = async () => {
     await delay();
     return getStorage<Transaction[]>(STORAGE_KEYS.TRANSACTIONS, []).filter(t => t.status === 'pending');
+};
+
+export const fetchAllFinancialRecords = async () => {
+    await delay();
+    return getStorage<Transaction[]>(STORAGE_KEYS.TRANSACTIONS, []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
 export const approveFinancialRequest = async (transaction: Transaction) => {
@@ -625,16 +640,104 @@ export const performDailyCheckIn = async () => {
      }
      throw new Error("User not found");
 };
+
+// LUCKY DRAW LOGIC
 export const playLuckyDraw = async () => {
-    const settings = getStorage(STORAGE_KEYS.SETTINGS, { luckyDrawPrizes: INITIAL_PRIZES });
-    const prizes = settings.luckyDrawPrizes || INITIAL_PRIZES;
-    const prize = prizes[Math.floor(Math.random() * prizes.length)];
-    return { success: true, prize, user: await fetchUserProfile() };
+    await delay();
+
+    // 1. Get Active User
+    const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
+    const activeId = localStorage.getItem('mock_active_user_id');
+    const userIndex = users.findIndex(u => u.id === activeId);
+    
+    if (userIndex === -1) throw new Error("User not found");
+    const user = users[userIndex];
+
+    // 2. Validate Chances
+    if (user.luckyDrawChances <= 0) {
+        throw new Error("Insufficient chances");
+    }
+
+    // 3. Deduct Chance
+    user.luckyDrawChances -= 1;
+
+    // 4. Get Prizes & Settings
+    const settings = await fetchPlatformSettings();
+    const allPrizes = settings.luckyDrawPrizes || INITIAL_PRIZES;
+    const winningIds = settings.luckyDrawWinningPrizeIds || [];
+    
+    let selectedPrize: Prize | undefined;
+
+    // 5. Logic: Force Win vs Random
+    if (winningIds.length > 0) {
+        // Filter prizes to only those that are "Forced Wins"
+        const forcedPrizes = allPrizes.filter(p => winningIds.includes(p.id));
+        
+        if (forcedPrizes.length > 0) {
+            // Pick a random prize from the forced list
+            selectedPrize = forcedPrizes[Math.floor(Math.random() * forcedPrizes.length)];
+        }
+    }
+
+    // Fallback: If no forced wins configured, or forced prize ID invalid, pick pure random
+    if (!selectedPrize) {
+        selectedPrize = allPrizes[Math.floor(Math.random() * allPrizes.length)];
+    }
+
+    // 6. Apply Rewards (Money/Bonus)
+    if (selectedPrize.type === 'money' || selectedPrize.type === 'bonus') {
+        if (selectedPrize.amount > 0) {
+            user.balance += selectedPrize.amount;
+            user.transactions.unshift({
+                id: 'WIN' + Date.now(),
+                type: 'prize',
+                amount: selectedPrize.amount,
+                description: `Won ${selectedPrize.name} in Lucky Draw`,
+                date: new Date().toISOString(),
+                status: 'success',
+                read: false
+            });
+        }
+    }
+
+    // 7. Save Changes
+    setStorage(STORAGE_KEYS.USERS, users);
+    await logActivity(user.id, user.name, `Played Lucky Draw - Won ${selectedPrize.name}`);
+
+    return { success: true, prize: selectedPrize, user };
 };
-export const addLuckyDrawPrize = async (p: any) => { return { id: Date.now().toString(), ...p }; };
-export const updateLuckyDrawPrize = async (id: string, p: any) => { return { id, ...p }; };
-export const deleteLuckyDrawPrize = async (id: string) => {};
-export const setLuckyDrawWinningPrizes = async (ids: string[]) => {};
+
+export const addLuckyDrawPrize = async (p: any) => {
+    const settings = await fetchPlatformSettings();
+    const prizes = settings.luckyDrawPrizes || INITIAL_PRIZES;
+    const newPrize = { id: Date.now().toString(), ...p };
+    prizes.push(newPrize);
+    await updateAdminPlatformSettings({ luckyDrawPrizes: prizes });
+    return newPrize;
+};
+
+export const updateLuckyDrawPrize = async (id: string, updates: any) => {
+    const settings = await fetchPlatformSettings();
+    let prizes = settings.luckyDrawPrizes || INITIAL_PRIZES;
+    const idx = prizes.findIndex(p => p.id === id);
+    if (idx !== -1) {
+        prizes[idx] = { ...prizes[idx], ...updates };
+        await updateAdminPlatformSettings({ luckyDrawPrizes: prizes });
+        return prizes[idx];
+    }
+    throw new Error("Prize not found");
+};
+
+export const deleteLuckyDrawPrize = async (id: string) => {
+    const settings = await fetchPlatformSettings();
+    let prizes = settings.luckyDrawPrizes || INITIAL_PRIZES;
+    prizes = prizes.filter(p => p.id !== id);
+    await updateAdminPlatformSettings({ luckyDrawPrizes: prizes });
+};
+
+export const setLuckyDrawWinningPrizes = async (ids: string[]) => {
+    await updateAdminPlatformSettings({ luckyDrawWinningPrizeIds: ids });
+};
 
 // *** REAL STATS FETCHING ***
 export const fetchAdminDashboard = async () => {

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, FC } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu, Link, Globe, DollarSign, Calendar, Download, Smartphone } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu, Link, Globe, DollarSign, Calendar, Download, Smartphone, History } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ThemeColor, Transaction, LoginActivity, Investment, ChatMessage, SocialLinks, Prize, Comment, SocialLinkItem, ChatSession, ActivityLogEntry } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
@@ -65,38 +65,122 @@ const DashboardView: FC = () => {
     );
 };
 
-const FinancialManagementView: FC<{ requests: Transaction[], onApprove: (tx: Transaction) => void, onReject: (tx: Transaction) => void, onViewProof: (url: string) => void, onDistribute: () => void }> = ({ requests, onApprove, onReject, onViewProof, onDistribute }) => (
-    <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-800">Financial Requests</h2>
-            <button onClick={onDistribute} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 shadow-sm text-sm font-medium">
-                <TrendingUp size={18} /> Distribute Daily Earnings
-            </button>
+const FinancialManagementView: FC<{ requests: Transaction[], history: Transaction[], onApprove: (tx: Transaction) => void, onReject: (tx: Transaction) => void, onViewProof: (url: string) => void, onDistribute: () => void }> = ({ requests, history, onApprove, onReject, onViewProof, onDistribute }) => {
+    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+    
+    return (
+        <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b flex justify-between items-center">
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Requests</h2>
+                    <div className="flex gap-2">
+                        <button onClick={() => setActiveTab('pending')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'pending' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>Pending Requests</button>
+                        <button onClick={() => setActiveTab('history')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>History Log</button>
+                    </div>
+                </div>
+                <button onClick={onDistribute} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 shadow-sm text-sm font-medium">
+                    <TrendingUp size={18} /> Distribute Daily Earnings
+                </button>
+            </div>
+            
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                    <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proof</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{activeTab === 'pending' ? 'Actions' : 'Status'}</th></tr></thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {(activeTab === 'pending' ? requests : history).map(req => (
+                            <tr key={req.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4"><span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${req.type === 'deposit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{req.type}</span></td>
+                                <td className="px-6 py-4"><div><p className="text-sm font-medium text-gray-900">{(req as any).userName || 'Unknown'}</p><p className="text-xs text-gray-500">{(req as any).userPhone}</p></div></td>
+                                <td className="px-6 py-4 font-bold text-gray-800">₹{Math.abs(req.amount).toFixed(2)}</td>
+                                <td className="px-6 py-4">{req.proofImg ? <button onClick={() => onViewProof(req.proofImg!)} className="text-blue-600 text-xs hover:underline flex items-center gap-1"><Eye size={14} /> View</button> : <span className="text-gray-400 text-xs">N/A</span>}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{new Date(req.date).toLocaleString()}</td>
+                                <td className="px-6 py-4">
+                                    {activeTab === 'pending' ? (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => onApprove(req)} className="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Approve"><Check size={18} /></button>
+                                            <button onClick={() => onReject(req)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Reject / Delete"><X size={18} /></button>
+                                        </div>
+                                    ) : (
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${req.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {req.status}
+                                        </span>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                        {(activeTab === 'pending' ? requests : history).length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No records found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-                <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proof</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th></tr></thead>
-                <tbody className="divide-y divide-gray-200">
-                    {requests.length > 0 ? requests.map(req => (
-                        <tr key={req.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4"><span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${req.type === 'deposit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{req.type}</span></td>
-                            <td className="px-6 py-4"><div><p className="text-sm font-medium text-gray-900">{(req as any).userName}</p><p className="text-xs text-gray-500">{(req as any).userPhone}</p></div></td>
-                            <td className="px-6 py-4 font-bold text-gray-800">₹{Math.abs(req.amount).toFixed(2)}</td>
-                            <td className="px-6 py-4">{req.proofImg ? <button onClick={() => onViewProof(req.proofImg!)} className="text-blue-600 text-xs hover:underline flex items-center gap-1"><Eye size={14} /> View</button> : <span className="text-gray-400 text-xs">N/A</span>}</td>
-                            <td className="px-6 py-4 text-sm text-gray-500">{new Date(req.date).toLocaleString()}</td>
-                            <td className="px-6 py-4"><div className="flex gap-2">
-                                <button onClick={() => onApprove(req)} className="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Approve"><Check size={18} /></button>
-                                <button onClick={() => onReject(req)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Reject / Delete"><X size={18} /></button>
-                            </div></td>
-                        </tr>
-                    )) : <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No pending requests.</td></tr>}
-                </tbody>
-            </table>
-        </div>
-    </div>
-);
+    );
+};
 
-const UserManagementView: FC<{ users: User[], onEdit: (u: User) => void, onToggle: (u: User) => void, onDelete: (id: string) => void, onLoginAs: (id: string) => void }> = ({ users, onEdit, onToggle, onDelete, onLoginAs }) => {
+const UserInvestmentsModal: FC<{ user: User; onClose: () => void }> = ({ user, onClose }) => {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50" onClick={onClose}>
+            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <header className="p-4 border-b flex justify-between items-center">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800">Investment History</h3>
+                        <p className="text-sm text-gray-500">User: {user.name} ({user.phone})</p>
+                    </div>
+                    <button onClick={onClose}><X size={24} className="text-gray-500 hover:text-gray-800" /></button>
+                </header>
+                <div className="p-6 overflow-y-auto">
+                    {user.investments.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Plan Name</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Category</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Amount</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Daily / Total Rev</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Start Date</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {user.investments.map((inv, idx) => {
+                                        // Calculate if expired roughly
+                                        const start = new Date(inv.startDate).getTime();
+                                        const end = start + (inv.revenueDays * 24 * 60 * 60 * 1000);
+                                        const isExpired = Date.now() > end;
+                                        
+                                        return (
+                                            <tr key={idx}>
+                                                <td className="px-4 py-2 text-sm font-medium">{inv.planName}</td>
+                                                <td className="px-4 py-2 text-sm text-gray-500">{inv.category}</td>
+                                                <td className="px-4 py-2 text-sm font-bold text-green-600">₹{inv.investedAmount}</td>
+                                                <td className="px-4 py-2 text-sm">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-gray-500">Daily: ₹{inv.dailyEarnings}</span>
+                                                        <span className="text-xs font-semibold">Total: ₹{inv.totalRevenue}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-2 text-sm text-gray-500">{new Date(inv.startDate).toLocaleDateString()}</td>
+                                                <td className="px-4 py-2">
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${isExpired ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-600'}`}>
+                                                        {isExpired ? 'Finished' : 'Active'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500 py-10">No investment records found for this user.</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const UserManagementView: FC<{ users: User[], onEdit: (u: User) => void, onToggle: (u: User) => void, onDelete: (id: string) => void, onLoginAs: (id: string) => void, onViewInvestments: (u: User) => void }> = ({ users, onEdit, onToggle, onDelete, onLoginAs, onViewInvestments }) => {
     const [term, setTerm] = useState('');
     const filtered = users.filter(u => u.name.toLowerCase().includes(term.toLowerCase()) || u.phone.includes(term) || u.id.includes(term));
     return (
@@ -114,6 +198,7 @@ const UserManagementView: FC<{ users: User[], onEdit: (u: User) => void, onToggl
                             <td className="px-6 py-4 text-sm text-gray-800 font-mono">₹{user.balance.toFixed(2)}</td>
                             <td className="px-6 py-4"><button onClick={() => onToggle(user)} className={`px-2 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{user.isActive ? 'Active' : 'Blocked'}</button></td>
                             <td className="px-6 py-4 text-right"><div className="flex justify-end gap-2">
+                                <button onClick={() => onViewInvestments(user)} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="View Investments"><Briefcase size={16} /></button>
                                 <button onClick={() => onLoginAs(user.id)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Login As"><LogIn size={16} /></button>
                                 <button onClick={() => onEdit(user)} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Edit"><Edit size={16} /></button>
                                 <button onClick={() => onDelete(user.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete"><Trash2 size={16} /></button>
@@ -270,7 +355,7 @@ const AdminDashboard: React.FC = () => {
         paymentSettings, updatePaymentSettings,
         chatSessions, sendChatMessage, markChatAsRead,
         comments, deleteComment, updateComment,
-        financialRequests, fetchFinancialRequests, approveFinancialRequest, rejectFinancialRequest, distributeDailyEarnings,
+        financialRequests, financialHistory, fetchFinancialRequests, fetchFinancialHistory, approveFinancialRequest, rejectFinancialRequest, distributeDailyEarnings,
         updateUser, deleteUser, loginAsUserFunc, changeAdminPassword, activityLog, setActivityLog, systemNotice, updateSystemNotice,
         fetchAllUsers // Added fetchAllUsers
     } = useApp() as any;
@@ -299,9 +384,16 @@ const AdminDashboard: React.FC = () => {
     const [activeChatUser, setActiveChatUser] = useState<string | null>(null);
     const [noticeText, setNoticeText] = useState(systemNotice || '');
 
+    // New State for User Investment Modal
+    const [showInvestmentsModal, setShowInvestmentsModal] = useState(false);
+    const [selectedUserInvestments, setSelectedUserInvestments] = useState<User | null>(null);
+
     // Data Fetching
     useEffect(() => {
-        if (activeView === 'financial') fetchFinancialRequests();
+        if (activeView === 'financial') {
+            fetchFinancialRequests();
+            fetchFinancialHistory();
+        }
         if (activeView === 'logs') api.fetchActivityLog().then(setActivityLog);
         if (activeView === 'users') fetchAllUsers(); // Fetch users when user management view is active
     }, [activeView]);
@@ -369,8 +461,8 @@ const AdminDashboard: React.FC = () => {
     const renderContent = () => {
         switch (activeView) {
             case 'dashboard': return <DashboardView />;
-            case 'financial': return <FinancialManagementView requests={financialRequests} onApprove={tx => showConfirmation('Approve Transaction?', 'This will credit/debit the user balance.', async () => { await approveFinancialRequest(tx); fetchFinancialRequests(); })} onReject={tx => showConfirmation('Reject/Delete Request?', 'This will reject the transaction and refund if withdrawal. It will then remove the request.', async () => { await rejectFinancialRequest(tx); fetchFinancialRequests(); })} onViewProof={setViewingImage} onDistribute={handleDistribute} />;
-            case 'users': return <UserManagementView users={users} onEdit={u => { setEditingUser(u); setUserForm({ name: u.name, phone: u.phone, email: u.email, balance: u.balance }); setShowUserModal(true); }} onToggle={u => updateUser(u.id, { isActive: !u.isActive })} onDelete={id => showConfirmation('Delete?', 'Irreversible action.', () => deleteUser(id))} onLoginAs={loginAsUserFunc} />;
+            case 'financial': return <FinancialManagementView requests={financialRequests} history={financialHistory} onApprove={tx => showConfirmation('Approve Transaction?', 'This will credit/debit the user balance.', async () => { await approveFinancialRequest(tx); fetchFinancialRequests(); fetchFinancialHistory(); })} onReject={tx => showConfirmation('Reject/Delete Request?', 'This will reject the transaction and refund if withdrawal. It will then remove the request.', async () => { await rejectFinancialRequest(tx); fetchFinancialRequests(); fetchFinancialHistory(); })} onViewProof={setViewingImage} onDistribute={handleDistribute} />;
+            case 'users': return <UserManagementView users={users} onEdit={u => { setEditingUser(u); setUserForm({ name: u.name, phone: u.phone, email: u.email, balance: u.balance }); setShowUserModal(true); }} onToggle={u => updateUser(u.id, { isActive: !u.isActive })} onDelete={id => showConfirmation('Delete?', 'Irreversible action.', () => deleteUser(id))} onLoginAs={loginAsUserFunc} onViewInvestments={(u) => { setSelectedUserInvestments(u); setShowInvestmentsModal(true); }} />;
             case 'plans': return <PlanManagementView plans={investmentPlans} onAdd={() => { setEditingPlan(null); setPlanForm({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '', expirationDate: '' }); setShowPlanModal(true); }} onEdit={p => { setEditingPlan(p); setPlanForm({ name: p.name, minInvestment: String(p.minInvestment), dailyReturn: String(p.dailyReturn), duration: String(p.duration), category: p.category, expirationDate: p.expirationDate || '' }); setShowPlanModal(true); }} onDelete={id => showConfirmation('Delete Plan?', 'Are you sure?', () => deleteInvestmentPlan(id))} />;
             case 'lucky_draw': return <LuckyDrawView prizes={luckyDrawPrizes} winningIds={luckyDrawWinningPrizeIds} onAdd={() => { setEditingPrize(null); setPrizeForm({ name: '', type: 'money', amount: 0 }); setShowPrizeModal(true); }} onEdit={p => { setEditingPrize(p); setPrizeForm({ name: p.name, type: p.type, amount: p.amount }); setShowPrizeModal(true); }} onDelete={id => deleteLuckyDrawPrize(id)} onToggleWin={handleWinToggle} />;
             case 'comments': return <CommentsManagementView comments={comments} onDelete={id => deleteComment(id)} onEdit={c => { setEditingComment(c); setCommentText(c.text); setShowCommentModal(true); }} setViewingImage={setViewingImage} />;
@@ -422,6 +514,7 @@ const AdminDashboard: React.FC = () => {
             {showPlanModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white p-6 rounded-lg w-96"><h3 className="font-bold mb-4">{editingPlan ? 'Edit' : 'Add'} Plan</h3><input className="w-full border p-2 rounded mb-2" value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} placeholder="Plan Name" /><input className="w-full border p-2 rounded mb-2" type="number" value={planForm.minInvestment} onChange={e => setPlanForm({...planForm, minInvestment: e.target.value})} placeholder="Min Investment" /><input className="w-full border p-2 rounded mb-2" type="number" value={planForm.dailyReturn} onChange={e => setPlanForm({...planForm, dailyReturn: e.target.value})} placeholder="Daily Return" /><input className="w-full border p-2 rounded mb-2" type="number" value={planForm.duration} onChange={e => setPlanForm({...planForm, duration: e.target.value})} placeholder="Duration (Days)" /><input className="w-full border p-2 rounded mb-2" value={planForm.category} onChange={e => setPlanForm({...planForm, category: e.target.value})} placeholder="Category (e.g. VIP)" /><div className="mb-4"><label className="text-xs text-gray-500">Expiration (Optional)</label><input className="w-full border p-2 rounded" type="datetime-local" value={planForm.expirationDate} onChange={e => setPlanForm({...planForm, expirationDate: e.target.value})} /></div><div className="flex justify-end gap-2"><button onClick={() => setShowPlanModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button><button onClick={handlePlanSave} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button></div></div></div>}
             {showPrizeModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white p-6 rounded-lg w-96"><h3 className="font-bold mb-4">{editingPrize ? 'Edit' : 'Add'} Prize</h3><input className="w-full border p-2 rounded mb-2" value={prizeForm.name} onChange={e => setPrizeForm({...prizeForm, name: e.target.value})} placeholder="Prize Name" /><select className="w-full border p-2 rounded mb-2" value={prizeForm.type} onChange={e => setPrizeForm({...prizeForm, type: e.target.value as any})}><option value="money">Money</option><option value="bonus">Bonus</option><option value="physical">Physical</option><option value="nothing">Nothing</option></select><input className="w-full border p-2 rounded mb-4" type="number" value={prizeForm.amount} onChange={e => setPrizeForm({...prizeForm, amount: parseFloat(e.target.value)})} placeholder="Amount/Value" /><div className="flex justify-end gap-2"><button onClick={() => setShowPrizeModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button><button onClick={handlePrizeSave} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button></div></div></div>}
             {showCommentModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white p-6 rounded-lg w-96"><h3 className="font-bold mb-4">Edit Comment</h3><textarea className="w-full border p-2 rounded mb-4 h-32" value={commentText} onChange={e => setCommentText(e.target.value)} /><div className="flex justify-end gap-2"><button onClick={() => setShowCommentModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button><button onClick={handleCommentSave} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button></div></div></div>}
+            {showInvestmentsModal && selectedUserInvestments && <UserInvestmentsModal user={selectedUserInvestments} onClose={() => setShowInvestmentsModal(false)} />}
 
             <aside className={`fixed md:relative z-40 w-64 h-full bg-slate-900 text-slate-300 flex flex-col shrink-0 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
                 <div className="h-16 flex items-center justify-center text-white text-xl font-bold border-b border-slate-800 tracking-wider">{appName}</div>

@@ -41,6 +41,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({ paymentMethods: [], quickAmounts: [] });
   const [pendingPaymentDetails, setPendingPaymentDetails] = useState<{ upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null>(null);
   const [financialRequests, setFinancialRequests] = useState<Transaction[]>([]); // Admin view
+  const [financialHistory, setFinancialHistory] = useState<Transaction[]>([]); // Admin History view
   const [systemNotice, setSystemNotice] = useState<string>('');
 
  useEffect(() => {
@@ -103,13 +104,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const register = async (userData: any) => { try { const { user } = await api.register(userData); localStorage.setItem('mock_active_user_id', user.id); addNotification(`Account created!`, 'success'); return { success: true, userId: user.id }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false }; } };
   const login = async (identifier: string, password: string) => { try { const { token, user } = await api.login(identifier, password); localStorage.setItem('authToken', token); localStorage.setItem('userType', 'user'); localStorage.setItem('mock_active_user_id', user.id); setCurrentUser(user); setCurrentView('home'); addNotification(`Welcome back, ${user.name}!`, 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
   const adminLogin = async (username: string, password: string) => { try { const { token } = await api.adminLogin(username, password); localStorage.setItem('authToken', token); localStorage.setItem('userType', 'admin'); setAdmin({ username, password: '', isLoggedIn: true }); setCurrentView('admin-dashboard'); addNotification('Admin login successful.', 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
-  const handleLogout = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userType'); localStorage.removeItem('loginAsUser'); localStorage.removeItem('mock_active_user_id'); setCurrentUser(null); setLoginAsUser(null); setAdmin(prev => ({ ...prev, isLoggedIn: false })); };
+  
+  const handleLogout = () => { 
+      localStorage.removeItem('authToken'); 
+      localStorage.removeItem('userType'); 
+      localStorage.removeItem('loginAsUser'); 
+      localStorage.removeItem('mock_active_user_id'); 
+      sessionStorage.removeItem('has_seen_notice'); // Clear notice flag
+      setCurrentUser(null); 
+      setLoginAsUser(null); 
+      setAdmin(prev => ({ ...prev, isLoggedIn: false })); 
+  };
   const logout = () => { addNotification("You have been logged out.", 'info'); if (loginAsUser) { returnToAdmin(); } else { handleLogout(); setCurrentView('login'); } };
   const adminLogout = async () => { handleLogout(); setCurrentView('login'); addNotification("Admin logged out.", 'info'); };
   const loginAsUserFunc = async (userId: string) => { const user = users.find(u => u.id === userId); if (user) { setLoginAsUser(user); setCurrentUser(user); localStorage.setItem('loginAsUser', JSON.stringify(user)); setCurrentView('home'); addNotification(`Now viewing as ${user.name} (${user.id}).`, 'info'); } };
   const returnToAdmin = async () => { addNotification('Returned to Admin Dashboard.', 'info'); setLoginAsUser(null); setCurrentUser(null); localStorage.removeItem('loginAsUser'); setCurrentView('admin-dashboard'); };
   
-  // Added fetchAllUsers to fetch users for Admin dashboard
   const fetchAllUsers = async () => { try { const allUsers = await api.fetchAllUsers(); setUsers(allUsers); } catch (e: any) { console.error("Failed to fetch users", e); } };
 
   const updateUser = async (userId: string, updates: Partial<User>) => { try { const updatedUser = await api.updateAdminUser(userId, updates); if (currentUser?.id === userId) setCurrentUser(updatedUser); if (loginAsUser?.id === userId) setLoginAsUser(updatedUser); fetchAllUsers(); /* Refresh list */ } catch (error: any) { addNotification(error.message, 'error'); } };
@@ -117,11 +127,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const investInPlan = async (planId: string, quantity: number) => { if (!currentUser) return { success: false, message: 'Not logged in' }; try { const { user: updatedUser } = await api.investInPlan(planId, quantity); setCurrentUser(updatedUser); addNotification('Investment successful!', 'success'); return { success: true, message: 'Investment successful!' }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
   
   const initiateDeposit = async (amount: number) => { try { const { paymentDetails } = await api.initiateDeposit(amount); setPendingPaymentDetails(paymentDetails); } catch (error: any) { addNotification(error.message, 'error'); } };
-  const submitDepositRequest = async (transactionId: string, proofImg: string) => { try { await api.submitDepositRequest(transactionId, proofImg); setPendingPaymentDetails(null); addNotification('Deposit submitted for review', 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false }; } };
+  const submitDepositRequest = async (transactionId: string, proofImg: string) => { try { const amount = pendingPaymentDetails?.amount || 0; await api.submitDepositRequest(transactionId, proofImg, amount); setPendingPaymentDetails(null); addNotification('Deposit submitted for review', 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false }; } };
   
   const makeWithdrawal = async (userId: string, amount: number, fundPassword: string) => { try { const { user: updatedUser } = await api.makeWithdrawal(userId, amount, fundPassword); setCurrentUser(updatedUser); addNotification(`Withdrawal request submitted.`, 'success'); return { success: true }; } catch (error: any) { addNotification(error.message, 'error'); return { success: false, message: error.message }; } };
   
   const fetchFinancialRequests = async () => { try { const txs = await api.fetchFinancialRequests(); setFinancialRequests(txs as any); } catch(e) { console.error(e); } };
+  const fetchFinancialHistory = async () => { try { const txs = await api.fetchAllFinancialRecords(); setFinancialHistory(txs as any); } catch(e) { console.error(e); } };
   const approveFinancialRequest = async (tx: Transaction) => { try { await api.approveFinancialRequest(tx); setFinancialRequests(prev => prev.filter(t => t.id !== tx.id)); addNotification('Request approved', 'success'); return { success: true }; } catch(e: any) { addNotification(e.message, 'error'); return { success: false }; } };
   const rejectFinancialRequest = async (tx: Transaction) => { try { await api.rejectFinancialRequest(tx); setFinancialRequests(prev => prev.filter(t => t.id !== tx.id)); addNotification('Request rejected', 'success'); return { success: true }; } catch(e: any) { addNotification(e.message, 'error'); return { success: false }; } };
   const distributeDailyEarnings = async () => { try { const r = await api.distributeDailyEarnings(); addNotification(r.message, 'success'); return r; } catch(e: any) { addNotification(e.message, 'error'); return { success: false, message: e.message }; } };
@@ -131,7 +142,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const t = (key: string) => { const lang = currentUser?.language || 'en'; const dict = translations[lang] || translations['en']; return dict[key] || translations['en'][key] || key; };
 
   const value: AppContextType = {
-    users, currentUser, admin, investmentPlans, currentView, loginAsUser, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, luckyDrawPrizes, luckyDrawWinningPrizeIds, paymentSettings, activityLog, pendingDeposit: pendingPaymentDetails, financialRequests, systemNotice,
+    users, currentUser, admin, investmentPlans, currentView, loginAsUser, appName, appLogo, themeColor, isLoading, comments, chatSessions, socialLinks, luckyDrawPrizes, luckyDrawWinningPrizeIds, paymentSettings, activityLog, pendingDeposit: pendingPaymentDetails, financialRequests, financialHistory, systemNotice,
     setCurrentView, register, login, adminLogin, logout, adminLogout, loginAsUserFunc, returnToAdmin, updateUser, deleteUser, investInPlan, maskPhone, addNotification, showConfirmation, fetchAllUsers,
     makeWithdrawal: (userId, amount, fundPassword) => makeWithdrawal(userId, amount, fundPassword),
     changeUserPassword: (id, o, n) => api.changeUserPassword(id, o, n).then(r => { addNotification('Password changed', 'success'); return r; }).catch(e => { addNotification(e.message, 'error'); return { success: false, message: e.message }; }),
@@ -162,7 +173,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateLuckyDrawPrize: (id, u) => api.updateLuckyDrawPrize(id, u).then(r => { setLuckyDrawPrizes(prev => prev.map(p => p.id === id ? r : p)); addNotification('Prize updated', 'success'); return { success: true }; }).catch(e => { addNotification(e.message, 'error'); return { success: false }; }),
     deleteLuckyDrawPrize: (id) => api.deleteLuckyDrawPrize(id).then(() => { setLuckyDrawPrizes(prev => prev.filter(p => p.id !== id)); addNotification('Prize deleted', 'success'); }).catch(e => addNotification(e.message, 'error')),
     setLuckyDrawWinningPrizes: (ids) => api.setLuckyDrawWinningPrizes(ids).then(() => { setLuckyDrawWinningPrizeIds(ids); addNotification('Force Win updated', 'success'); }).catch(e => addNotification(e.message, 'error')),
-    initiateDeposit, submitDepositRequest, fetchFinancialRequests, approveFinancialRequest, rejectFinancialRequest, distributeDailyEarnings, dismissSms: () => {}, mockSms: [], t, fetchTeamStats, updateSystemNotice,
+    initiateDeposit, submitDepositRequest, fetchFinancialRequests, fetchFinancialHistory, approveFinancialRequest, rejectFinancialRequest, distributeDailyEarnings, dismissSms: () => {}, mockSms: [], t, fetchTeamStats, updateSystemNotice,
     notifications, confirmation, hideConfirmation, handleConfirm, setUsers, setActivityLog, setInvestmentPlans, setComments, setChatSessions
   };
 

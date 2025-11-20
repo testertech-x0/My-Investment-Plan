@@ -196,6 +196,7 @@ export interface AppContextType {
   paymentSettings: PaymentSettings;
   pendingDeposit: { upiId?: string; qrCode?: string; amount: number; transactionId: string; } | null;
   financialRequests: Transaction[]; 
+  financialHistory: Transaction[]; // Added
   setCurrentView: (view: string) => void;
   
   register: (userData: Pick<User, 'phone' | 'name'> & { password: string; inviteCode?: string }) => Promise<{ success: boolean; userId?: string }>;
@@ -219,6 +220,7 @@ export interface AppContextType {
   makeWithdrawal: (userId: string, amount: number, fundPassword: string) => Promise<{ success: boolean; message?: string }>;
   
   fetchFinancialRequests: () => Promise<void>;
+  fetchFinancialHistory: () => Promise<void>; // Added
   approveFinancialRequest: (transaction: Transaction) => Promise<{ success: boolean }>;
   rejectFinancialRequest: (transaction: Transaction) => Promise<{ success: boolean }>;
   distributeDailyEarnings: () => Promise<{ success: boolean; message: string; }>;
