@@ -271,7 +271,8 @@ const AdminDashboard: React.FC = () => {
         chatSessions, sendChatMessage, markChatAsRead,
         comments, deleteComment, updateComment,
         financialRequests, fetchFinancialRequests, approveFinancialRequest, rejectFinancialRequest, distributeDailyEarnings,
-        updateUser, deleteUser, loginAsUserFunc, changeAdminPassword, activityLog, setActivityLog, systemNotice, updateSystemNotice
+        updateUser, deleteUser, loginAsUserFunc, changeAdminPassword, activityLog, setActivityLog, systemNotice, updateSystemNotice,
+        fetchAllUsers // Added fetchAllUsers
     } = useApp() as any;
 
     const [activeView, setActiveView] = useState('dashboard');
@@ -302,6 +303,7 @@ const AdminDashboard: React.FC = () => {
     useEffect(() => {
         if (activeView === 'financial') fetchFinancialRequests();
         if (activeView === 'logs') api.fetchActivityLog().then(setActivityLog);
+        if (activeView === 'users') fetchAllUsers(); // Fetch users when user management view is active
     }, [activeView]);
 
     useEffect(() => {

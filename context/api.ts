@@ -133,6 +133,11 @@ export const fetchUserProfile = async () => {
     return users[0]; // Fallback
 };
 
+export const fetchAllUsers = async () => {
+    await delay(200);
+    return getStorage<User[]>(STORAGE_KEYS.USERS, []);
+};
+
 export const updateUserProfile = async (updates: Partial<User>) => {
     await delay();
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);

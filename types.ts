@@ -205,6 +205,7 @@ export interface AppContextType {
   adminLogout: () => Promise<void>;
   loginAsUserFunc: (userId: string) => Promise<void>;
   returnToAdmin: () => Promise<void>;
+  fetchAllUsers: () => Promise<void>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   investInPlan: (planId: string, quantity: number) => Promise<{ success: boolean; message: string }>;
