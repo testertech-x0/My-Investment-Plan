@@ -229,8 +229,9 @@ export interface AppContextType {
   addInvestmentPlan: (planData: Omit<InvestmentPlan, 'id'>) => Promise<{ success: boolean; message?: string }>;
   updateInvestmentPlan: (planId: string, updates: Partial<Omit<InvestmentPlan, 'id'>>) => Promise<{ success: boolean; message?: string }>;
   deleteInvestmentPlan: (planId: string) => Promise<void>;
-  requestBankAccountOtp: (userId: string) => Promise<{ success: boolean; message?: string }>;
-  updateBankAccount: (userId: string, accountDetails: Omit<BankAccount, 'bankName'>, otp: string) => Promise<{ success: boolean; message?: string }>;
+  
+  // requestBankAccountOtp removed
+  updateBankAccount: (userId: string, accountDetails: Omit<BankAccount, 'bankName'>) => Promise<{ success: boolean; message?: string }>; // OTP param removed
   playLuckyDraw: () => Promise<{ success: boolean; prize?: Prize }>;
   // requestFundPasswordOtp removed
   updateFundPassword: (userId: string, newFundPassword: string) => Promise<{ success: boolean; message?: string }>;
@@ -247,8 +248,10 @@ export interface AppContextType {
   markChatAsRead: (userId: string) => Promise<void>;
   updateSocialLinks: (links: Partial<SocialLinks>) => Promise<void>;
   updatePaymentSettings: (settings: Partial<PaymentSettings>) => Promise<void>;
-  requestPasswordResetOtp: (phone: string) => Promise<{ success: boolean; message?: string }>;
-  resetPasswordWithOtp: (phone: string, otp: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+  
+  // requestPasswordResetOtp removed
+  resetPassword: (phone: string, newPassword: string) => Promise<{ success: boolean; message?: string }>; // OTP param removed, renamed from resetPasswordWithOtp
+  
   addLuckyDrawPrize: (prizeData: Omit<Prize, 'id'>) => Promise<{ success: boolean; message?: string }>;
   updateLuckyDrawPrize: (prizeId: string, updates: Partial<Omit<Prize, 'id'>>) => Promise<{ success: boolean; message?: string }>;
   deleteLuckyDrawPrize: (prizeId: string) => Promise<void>;

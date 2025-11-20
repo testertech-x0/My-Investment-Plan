@@ -1,42 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Landmark, PiggyBank, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { BankAccount } from '../../types';
 
 const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
-    const { currentUser, updateBankAccount, addNotification, requestBankAccountOtp } = useApp();
+    const { currentUser, updateBankAccount, addNotification } = useApp();
     const [formData, setFormData] = useState({
         holderName: '',
         accountNumber: '',
         ifscCode: '',
         fundPassword: '',
-        otp: '',
     });
     const [errors, setErrors] = useState({ ifscCode: '', fundPassword: '' });
-    const [isOtpSent, setIsOtpSent] = useState(false);
-    const [otpCountdown, setOtpCountdown] = useState(60);
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        let timer: ReturnType<typeof setTimeout>;
-        if (isOtpSent && otpCountdown > 0) {
-            timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
-        } else if (otpCountdown === 0) {
-            setIsOtpSent(false);
-        }
-        return () => clearTimeout(timer);
-    }, [isOtpSent, otpCountdown]);
-
-    const handleSendOtp = async () => {
-        if (!currentUser) return;
-        setIsOtpSent(true); // Optimistically set to true
-        const result = await requestBankAccountOtp(currentUser.id);
-        if (result.success) {
-            setOtpCountdown(60);
-        } else {
-            setIsOtpSent(false); // Revert on failure
-        }
-    };
 
     const validate = () => {
         const newErrors = { ifscCode: '', fundPassword: '' };
@@ -69,7 +46,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
             addNotification('Please correct the errors in the form.', 'error');
             return;
         }
-        if (!formData.holderName || !formData.accountNumber || !formData.ifscCode || !formData.fundPassword || !formData.otp) {
+        if (!formData.holderName || !formData.accountNumber || !formData.ifscCode || !formData.fundPassword) {
             addNotification('Please fill all the fields.', 'error');
             return;
         }
@@ -81,8 +58,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
                     accountHolder: formData.holderName,
                     accountNumber: formData.accountNumber,
                     ifscCode: formData.ifscCode,
-                },
-                formData.otp
+                }
             );
             if (result.success) {
                 onSave();
@@ -120,15 +96,7 @@ const AddBankAccountForm: React.FC<{ onSave: () => void }> = ({ onSave }) => {
                 <input type="password" name="fundPassword" value={formData.fundPassword} onChange={handleChange} onBlur={handleBlur} placeholder="Fund pwd must be 6 digits" maxLength={6} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
                 <p className="text-xs text-red-500 h-4">{errors.fundPassword || (formData.fundPassword ? '' : 'Fund pwd must be 6 digits')}</p>
             </div>
-            <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Verification code (OTP)</label>
-                <div className="flex gap-2">
-                    <input type="text" name="otp" value={formData.otp} onChange={handleChange} placeholder="Please enter verification code" className="flex-1 px-3 py-2 border border-gray-300 rounded-md" />
-                    <button type="button" onClick={handleSendOtp} disabled={isOtpSent} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed">
-                        {isOtpSent ? `${otpCountdown}s` : 'send'}
-                    </button>
-                </div>
-            </div>
+            
             <button type="submit" disabled={isSaving} className="w-full mt-4 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:bg-green-300">
                 {isSaving ? 'Saving...' : 'Confirm'}
             </button>
@@ -219,8 +187,8 @@ const BankAccountScreen: React.FC = () => {
                 <div className="text-sm text-gray-600 space-y-3">
                     <h4 className="font-semibold">Explain</h4>
                     <p>Bank account is an important information for you to withdraw funds on the platform, please do not modify it arbitrarily.</p>
-                    <p>To modify a bank account, a mobile OTP verification code is required.</p>
-                    <p>Unable to receive mobile OTP verification code, please contact online customer service for assistance.</p>
+                    <p>If you need to change your bank account details, you can do so directly here.</p>
+                    <p>For further assistance, please contact online customer service.</p>
                 </div>
             </footer>
         </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, FC } from 'react';
-import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu, Link, Globe, DollarSign, Calendar, Download, Smartphone, History } from 'lucide-react';
+import { LogOut, Users, Activity, TrendingUp, Wallet, Search, Edit, Eye, Trash2, X, FileText, Briefcase, Plus, Settings, Check, Crop, LogIn, Shield, UserCheck, UserX, Camera, MessageSquare, Paperclip, Send, Share2, Gift, CreditCard, QrCode, LayoutDashboard, Palette, Target, Menu, Link, Globe, DollarSign, Calendar, Download, Smartphone, History, Landmark } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { User, InvestmentPlan, ThemeColor, Transaction, LoginActivity, Investment, ChatMessage, SocialLinks, Prize, Comment, SocialLinkItem, ChatSession, ActivityLogEntry } from '../../types';
 import { TransactionIcon } from '../user/BillDetailsScreen';
@@ -65,52 +65,191 @@ const DashboardView: FC = () => {
     );
 };
 
-const FinancialManagementView: FC<{ requests: Transaction[], history: Transaction[], onApprove: (tx: Transaction) => void, onReject: (tx: Transaction) => void, onViewProof: (url: string) => void, onDistribute: () => void }> = ({ requests, history, onApprove, onReject, onViewProof, onDistribute }) => {
-    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
-    
+const FinancialManagementView: FC<{ 
+    requests: Transaction[], 
+    history: Transaction[], 
+    users: User[],
+    onApprove: (tx: Transaction) => void, 
+    onReject: (tx: Transaction) => void, 
+    onViewProof: (url: string) => void, 
+    onDistribute: () => void 
+}> = ({ requests, history, users, onApprove, onReject, onViewProof, onDistribute }) => {
+    const [mainTab, setMainTab] = useState<'deposit' | 'withdrawal'>('deposit');
+    const [subTab, setSubTab] = useState<'pending' | 'history'>('pending');
+    const [search, setSearch] = useState('');
+    const [selectedUserBank, setSelectedUserBank] = useState<User | null>(null);
+
+    // Filter Logic
+    const sourceList = subTab === 'pending' ? requests : history;
+    const filtered = sourceList.filter(tx => {
+        const matchesType = tx.type === mainTab;
+        const term = search.toLowerCase();
+        const userId = (tx as any).userId || '';
+        const userPhone = (tx as any).userPhone || '';
+        const userName = (tx as any).userName || '';
+        
+        const matchesSearch = userId.toLowerCase().includes(term) || 
+                              userPhone.includes(term) || 
+                              userName.toLowerCase().includes(term);
+        
+        return matchesType && matchesSearch;
+    });
+
+    const handleViewBank = (userId: string) => {
+        const user = users.find(u => u.id === userId);
+        if (user) setSelectedUserBank(user);
+    };
+
     return (
-        <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Requests</h2>
-                    <div className="flex gap-2">
-                        <button onClick={() => setActiveTab('pending')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'pending' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>Pending Requests</button>
-                        <button onClick={() => setActiveTab('history')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>History Log</button>
+        <div className="space-y-6">
+            {/* Bank Details Modal */}
+            {selectedUserBank && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedUserBank(null)}>
+                    <div className="bg-white rounded-xl p-6 w-96 shadow-xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold flex items-center gap-2"><Landmark size={20}/> Bank Details</h3>
+                            <button onClick={() => setSelectedUserBank(null)}><X size={20} /></button>
+                        </div>
+                        <div className="space-y-3">
+                            <p className="text-sm text-gray-500">User: <span className="text-gray-800 font-medium">{selectedUserBank.name}</span></p>
+                            {selectedUserBank.bankAccount ? (
+                                <div className="bg-gray-50 p-4 rounded-lg space-y-2 border">
+                                    <div><span className="text-xs text-gray-500">Holder Name</span><p className="font-semibold">{selectedUserBank.bankAccount.accountHolder}</p></div>
+                                    <div><span className="text-xs text-gray-500">Account Number</span><p className="font-mono font-semibold text-blue-600">{selectedUserBank.bankAccount.accountNumber}</p></div>
+                                    <div><span className="text-xs text-gray-500">IFSC Code</span><p className="font-mono">{selectedUserBank.bankAccount.ifscCode}</p></div>
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-red-50 text-red-600 text-center rounded-lg">No Bank Account Linked</div>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <button onClick={onDistribute} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 shadow-sm text-sm font-medium">
-                    <TrendingUp size={18} /> Distribute Daily Earnings
-                </button>
-            </div>
-            
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                    <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proof</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{activeTab === 'pending' ? 'Actions' : 'Status'}</th></tr></thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {(activeTab === 'pending' ? requests : history).map(req => (
-                            <tr key={req.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4"><span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${req.type === 'deposit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{req.type}</span></td>
-                                <td className="px-6 py-4"><div><p className="text-sm font-medium text-gray-900">{(req as any).userName || 'Unknown'}</p><p className="text-xs text-gray-500">{(req as any).userPhone}</p></div></td>
-                                <td className="px-6 py-4 font-bold text-gray-800">₹{Math.abs(req.amount).toFixed(2)}</td>
-                                <td className="px-6 py-4">{req.proofImg ? <button onClick={() => onViewProof(req.proofImg!)} className="text-blue-600 text-xs hover:underline flex items-center gap-1"><Eye size={14} /> View</button> : <span className="text-gray-400 text-xs">N/A</span>}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{new Date(req.date).toLocaleString()}</td>
-                                <td className="px-6 py-4">
-                                    {activeTab === 'pending' ? (
-                                        <div className="flex gap-2">
-                                            <button onClick={() => onApprove(req)} className="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200" title="Approve"><Check size={18} /></button>
-                                            <button onClick={() => onReject(req)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200" title="Reject / Delete"><X size={18} /></button>
-                                        </div>
-                                    ) : (
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${req.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                            {req.status}
-                                        </span>
-                                    )}
-                                </td>
+            )}
+
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex flex-col gap-1">
+                         <h2 className="text-xl font-semibold text-gray-800">Financial Requests</h2>
+                         <p className="text-xs text-gray-500">Manage Deposits and Withdrawals</p>
+                    </div>
+                   
+                    <button onClick={onDistribute} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 shadow-sm text-sm font-medium transition-all active:scale-95">
+                        <TrendingUp size={18} /> Distribute Daily Earnings
+                    </button>
+                </div>
+
+                <div className="p-4 bg-gray-50 border-b flex flex-col md:flex-row gap-4 justify-between items-center">
+                    {/* Main Type Tabs */}
+                    <div className="flex bg-white p-1 rounded-lg border shadow-sm">
+                        <button onClick={() => setMainTab('deposit')} className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${mainTab === 'deposit' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
+                            Deposits
+                        </button>
+                        <button onClick={() => setMainTab('withdrawal')} className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${mainTab === 'withdrawal' ? 'bg-red-100 text-red-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
+                            Withdrawals
+                        </button>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input 
+                            type="text" 
+                            placeholder="Search User ID / Phone..." 
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                </div>
+                
+                <div className="p-4 flex gap-4 border-b">
+                     <button onClick={() => setSubTab('pending')} className={`pb-2 border-b-2 text-sm font-medium transition-colors ${subTab === 'pending' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                        Pending ({mainTab === 'deposit' ? requests.filter(r => r.type === 'deposit').length : requests.filter(r => r.type === 'withdrawal').length})
+                    </button>
+                    <button onClick={() => setSubTab('history')} className={`pb-2 border-b-2 text-sm font-medium transition-colors ${subTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                        History Log
+                    </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Info</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{mainTab === 'deposit' ? 'Payment Proof' : 'Bank Info'}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{subTab === 'pending' ? 'Actions' : 'Status'}</th>
                             </tr>
-                        ))}
-                        {(activeTab === 'pending' ? requests : history).length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No records found.</td></tr>}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {filtered.map(req => (
+                                <tr key={req.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${mainTab === 'deposit' ? 'bg-green-500' : 'bg-red-500'}`}>
+                                                {mainTab === 'deposit' ? 'IN' : 'OUT'}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">{(req as any).userName || 'Unknown'}</p>
+                                                <p className="text-xs text-gray-500">{(req as any).userPhone}</p>
+                                                <p className="text-[10px] text-gray-400">ID: {(req as any).userId}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`font-bold ${mainTab === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
+                                            ₹{Math.abs(req.amount).toFixed(2)}
+                                        </span>
+                                        {mainTab === 'withdrawal' && <p className="text-xs text-gray-400">Fee: 5% included</p>}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {mainTab === 'deposit' ? (
+                                            req.proofImg ? (
+                                                <button onClick={() => onViewProof(req.proofImg!)} className="flex items-center gap-1 text-blue-600 text-xs hover:underline bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                                                    <Eye size={12} /> View Screenshot
+                                                </button>
+                                            ) : <span className="text-gray-400 text-xs">No Proof</span>
+                                        ) : (
+                                            <button onClick={() => handleViewBank((req as any).userId)} className="flex items-center gap-1 text-purple-600 text-xs hover:underline bg-purple-50 px-2 py-1 rounded border border-purple-100">
+                                                <Landmark size={12} /> View Bank Details
+                                            </button>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {new Date(req.date).toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {subTab === 'pending' ? (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => onApprove(req)} className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs font-medium shadow-sm flex items-center gap-1">
+                                                    <Check size={14} /> Approve
+                                                </button>
+                                                <button onClick={() => onReject(req)} className="px-3 py-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200 text-xs font-medium border border-red-200 flex items-center gap-1">
+                                                    <X size={14} /> Reject
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${req.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {req.status}
+                                            </span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                            {filtered.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search size={32} className="text-gray-300" />
+                                            <p>No {mainTab} requests found.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
@@ -393,6 +532,7 @@ const AdminDashboard: React.FC = () => {
         if (activeView === 'financial') {
             fetchFinancialRequests();
             fetchFinancialHistory();
+            fetchAllUsers(); // Need users to show bank details
         }
         if (activeView === 'logs') api.fetchActivityLog().then(setActivityLog);
         if (activeView === 'users') fetchAllUsers(); // Fetch users when user management view is active
@@ -461,7 +601,17 @@ const AdminDashboard: React.FC = () => {
     const renderContent = () => {
         switch (activeView) {
             case 'dashboard': return <DashboardView />;
-            case 'financial': return <FinancialManagementView requests={financialRequests} history={financialHistory} onApprove={tx => showConfirmation('Approve Transaction?', 'This will credit/debit the user balance.', async () => { await approveFinancialRequest(tx); fetchFinancialRequests(); fetchFinancialHistory(); })} onReject={tx => showConfirmation('Reject/Delete Request?', 'This will reject the transaction and refund if withdrawal. It will then remove the request.', async () => { await rejectFinancialRequest(tx); fetchFinancialRequests(); fetchFinancialHistory(); })} onViewProof={setViewingImage} onDistribute={handleDistribute} />;
+            case 'financial': return (
+                <FinancialManagementView 
+                    requests={financialRequests} 
+                    history={financialHistory} 
+                    users={users}
+                    onApprove={tx => showConfirmation(tx.type === 'withdrawal' ? 'Approve Withdrawal?' : 'Approve Deposit?', tx.type === 'withdrawal' ? 'This will mark the withdrawal as successful. Ensure you have sent the funds.' : 'This will credit the user balance.', async () => { await approveFinancialRequest(tx); fetchFinancialRequests(); fetchFinancialHistory(); })} 
+                    onReject={tx => showConfirmation('Reject/Delete Request?', 'This will reject the transaction and refund if withdrawal. It will then remove the request.', async () => { await rejectFinancialRequest(tx); fetchFinancialRequests(); fetchFinancialHistory(); })} 
+                    onViewProof={setViewingImage} 
+                    onDistribute={handleDistribute} 
+                />
+            );
             case 'users': return <UserManagementView users={users} onEdit={u => { setEditingUser(u); setUserForm({ name: u.name, phone: u.phone, email: u.email, balance: u.balance }); setShowUserModal(true); }} onToggle={u => updateUser(u.id, { isActive: !u.isActive })} onDelete={id => showConfirmation('Delete?', 'Irreversible action.', () => deleteUser(id))} onLoginAs={loginAsUserFunc} onViewInvestments={(u) => { setSelectedUserInvestments(u); setShowInvestmentsModal(true); }} />;
             case 'plans': return <PlanManagementView plans={investmentPlans} onAdd={() => { setEditingPlan(null); setPlanForm({ name: '', minInvestment: '', dailyReturn: '', duration: '', category: '', expirationDate: '' }); setShowPlanModal(true); }} onEdit={p => { setEditingPlan(p); setPlanForm({ name: p.name, minInvestment: String(p.minInvestment), dailyReturn: String(p.dailyReturn), duration: String(p.duration), category: p.category, expirationDate: p.expirationDate || '' }); setShowPlanModal(true); }} onDelete={id => showConfirmation('Delete Plan?', 'Are you sure?', () => deleteInvestmentPlan(id))} />;
             case 'lucky_draw': return <LuckyDrawView prizes={luckyDrawPrizes} winningIds={luckyDrawWinningPrizeIds} onAdd={() => { setEditingPrize(null); setPrizeForm({ name: '', type: 'money', amount: 0 }); setShowPrizeModal(true); }} onEdit={p => { setEditingPrize(p); setPrizeForm({ name: p.name, type: p.type, amount: p.amount }); setShowPrizeModal(true); }} onDelete={id => deleteLuckyDrawPrize(id)} onToggleWin={handleWinToggle} />;

@@ -593,8 +593,10 @@ const logActivity = async (userId: string, userName: string, action: string) => 
     setStorage(STORAGE_KEYS.ACTIVITY, logs.slice(0, 50));
 };
 export const fetchTeamStats = async () => ({ totalMembers: 0, totalIncome: 0, members: [] });
-export const requestPasswordResetOtp = async (phone: string) => ({ success: true, otp: '123456' });
-export const resetPasswordWithOtp = async (phone: string, otp: string, newPass: string) => {
+
+// resetPassword updated (No OTP check)
+export const resetPassword = async (phone: string, newPass: string) => {
+    await delay();
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
     const user = users.find(u => u.phone === phone);
     if(user) {
@@ -604,6 +606,7 @@ export const resetPasswordWithOtp = async (phone: string, otp: string, newPass: 
     }
     throw new Error("User not found");
 };
+
 export const changeUserPassword = async (userId: string, oldPass: string, newPass: string) => {
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
     const user = users.find(u => u.id === userId);
@@ -614,8 +617,10 @@ export const changeUserPassword = async (userId: string, oldPass: string, newPas
     }
     throw new Error("User not found");
 };
-export const requestBankAccountOtp = async (userId: string) => ({ success: true, otp: '123456' });
-export const updateBankAccount = async (userId: string, d: any, o: string) => {
+
+// updateBankAccount updated (No OTP check)
+export const updateBankAccount = async (userId: string, d: any) => {
+    await delay();
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
     const idx = users.findIndex(u => u.id === userId);
     if(idx !== -1) {
@@ -625,7 +630,7 @@ export const updateBankAccount = async (userId: string, d: any, o: string) => {
     }
     throw new Error("User not found");
 };
-// Removed requestFundPasswordOtp
+
 export const updateFundPassword = async (userId: string, newPass: string) => {
     const users = getStorage<User[]>(STORAGE_KEYS.USERS, []);
     const idx = users.findIndex(u => u.id === userId);
@@ -637,7 +642,6 @@ export const updateFundPassword = async (userId: string, newPass: string) => {
     throw new Error("User not found");
 };
 export const markNotificationsAsRead = async () => { 
-    // In mock, this just returns active user with no change, or clears flags if we implemented them
     return { success: true, user: await fetchUserProfile() }; 
 };
 export const changeAdminPassword = async (oldPass: string, newPass: string) => ({ success: true });
