@@ -52,7 +52,9 @@ function AppContent() {
   }, [appName]);
   
   useEffect(() => {
-    const selected = themeHexMap[themeColor];
+    // Fallback to green if the themeColor is invalid or undefined
+    const selected = themeHexMap[themeColor] || themeHexMap.green;
+    
     const css = `
       .bg-green-50 { background-color: ${selected[50]} !important; }
       .hover\\:bg-green-50:hover { background-color: ${selected[50]} !important; }
